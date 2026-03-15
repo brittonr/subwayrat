@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rat-image",
+    "crates/rat-editor",
+    "crates/rat-selection",
+    "crates/rat-markdown",
+    "crates/rat-streaming",
+    "crates/rat-diff",
+    "crates/rat-widgets",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+ratatui = "0.30"
+unicode-width = "0.2"
+base64 = "0.22"
