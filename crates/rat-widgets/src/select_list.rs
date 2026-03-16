@@ -2,7 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 use ratatui::style::Style;
 use ratatui::text::Span;
 use ratatui::widgets::Block;
@@ -10,6 +9,8 @@ use ratatui::widgets::Borders;
 use ratatui::widgets::Clear;
 use ratatui::widgets::List;
 use ratatui::widgets::ListItem;
+
+use crate::theme::WidgetTheme;
 
 pub struct SelectList {
     pub title: String,
@@ -41,6 +42,10 @@ impl SelectList {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         if !self.visible {
             return;
         }
@@ -55,7 +60,7 @@ impl SelectList {
         let block = Block::default()
             .title(format!(" {} ", self.title))
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Blue));
+            .border_style(Style::default().fg(theme.primary));
 
         let items: Vec<ListItem> = self
             .items
@@ -63,9 +68,9 @@ impl SelectList {
             .enumerate()
             .map(|(i, item)| {
                 let style = if i == self.selected {
-                    Style::default().bg(Color::DarkGray).fg(Color::White)
+                    theme.highlight_style()
                 } else {
-                    Style::default().fg(Color::White)
+                    Style::default().fg(theme.text)
                 };
                 ListItem::new(Span::styled(item.clone(), style))
             })

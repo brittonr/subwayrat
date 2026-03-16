@@ -5,7 +5,6 @@ use std::time::Instant;
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 use ratatui::style::Style;
 use ratatui::text::Line;
 use ratatui::widgets::Block;
@@ -13,6 +12,8 @@ use ratatui::widgets::Borders;
 use ratatui::widgets::Clear;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::Wrap;
+
+use crate::theme::WidgetTheme;
 
 pub enum NotificationLevel {
     Info,
@@ -60,10 +61,14 @@ impl Notification {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         let (border_color, title) = match self.level {
-            NotificationLevel::Info => (Color::Blue, " Info "),
-            NotificationLevel::Warning => (Color::Yellow, " Warning "),
-            NotificationLevel::Error => (Color::Red, " Error "),
+            NotificationLevel::Info => (theme.primary, " Info "),
+            NotificationLevel::Warning => (theme.warning, " Warning "),
+            NotificationLevel::Error => (theme.error, " Error "),
         };
 
         let width = 50.min(area.width.saturating_sub(4));
@@ -73,8 +78,13 @@ impl Notification {
         let popup = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, popup);
-        let block = Block::default().title(title).borders(Borders::ALL).border_style(Style::default().fg(border_color));
-        let paragraph = Paragraph::new(Line::from(self.message.clone())).block(block).wrap(Wrap { trim: true });
+        let block = Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border_color));
+        let paragraph = Paragraph::new(Line::from(self.message.clone()))
+            .block(block)
+            .wrap(Wrap { trim: true });
         frame.render_widget(paragraph, popup);
     }
 }

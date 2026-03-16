@@ -2,7 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 use ratatui::style::Modifier;
 use ratatui::style::Style;
 use ratatui::text::Line;
@@ -12,6 +11,8 @@ use ratatui::widgets::Borders;
 use ratatui::widgets::Clear;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::Wrap;
+
+use crate::theme::WidgetTheme;
 
 pub struct ConfirmDialog {
     pub message: String,
@@ -33,6 +34,10 @@ impl ConfirmDialog {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         if !self.visible {
             return;
         }
@@ -48,26 +53,35 @@ impl ConfirmDialog {
         let block = Block::default()
             .title(" Confirm ")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow));
+            .border_style(Style::default().fg(theme.warning));
 
         let yes_style = if self.selected {
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(theme.success)
+                .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::DarkGray)
+            Style::default().fg(theme.text_disabled)
         };
         let no_style = if !self.selected {
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(theme.error)
+                .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::DarkGray)
+            Style::default().fg(theme.text_disabled)
         };
 
         let content = vec![
             Line::from(self.message.clone()),
             Line::from(""),
-            Line::from(vec![Span::styled("  [Yes] ", yes_style), Span::styled("  [No] ", no_style)]),
+            Line::from(vec![
+                Span::styled("  [Yes] ", yes_style),
+                Span::styled("  [No] ", no_style),
+            ]),
         ];
 
-        let paragraph = Paragraph::new(content).block(block).wrap(Wrap { trim: true });
+        let paragraph = Paragraph::new(content)
+            .block(block)
+            .wrap(Wrap { trim: true });
         frame.render_widget(paragraph, popup);
     }
 }

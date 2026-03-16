@@ -11,6 +11,7 @@ pub mod command_history;
 pub mod progress_bar;
 pub mod tab_bar;
 pub mod text_input;
+pub mod theme;
 
 pub use scroll::FreeScroll;
 pub use select_list::SelectList;
@@ -23,3 +24,4 @@ pub use command_history::CommandHistory;
 pub use progress_bar::ProgressBar;
 pub use tab_bar::TabBar;
 pub use text_input::TextInput;
+pub use theme::WidgetTheme;

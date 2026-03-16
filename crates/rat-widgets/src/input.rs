@@ -2,7 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 use ratatui::style::Modifier;
 use ratatui::style::Style;
 use ratatui::text::Line;
@@ -11,6 +10,8 @@ use ratatui::widgets::Block;
 use ratatui::widgets::Borders;
 use ratatui::widgets::Clear;
 use ratatui::widgets::Paragraph;
+
+use crate::theme::WidgetTheme;
 
 pub struct InputDialog {
     pub title: String,
@@ -42,6 +43,10 @@ impl InputDialog {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         if !self.visible {
             return;
         }
@@ -56,14 +61,19 @@ impl InputDialog {
         let block = Block::default()
             .title(format!(" {} ", self.title))
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Blue));
+            .border_style(Style::default().fg(theme.primary));
 
         let inner = block.inner(popup);
         frame.render_widget(block, popup);
 
         let input_line = Line::from(vec![
-            Span::styled(&self.value, Style::default().fg(Color::White)),
-            Span::styled("_", Style::default().fg(Color::White).add_modifier(Modifier::SLOW_BLINK)),
+            Span::styled(&self.value, Style::default().fg(theme.text)),
+            Span::styled(
+                "_",
+                Style::default()
+                    .fg(theme.text)
+                    .add_modifier(Modifier::SLOW_BLINK),
+            ),
         ]);
         frame.render_widget(Paragraph::new(input_line), inner);
     }
