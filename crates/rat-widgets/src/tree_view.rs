@@ -2,8 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
-use ratatui::style::Modifier;
 use ratatui::style::Style;
 use ratatui::text::Line;
 use ratatui::text::Span;
@@ -11,6 +9,8 @@ use ratatui::widgets::Block;
 use ratatui::widgets::Borders;
 use ratatui::widgets::Clear;
 use ratatui::widgets::Paragraph;
+
+use crate::theme::WidgetTheme;
 
 pub struct TreeNode {
     pub label: String,
@@ -60,10 +60,16 @@ impl TreeView {
     }
 
     pub fn selected_id(&self) -> Option<&str> {
-        self.flat_cache.get(self.selected).map(|(_, id, _)| id.as_str())
+        self.flat_cache
+            .get(self.selected)
+            .map(|(_, id, _)| id.as_str())
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         if !self.visible {
             return;
         }
@@ -78,7 +84,7 @@ impl TreeView {
         let block = Block::default()
             .title(" Sessions ")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Blue));
+            .border_style(Style::default().fg(theme.primary));
 
         let inner = block.inner(popup);
         frame.render_widget(block, popup);
@@ -90,7 +96,7 @@ impl TreeView {
             .map(|(i, (label, _, depth))| {
                 let indent = "  ".repeat(*depth);
                 let style = if i == self.selected {
-                    Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD)
+                    theme.highlight_style()
                 } else {
                     Style::default()
                 };

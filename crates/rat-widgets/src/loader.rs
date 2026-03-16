@@ -2,11 +2,12 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 use ratatui::style::Style;
 use ratatui::text::Line;
 use ratatui::text::Span;
 use ratatui::widgets::Paragraph;
+
+use crate::theme::WidgetTheme;
 
 const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -28,10 +29,17 @@ impl Loader {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
+        self.render_themed(frame, area, &WidgetTheme::default());
+    }
+
+    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         let spinner = SPINNER_FRAMES[self.frame];
         let line = Line::from(vec![
-            Span::styled(format!("{} ", spinner), Style::default().fg(Color::Cyan)),
-            Span::styled(&self.message, Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!("{} ", spinner),
+                Style::default().fg(theme.primary),
+            ),
+            Span::styled(&self.message, Style::default().fg(theme.text_muted)),
         ]);
         frame.render_widget(Paragraph::new(line), area);
     }
