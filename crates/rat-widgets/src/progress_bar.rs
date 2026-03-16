@@ -144,8 +144,8 @@ impl ProgressBar {
         }
 
         if bar_width > 0 {
-            let filled: String = std::iter::repeat(self.filled_char).take(filled_count).collect();
-            let empty: String = std::iter::repeat(self.empty_char).take(empty_count).collect();
+            let filled: String = std::iter::repeat_n(self.filled_char, filled_count).collect();
+            let empty: String = std::iter::repeat_n(self.empty_char, empty_count).collect();
             spans.push(Span::styled(filled, self.filled_style));
             spans.push(Span::styled(empty, self.empty_style));
         }

@@ -27,8 +27,8 @@ use std::path::Path;
 /// assert_eq!(history.prev(), Some("ls -la"));
 ///
 /// // Navigate forward
-/// assert_eq!(history.next(), Some("cd /home"));
-/// assert_eq!(history.next(), None); // Back to empty input
+/// assert_eq!(history.next_entry(), Some("cd /home"));
+/// assert_eq!(history.next_entry(), None); // Back to empty input
 /// ```
 pub struct CommandHistory {
     entries: Vec<String>,
@@ -116,7 +116,7 @@ impl CommandHistory {
     ///
     /// Returns the entry text, or None when past the newest entry
     /// (meaning "back to empty input"). Stops browsing when None is returned.
-    pub fn next(&mut self) -> Option<&str> {
+    pub fn next_entry(&mut self) -> Option<&str> {
         if !self.browsing || self.entries.is_empty() {
             return None;
         }
@@ -310,9 +310,9 @@ mod tests {
         assert_eq!(history.prev(), Some("cmd1"));
         
         // Navigate forward
-        assert_eq!(history.next(), Some("cmd2"));
-        assert_eq!(history.next(), Some("cmd3"));
-        assert_eq!(history.next(), None); // Back to empty
+        assert_eq!(history.next_entry(), Some("cmd2"));
+        assert_eq!(history.next_entry(), Some("cmd3"));
+        assert_eq!(history.next_entry(), None); // Back to empty
     }
 
     #[test]
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(history.prev(), Some("cmd1"));
         assert!(history.is_browsing());
         
-        assert_eq!(history.next(), None); // Past end
+        assert_eq!(history.next_entry(), None); // Past end
         assert!(!history.is_browsing());
     }
 
@@ -376,13 +376,13 @@ mod tests {
         assert_eq!(history.position(), (1, 3));
         
         // Browse forward
-        assert_eq!(history.next(), Some("cmd2"));
+        assert_eq!(history.next_entry(), Some("cmd2"));
         assert_eq!(history.position(), (2, 3));
         
-        assert_eq!(history.next(), Some("cmd3"));
+        assert_eq!(history.next_entry(), Some("cmd3"));
         assert_eq!(history.position(), (3, 3));
         
-        assert_eq!(history.next(), None); // Back to not browsing
+        assert_eq!(history.next_entry(), None); // Back to not browsing
         assert_eq!(history.position(), (3, 3));
     }
 
@@ -429,7 +429,7 @@ mod tests {
         let mut history = CommandHistory::new(5);
         
         assert_eq!(history.prev(), None);
-        assert_eq!(history.next(), None);
+        assert_eq!(history.next_entry(), None);
         assert_eq!(history.current(), None);
         assert_eq!(history.position(), (0, 0));
     }

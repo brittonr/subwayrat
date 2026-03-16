@@ -1,0 +1,9 @@
+[package]
+name = "rat-branches"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Generic tree branch utilities and comparison widgets for ratatui"
+
+[dependencies]
+ratatui.workspace = true

@@ -1,12 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/rat-image",
-    "crates/rat-editor",
-    "crates/rat-selection",
-    "crates/rat-markdown",
-    "crates/rat-streaming",
+    "crates/rat-branches",
     "crates/rat-diff",
+    "crates/rat-editor",
+    "crates/rat-image",
+    "crates/rat-keymap",
+    "crates/rat-leaderkey",
+    "crates/rat-markdown",
+    "crates/rat-selection",
+    "crates/rat-streaming",
     "crates/rat-widgets",
 ]
 

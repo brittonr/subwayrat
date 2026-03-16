@@ -1025,6 +1025,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
+name = "rat-branches"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "rat-diff"
 version = "0.1.0"
 dependencies = [
@@ -1048,6 +1055,20 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "image",
+]
+
+[[package]]
+name = "rat-keymap"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
+name = "rat-leaderkey"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]

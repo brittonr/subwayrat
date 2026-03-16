@@ -24,15 +24,17 @@ pub struct TreeView {
     pub root: Vec<TreeNode>,
     pub selected: usize,
     pub visible: bool,
+    pub title: String,
     flat_cache: Vec<(String, String, usize)>, // (label, id, depth)
 }
 
 impl TreeView {
-    pub fn new(root: Vec<TreeNode>) -> Self {
+    pub fn new(title: impl Into<String>, root: Vec<TreeNode>) -> Self {
         let mut tv = Self {
             root,
             selected: 0,
             visible: false,
+            title: title.into(),
             flat_cache: Vec::new(),
         };
         tv.rebuild_cache();
@@ -66,7 +68,41 @@ impl TreeView {
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        self.render_themed(frame, area, &WidgetTheme::default());
+        if !self.visible {
+            return;
+        }
+
+        let width = 50.min(area.width.saturating_sub(4));
+        let height = 20.min(area.height.saturating_sub(4));
+        let x = (area.width.saturating_sub(width)) / 2;
+        let y = (area.height.saturating_sub(height)) / 2;
+        let popup = Rect::new(x, y, width, height);
+
+        frame.render_widget(Clear, popup);
+        let block = Block::default()
+            .title(format!(" {} ", self.title))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(ratatui::style::Color::Blue));
+
+        let inner = block.inner(popup);
+        frame.render_widget(block, popup);
+
+        let lines: Vec<Line> = self
+            .flat_cache
+            .iter()
+            .enumerate()
+            .map(|(i, (label, _, depth))| {
+                let indent = "  ".repeat(*depth);
+                let style = if i == self.selected {
+                    Style::default().bg(ratatui::style::Color::DarkGray).add_modifier(ratatui::style::Modifier::BOLD)
+                } else {
+                    Style::default()
+                };
+                Line::from(Span::styled(format!("{}{}", indent, label), style))
+            })
+            .collect();
+
+        frame.render_widget(Paragraph::new(lines), inner);
     }
 
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
@@ -82,7 +118,7 @@ impl TreeView {
 
         frame.render_widget(Clear, popup);
         let block = Block::default()
-            .title(" Sessions ")
+            .title(format!(" {} ", self.title))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(theme.primary));
 
