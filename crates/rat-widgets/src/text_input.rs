@@ -1,0 +1,413 @@
+//! Inline single-line text input widget.
+//!
+//! Unlike [`InputDialog`](crate::InputDialog) (which renders as a centered popup),
+//! this widget renders within its given `Rect` — suitable for search boxes,
+//! filter inputs, and other inline text fields.
+
+use ratatui::Frame;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Paragraph};
+
+pub struct TextInput {
+    value: String,
+    cursor_pos: usize,
+    focused: bool,
+    focused_border: Color,
+    unfocused_border: Color,
+    text_style: Style,
+    cursor_style: Style,
+    placeholder: String,
+    placeholder_style: Style,
+}
+
+impl TextInput {
+    pub fn new() -> Self {
+        Self {
+            value: String::new(),
+            cursor_pos: 0,
+            focused: false,
+            focused_border: Color::Cyan,
+            unfocused_border: Color::DarkGray,
+            text_style: Style::default().fg(Color::White),
+            cursor_style: Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::SLOW_BLINK),
+            placeholder: String::new(),
+            placeholder_style: Style::default().fg(Color::DarkGray),
+        }
+    }
+
+    pub fn with_value(mut self, value: impl Into<String>) -> Self {
+        self.value = value.into();
+        self.cursor_pos = self.value.len();
+        self
+    }
+
+    pub fn with_placeholder(mut self, p: impl Into<String>) -> Self {
+        self.placeholder = p.into();
+        self
+    }
+
+    pub fn with_focused(mut self, focused: bool) -> Self {
+        self.focused = focused;
+        self
+    }
+
+    pub fn with_focused_border(mut self, c: Color) -> Self {
+        self.focused_border = c;
+        self
+    }
+
+    pub fn with_unfocused_border(mut self, c: Color) -> Self {
+        self.unfocused_border = c;
+        self
+    }
+
+    pub fn with_text_style(mut self, s: Style) -> Self {
+        self.text_style = s;
+        self
+    }
+
+    // -- accessors --
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    pub fn set_value(&mut self, v: &str) {
+        self.value = v.to_string();
+        self.cursor_pos = self.value.len();
+    }
+
+    pub fn focus(&mut self) {
+        self.focused = true;
+    }
+
+    pub fn blur(&mut self) {
+        self.focused = false;
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.focused
+    }
+
+    // -- editing --
+
+    pub fn type_char(&mut self, c: char) {
+        self.value.insert(self.cursor_pos, c);
+        self.cursor_pos += c.len_utf8();
+    }
+
+    pub fn backspace(&mut self) {
+        if self.cursor_pos == 0 {
+            return;
+        }
+        // Walk back one char boundary.
+        let prev = self.value[..self.cursor_pos]
+            .char_indices()
+            .next_back()
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+        self.value.remove(prev);
+        self.cursor_pos = prev;
+    }
+
+    pub fn delete(&mut self) {
+        if self.cursor_pos >= self.value.len() {
+            return;
+        }
+        self.value.remove(self.cursor_pos);
+    }
+
+    pub fn move_left(&mut self) {
+        if self.cursor_pos == 0 {
+            return;
+        }
+        self.cursor_pos = self.value[..self.cursor_pos]
+            .char_indices()
+            .next_back()
+            .map(|(i, _)| i)
+            .unwrap_or(0);
+    }
+
+    pub fn move_right(&mut self) {
+        if self.cursor_pos >= self.value.len() {
+            return;
+        }
+        self.cursor_pos = self.value[self.cursor_pos..]
+            .char_indices()
+            .nth(1)
+            .map(|(i, _)| self.cursor_pos + i)
+            .unwrap_or(self.value.len());
+    }
+
+    pub fn move_home(&mut self) {
+        self.cursor_pos = 0;
+    }
+
+    pub fn move_end(&mut self) {
+        self.cursor_pos = self.value.len();
+    }
+
+    pub fn clear(&mut self) {
+        self.value.clear();
+        self.cursor_pos = 0;
+    }
+
+    pub fn submit(&mut self) -> String {
+        let val = std::mem::take(&mut self.value);
+        self.cursor_pos = 0;
+        val
+    }
+
+    // -- rendering --
+
+    pub fn render(&self, frame: &mut Frame, area: Rect, block: Option<Block>) {
+        let border_color = if self.focused {
+            self.focused_border
+        } else {
+            self.unfocused_border
+        };
+
+        let block = block.unwrap_or_else(|| {
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(border_color))
+        });
+
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        if inner.width == 0 || inner.height == 0 {
+            return;
+        }
+
+        let visible_width = inner.width as usize;
+
+        // Empty + unfocused → placeholder
+        if self.value.is_empty() && !self.focused {
+            let shown: String = self.placeholder.chars().take(visible_width).collect();
+            let line = Line::from(Span::styled(shown, self.placeholder_style));
+            frame.render_widget(Paragraph::new(line), inner);
+            return;
+        }
+
+        // Compute scroll offset so the cursor stays visible.
+        let char_count = self.value[..self.cursor_pos].chars().count();
+        let scroll_offset = if char_count >= visible_width {
+            char_count - visible_width + 1
+        } else {
+            0
+        };
+
+        // Build visible slice: skip `scroll_offset` chars, take `visible_width`.
+        let visible_chars: Vec<char> = self.value.chars().skip(scroll_offset).collect();
+        let cursor_col = char_count - scroll_offset; // column within visible region
+
+        if self.focused {
+            let before: String = visible_chars[..cursor_col].iter().collect();
+            let cursor_char = visible_chars
+                .get(cursor_col)
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| " ".to_string());
+            let after_start = (cursor_col + 1).min(visible_chars.len());
+            let after: String = visible_chars[after_start..]
+                .iter()
+                .take(visible_width.saturating_sub(cursor_col + 1))
+                .collect();
+
+            let spans = vec![
+                Span::styled(before, self.text_style),
+                Span::styled(cursor_char, self.cursor_style),
+                Span::styled(after, self.text_style),
+            ];
+            frame.render_widget(Paragraph::new(Line::from(spans)), inner);
+        } else {
+            let shown: String = visible_chars.iter().take(visible_width).collect();
+            let line = Line::from(Span::styled(shown, self.text_style));
+            frame.render_widget(Paragraph::new(line), inner);
+        }
+    }
+}
+
+impl Default for TextInput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn type_char_inserts_at_cursor() {
+        let mut input = TextInput::new();
+        input.type_char('a');
+        input.type_char('b');
+        input.type_char('c');
+        assert_eq!(input.value(), "abc");
+        assert_eq!(input.cursor_pos, 3);
+    }
+
+    #[test]
+    fn type_char_mid_string() {
+        let mut input = TextInput::new().with_value("ac");
+        input.move_home();
+        input.move_right(); // after 'a'
+        input.type_char('b');
+        assert_eq!(input.value(), "abc");
+        assert_eq!(input.cursor_pos, 2);
+    }
+
+    #[test]
+    fn backspace_deletes_before_cursor() {
+        let mut input = TextInput::new().with_value("abc");
+        input.backspace();
+        assert_eq!(input.value(), "ab");
+        assert_eq!(input.cursor_pos, 2);
+    }
+
+    #[test]
+    fn backspace_at_start_is_noop() {
+        let mut input = TextInput::new().with_value("abc");
+        input.move_home();
+        input.backspace();
+        assert_eq!(input.value(), "abc");
+        assert_eq!(input.cursor_pos, 0);
+    }
+
+    #[test]
+    fn delete_removes_at_cursor() {
+        let mut input = TextInput::new().with_value("abc");
+        input.move_home();
+        input.delete();
+        assert_eq!(input.value(), "bc");
+        assert_eq!(input.cursor_pos, 0);
+    }
+
+    #[test]
+    fn delete_at_end_is_noop() {
+        let mut input = TextInput::new().with_value("abc");
+        input.delete();
+        assert_eq!(input.value(), "abc");
+    }
+
+    #[test]
+    fn cursor_movement() {
+        let mut input = TextInput::new().with_value("hello");
+        assert_eq!(input.cursor_pos, 5);
+
+        input.move_home();
+        assert_eq!(input.cursor_pos, 0);
+
+        input.move_right();
+        assert_eq!(input.cursor_pos, 1);
+
+        input.move_end();
+        assert_eq!(input.cursor_pos, 5);
+
+        input.move_left();
+        assert_eq!(input.cursor_pos, 4);
+    }
+
+    #[test]
+    fn move_left_at_start_stays() {
+        let mut input = TextInput::new().with_value("x");
+        input.move_home();
+        input.move_left();
+        assert_eq!(input.cursor_pos, 0);
+    }
+
+    #[test]
+    fn move_right_at_end_stays() {
+        let mut input = TextInput::new().with_value("x");
+        input.move_right();
+        assert_eq!(input.cursor_pos, 1);
+    }
+
+    #[test]
+    fn submit_clears_and_returns() {
+        let mut input = TextInput::new().with_value("query");
+        let val = input.submit();
+        assert_eq!(val, "query");
+        assert_eq!(input.value(), "");
+        assert_eq!(input.cursor_pos, 0);
+    }
+
+    #[test]
+    fn clear_empties() {
+        let mut input = TextInput::new().with_value("stuff");
+        input.clear();
+        assert_eq!(input.value(), "");
+        assert_eq!(input.cursor_pos, 0);
+    }
+
+    #[test]
+    fn set_value_puts_cursor_at_end() {
+        let mut input = TextInput::new();
+        input.set_value("hi");
+        assert_eq!(input.value(), "hi");
+        assert_eq!(input.cursor_pos, 2);
+    }
+
+    #[test]
+    fn focus_and_blur() {
+        let mut input = TextInput::new();
+        assert!(!input.is_focused());
+        input.focus();
+        assert!(input.is_focused());
+        input.blur();
+        assert!(!input.is_focused());
+    }
+
+    #[test]
+    fn placeholder_preserved() {
+        let input = TextInput::new().with_placeholder("Search...");
+        assert_eq!(input.placeholder, "Search...");
+    }
+
+    #[test]
+    fn multibyte_chars() {
+        let mut input = TextInput::new().with_value("café");
+        // "café" = 5 bytes (é is 2 bytes)
+        assert_eq!(input.cursor_pos, 5);
+
+        input.backspace(); // remove 'é'
+        assert_eq!(input.value(), "caf");
+        assert_eq!(input.cursor_pos, 3);
+
+        input.type_char('é');
+        assert_eq!(input.value(), "café");
+        assert_eq!(input.cursor_pos, 5);
+    }
+
+    #[test]
+    fn delete_multibyte_mid() {
+        let mut input = TextInput::new().with_value("aéb");
+        input.move_home();
+        input.move_right(); // past 'a', cursor at byte 1
+        input.delete(); // remove 'é'
+        assert_eq!(input.value(), "ab");
+        assert_eq!(input.cursor_pos, 1);
+    }
+
+    #[test]
+    fn builder_chain() {
+        let input = TextInput::new()
+            .with_value("init")
+            .with_placeholder("hint")
+            .with_focused(true)
+            .with_focused_border(Color::Green)
+            .with_unfocused_border(Color::Red)
+            .with_text_style(Style::default().fg(Color::Yellow));
+
+        assert_eq!(input.value(), "init");
+        assert!(input.is_focused());
+        assert_eq!(input.placeholder, "hint");
+        assert_eq!(input.focused_border, Color::Green);
+        assert_eq!(input.unfocused_border, Color::Red);
+    }
+}

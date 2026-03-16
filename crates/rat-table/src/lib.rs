@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     widgets::{Block, Cell, Row, Table, TableState},
     Frame, layout::{Constraint, Rect},
 };
@@ -249,7 +249,7 @@ impl DataTable {
             .collect();
 
         // Build table
-        let mut table = Table::new(data_rows, constraints)
+        let table = Table::new(data_rows, constraints)
             .header(header_row);
         
         // Create and configure table state for selection
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn test_truncation() {
         let result = truncate_cell("This is a very long string", 10, "...");
-        assert_eq!(result, "This is a...");
+        assert_eq!(result, "This is...");  // 10 - 3 = 7 chars of content
 
         let result = truncate_cell("Short", 10, "...");
         assert_eq!(result, "Short");

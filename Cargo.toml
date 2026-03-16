@@ -8,7 +8,6 @@ members = [
     "crates/rat-streaming",
     "crates/rat-diff",
     "crates/rat-widgets",
-    "crates/rat-table",
 ]
 
 [workspace.package]
