@@ -12,6 +12,7 @@ members = [
     "crates/rat-markdown",
     "crates/rat-selection",
     "crates/rat-streaming",
+    "crates/rat-table",
     "crates/rat-widgets",
 ]
 
