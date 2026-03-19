@@ -10,6 +10,8 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+pub type Completer = Box<dyn Fn(&str) -> Vec<String>>;
+
 pub struct TextInput {
     value: String,
     cursor_pos: usize,
@@ -20,6 +22,7 @@ pub struct TextInput {
     cursor_style: Style,
     placeholder: String,
     placeholder_style: Style,
+    completer: Option<Completer>,
 }
 
 impl TextInput {
@@ -36,6 +39,7 @@ impl TextInput {
                 .add_modifier(Modifier::SLOW_BLINK),
             placeholder: String::new(),
             placeholder_style: Style::default().fg(Color::DarkGray),
+            completer: None,
         }
     }
 
@@ -67,6 +71,11 @@ impl TextInput {
 
     pub fn with_text_style(mut self, s: Style) -> Self {
         self.text_style = s;
+        self
+    }
+
+    pub fn with_completer(mut self, c: Completer) -> Self {
+        self.completer = Some(c);
         self
     }
 
@@ -156,6 +165,33 @@ impl TextInput {
         self.cursor_pos = 0;
     }
 
+    pub fn complete(&mut self) -> Vec<String> {
+        let Some(ref completer) = self.completer else {
+            return Vec::new();
+        };
+
+        let matches = completer(&self.value);
+        
+        match matches.len() {
+            0 => Vec::new(),
+            1 => {
+                // Single match: replace value and move cursor to end
+                self.value = matches[0].clone();
+                self.cursor_pos = self.value.len();
+                matches
+            }
+            _ => {
+                // Multiple matches: find longest common prefix
+                let common_prefix = longest_common_prefix(&matches);
+                if !common_prefix.is_empty() && common_prefix != self.value {
+                    self.value = common_prefix;
+                    self.cursor_pos = self.value.len();
+                }
+                matches
+            }
+        }
+    }
+
     pub fn submit(&mut self) -> String {
         let val = std::mem::take(&mut self.value);
         self.cursor_pos = 0;
@@ -236,6 +272,30 @@ impl Default for TextInput {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn longest_common_prefix(strings: &[String]) -> String {
+    if strings.is_empty() {
+        return String::new();
+    }
+    if strings.len() == 1 {
+        return strings[0].clone();
+    }
+
+    let mut prefix = String::new();
+    let first_chars: Vec<char> = strings[0].chars().collect();
+    
+    for (i, &ch) in first_chars.iter().enumerate() {
+        if strings.iter().skip(1).all(|s| {
+            s.chars().nth(i) == Some(ch)
+        }) {
+            prefix.push(ch);
+        } else {
+            break;
+        }
+    }
+    
+    prefix
 }
 
 #[cfg(test)]
@@ -409,5 +469,94 @@ mod tests {
         assert_eq!(input.placeholder, "hint");
         assert_eq!(input.focused_border, Color::Green);
         assert_eq!(input.unfocused_border, Color::Red);
+    }
+
+    #[test]
+    fn complete_no_completer_returns_empty() {
+        let mut input = TextInput::new().with_value("test");
+        let matches = input.complete();
+        assert!(matches.is_empty());
+        assert_eq!(input.value(), "test");
+    }
+
+    #[test]
+    fn complete_no_matches_returns_empty() {
+        let mut input = TextInput::new()
+            .with_value("xyz")
+            .with_completer(Box::new(|_| vec![]));
+        let matches = input.complete();
+        assert!(matches.is_empty());
+        assert_eq!(input.value(), "xyz");
+    }
+
+    #[test]
+    fn complete_single_match_replaces_value() {
+        let mut input = TextInput::new()
+            .with_value("he")
+            .with_completer(Box::new(|s| {
+                if s.starts_with("he") { vec!["hello".to_string()] } else { vec![] }
+            }));
+        let matches = input.complete();
+        assert_eq!(matches, vec!["hello"]);
+        assert_eq!(input.value(), "hello");
+        assert_eq!(input.cursor_pos, 5);
+    }
+
+    #[test]
+    fn complete_multiple_matches_common_prefix() {
+        let mut input = TextInput::new()
+            .with_value("te")
+            .with_completer(Box::new(|s| {
+                if s.starts_with("te") { 
+                    vec!["test".to_string(), "testing".to_string(), "temp".to_string()] 
+                } else { 
+                    vec![] 
+                }
+            }));
+        let matches = input.complete();
+        assert_eq!(matches, vec!["test", "testing", "temp"]);
+        assert_eq!(input.value(), "te"); // common prefix is just "te"
+    }
+
+    #[test]
+    fn complete_multiple_matches_longer_prefix() {
+        let mut input = TextInput::new()
+            .with_value("test")
+            .with_completer(Box::new(|s| {
+                if s.starts_with("test") { 
+                    vec!["testing".to_string(), "tester".to_string()] 
+                } else { 
+                    vec![] 
+                }
+            }));
+        let matches = input.complete();
+        assert_eq!(matches, vec!["testing", "tester"]);
+        assert_eq!(input.value(), "test"); // common prefix is still just "test"
+    }
+
+    #[test]
+    fn longest_common_prefix_empty() {
+        assert_eq!(longest_common_prefix(&[]), "");
+    }
+
+    #[test]
+    fn longest_common_prefix_single() {
+        assert_eq!(longest_common_prefix(&["hello".to_string()]), "hello");
+    }
+
+    #[test]
+    fn longest_common_prefix_multiple() {
+        assert_eq!(
+            longest_common_prefix(&["test".to_string(), "testing".to_string(), "tester".to_string()]),
+            "test"
+        );
+    }
+
+    #[test]
+    fn longest_common_prefix_no_common() {
+        assert_eq!(
+            longest_common_prefix(&["abc".to_string(), "def".to_string()]),
+            ""
+        );
     }
 }

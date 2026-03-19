@@ -9,6 +9,9 @@ description = "Small reusable TUI widgets for ratatui: dialogs, spinner, notific
 ratatui = { workspace = true }
 serde_json = { version = "1.0", optional = true }
 
+[dev-dependencies]
+tempfile = "3.0"
+
 [features]
 default = ["persistence"]
 persistence = ["dep:serde_json"]

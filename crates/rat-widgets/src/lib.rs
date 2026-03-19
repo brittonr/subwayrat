@@ -12,6 +12,8 @@ pub mod scrollable_list;
 pub mod progress_bar;
 pub mod tab_bar;
 pub mod text_input;
+pub mod grid_select;
+pub mod path_complete;
 pub mod theme;
 
 pub use scroll::FreeScroll;
@@ -26,4 +28,6 @@ pub use scrollable_list::ScrollableList;
 pub use progress_bar::ProgressBar;
 pub use tab_bar::TabBar;
 pub use text_input::TextInput;
+pub use grid_select::{GridSelect, GridItem};
+pub use path_complete::path_completer;
 pub use theme::WidgetTheme;

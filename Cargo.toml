@@ -2,10 +2,12 @@
 resolver = "2"
 members = [
     "crates/rat-branches",
+    "crates/rat-canvas",
     "crates/rat-diff",
     "crates/rat-editor",
     "crates/rat-image",
     "crates/rat-keymap",
+    "crates/rat-layers",
     "crates/rat-leaderkey",
     "crates/rat-markdown",
     "crates/rat-selection",
