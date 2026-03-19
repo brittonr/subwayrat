@@ -3,7 +3,7 @@
 //! This module contains no ratatui dependency. It's a pure data structure
 //! for directed graphs with typed input/output ports on each node.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
 #[cfg(feature = "serde")]
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 // ---------------------------------------------------------------------------
 
 /// Unique node identifier. Monotonically assigned by the graph.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NodeId(pub u64);
 
@@ -176,7 +176,7 @@ pub fn default_compatibility(source: &str, target: &str) -> bool {
 /// Directed graph with typed ports and optional DAG enforcement.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Graph {
-    nodes: HashMap<NodeId, Node>,
+    nodes: BTreeMap<NodeId, Node>,
     edges: Vec<Edge>,
     next_node_id: u64,
     next_port_id: u64,
@@ -217,7 +217,7 @@ impl Graph {
     /// Create an empty graph. DAG mode is off by default.
     pub fn new() -> Self {
         Self {
-            nodes: HashMap::new(),
+            nodes: BTreeMap::new(),
             edges: Vec::new(),
             next_node_id: 0,
             next_port_id: 0,
@@ -476,7 +476,7 @@ impl Graph {
         self.edges.len()
     }
 
-    /// Collect all node IDs (unordered).
+    /// Collect all node IDs, sorted by ID (insertion order).
     pub fn node_ids(&self) -> Vec<NodeId> {
         self.nodes.keys().copied().collect()
     }

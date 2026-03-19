@@ -24,6 +24,7 @@
 
 ## Patterns That Don't Work
 - Storing computed selection as a field instead of computing it on-demand
+- Using `HashMap` for ID-keyed collections that get iterated — nondeterministic order causes flaky tests. Use `BTreeMap` for anything with monotonic IDs.
 
 ## Domain Notes
 - subwayrat: a collection of ratatui TUI widgets
