@@ -1405,6 +1405,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "showcase"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "rat-diff",
+ "rat-editor",
+ "rat-markdown",
+ "rat-spreadsheet",
+ "rat-table",
+ "rat-widgets",
+ "ratatui",
+]
+
+[[package]]
 name = "signal-hook"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
