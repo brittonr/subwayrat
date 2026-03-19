@@ -400,10 +400,8 @@ impl Graph {
                 let out_port_ids: Vec<PortId> =
                     node.output_ports.iter().map(|p| p.id).collect();
                 for edge in &self.edges {
-                    if out_port_ids.contains(&edge.source) {
-                        if let Some(&neighbor) = self.port_owner.get(&edge.target) {
-                            stack.push(neighbor);
-                        }
+                    if out_port_ids.contains(&edge.source) && let Some(&neighbor) = self.port_owner.get(&edge.target) {
+                        stack.push(neighbor);
                     }
                 }
             }

@@ -21,6 +21,12 @@ impl CursorState {
     }
 }
 
+impl Default for CursorState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
     None,
@@ -77,6 +83,12 @@ impl ScrollState {
         } else if addr.row >= self.offset_row + self.visible_rows {
             self.offset_row = addr.row.saturating_sub(self.visible_rows - 1);
         }
+    }
+}
+
+impl Default for ScrollState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -184,19 +184,15 @@ pub fn handle_action(state: &mut SpreadsheetState, action: Action, clipboard: &m
             true
         }
         Action::CancelEdit => {
-            if state.edit.editing {
-                if let Some(prev) = state.edit.cancel() {
-                    state.grid.set(state.cursor.position, prev);
-                }
+            if state.edit.editing && let Some(prev) = state.edit.cancel() {
+                state.grid.set(state.cursor.position, prev);
             }
             true
         }
         Action::Undo => {
-            if !state.edit.editing {
-                if let Some((addr, prev_value)) = state.last_undo.take() {
-                    state.grid.set(addr, prev_value);
-                    recalc_dependents(state, addr);
-                }
+            if !state.edit.editing && let Some((addr, prev_value)) = state.last_undo.take() {
+                state.grid.set(addr, prev_value);
+                recalc_dependents(state, addr);
             }
             true
         }
@@ -396,15 +392,13 @@ fn paste_clipboard(state: &mut SpreadsheetState, clipboard: &Clipboard) {
         state.grid.set(target, value.clone());
 
         // Re-evaluate if it's a formula
-        if let CellValue::Formula { expr, .. } = value {
-            if let Ok(parsed) = parse(expr) {
-                state.dep_graph.update_deps(target, &parsed);
-                let cached = evaluate_with_registry(&parsed, &state.grid, &state.fn_registry);
-                state.grid.set(target, CellValue::Formula {
-                    expr: expr.clone(),
-                    cached: Box::new(cached),
-                });
-            }
+        if let CellValue::Formula { expr, .. } = value && let Ok(parsed) = parse(expr) {
+            state.dep_graph.update_deps(target, &parsed);
+            let cached = evaluate_with_registry(&parsed, &state.grid, &state.fn_registry);
+            state.grid.set(target, CellValue::Formula {
+                expr: expr.clone(),
+                cached: Box::new(cached),
+            });
         }
     }
 

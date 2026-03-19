@@ -268,10 +268,8 @@ pub fn hit_test(state: &NodeGraphState, canvas_x: i32, canvas_y: i32) -> HitTarg
         if let (Some((sx, sy)), Some((tx, ty))) = (
             port_canvas_position(&state.graph, edge.source),
             port_canvas_position(&state.graph, edge.target),
-        ) {
-            if point_near_manhattan_path(canvas_x, canvas_y, sx, sy, tx, ty) {
-                return HitTarget::Edge(edge.source, edge.target);
-            }
+        ) && point_near_manhattan_path(canvas_x, canvas_y, sx, sy, tx, ty) {
+            return HitTarget::Edge(edge.source, edge.target);
         }
     }
 
@@ -349,15 +347,13 @@ impl NodeGraphState {
             // Normal mode — port click starts wiring.
             (InteractionMode::Normal, HitTarget::Port(port_id)) => {
                 let port = self.graph.port(port_id);
-                if let Some(p) = port {
-                    if p.direction == PortDirection::Output {
-                        self.mode = InteractionMode::Wiring {
-                            source: port_id,
-                            cursor_x: cx,
-                            cursor_y: cy,
-                        };
-                        actions.push(GraphAction::WiringStarted { source: port_id });
-                    }
+                if let Some(p) = port && p.direction == PortDirection::Output {
+                    self.mode = InteractionMode::Wiring {
+                        source: port_id,
+                        cursor_x: cx,
+                        cursor_y: cy,
+                    };
+                    actions.push(GraphAction::WiringStarted { source: port_id });
                 }
             }
 
@@ -500,13 +496,11 @@ impl NodeGraphState {
             }
 
             "Delete" | "Backspace" => {
-                if let Some((src, tgt)) = self.selected_edge.take() {
-                    if self.graph.remove_edge(src, tgt).is_ok() {
-                        actions.push(GraphAction::EdgeDeleted {
-                            source: src,
-                            target: tgt,
-                        });
-                    }
+                if let Some((src, tgt)) = self.selected_edge.take() && self.graph.remove_edge(src, tgt).is_ok() {
+                    actions.push(GraphAction::EdgeDeleted {
+                        source: src,
+                        target: tgt,
+                    });
                 }
             }
 
@@ -573,31 +567,28 @@ impl NodeGraphState {
                     InteractionMode::Wiring { source, .. } => {
                         // Complete wire to focused port.
                         let source = *source;
-                        if let Some(target) = self.focused_port {
-                            if self.graph.add_edge(source, target).is_ok() {
-                                actions.push(GraphAction::EdgeCreated {
-                                    source,
-                                    target,
-                                });
-                            }
+                        if let Some(target) = self.focused_port && self.graph.add_edge(source, target).is_ok() {
+                            actions.push(GraphAction::EdgeCreated {
+                                source,
+                                target,
+                            });
                         }
                         self.mode = InteractionMode::Normal;
                         self.focused_port = None;
                     }
                     InteractionMode::Normal => {
                         // Start wiring from focused node's first output port.
-                        if let Some(focused) = self.focused {
-                            if let Some(node) = self.graph.node(focused) {
-                                if let Some(port) = node.output_ports.first() {
+                        if let Some(focused) = self.focused
+                            && let Some(node) = self.graph.node(focused)
+                            && let Some(port) = node.output_ports.first()
+                        {
                                     let pid = port.id;
                                     self.mode = InteractionMode::Wiring {
                                         source: pid,
                                         cursor_x: node.x,
                                         cursor_y: node.y,
                                     };
-                                    actions.push(GraphAction::WiringStarted { source: pid });
-                                }
-                            }
+                            actions.push(GraphAction::WiringStarted { source: pid });
                         }
                     }
                     _ => {}
@@ -711,7 +702,7 @@ impl StatefulWidget for NodeGraphWidget {
                     Style::default().fg(color)
                 };
 
-                render_manhattan_edge(buf, &state.viewport, area, sx, sy, tx, ty, style);
+                render_manhattan_edge(buf, &state.viewport, area, EdgeCoords { sx, sy, tx, ty }, style);
             }
         }
 
@@ -721,8 +712,8 @@ impl StatefulWidget for NodeGraphWidget {
             cursor_x,
             cursor_y,
         } = &state.mode
+            && let Some((sx, sy)) = port_canvas_position(&state.graph, *source)
         {
-            if let Some((sx, sy)) = port_canvas_position(&state.graph, *source) {
                 let style = Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD);
@@ -730,13 +721,14 @@ impl StatefulWidget for NodeGraphWidget {
                     buf,
                     &state.viewport,
                     area,
-                    sx,
-                    sy,
-                    *cursor_x,
-                    *cursor_y,
+                    EdgeCoords { 
+                        sx, 
+                        sy, 
+                        tx: *cursor_x, 
+                        ty: *cursor_y 
+                    },
                     style,
                 );
-            }
         }
 
         // -- render box-selection overlay -----------------------------------
@@ -777,23 +769,24 @@ impl StatefulWidget for NodeGraphWidget {
             }
 
             let is_selected = state.selected.contains(&bounds.node_id);
-            let is_focused = state.focused == Some(bounds.node_id);
+            let _is_focused = state.focused == Some(bounds.node_id);
             let border_style = if is_selected {
                 self.selected_style
             } else {
                 self.node_style
             };
 
+            let context = NodeRenderContext {
+                border_style,
+                widget: &self,
+            };
             render_node(
                 buf,
                 &state.viewport,
                 area,
                 &state.graph,
                 bounds,
-                border_style,
-                is_selected,
-                is_focused,
-                &self,
+                &context,
             );
         }
     }
@@ -812,6 +805,12 @@ fn put_char(buf: &mut Buffer, area: Rect, sx: u16, sy: u16, ch: char, style: Sty
     }
 }
 
+/// Rendering context for node display.
+struct NodeRenderContext<'a> {
+    border_style: Style,
+    widget: &'a NodeGraphWidget,
+}
+
 /// Render a single node.
 fn render_node(
     buf: &mut Buffer,
@@ -819,10 +818,7 @@ fn render_node(
     area: Rect,
     graph: &Graph,
     bounds: &NodeBounds,
-    border_style: Style,
-    _is_selected: bool,
-    _is_focused: bool,
-    widget: &NodeGraphWidget,
+    context: &NodeRenderContext,
 ) {
     let node = match graph.node(bounds.node_id) {
         Some(n) => n,
@@ -842,7 +838,7 @@ fn render_node(
             };
 
             let ch;
-            let mut style = border_style;
+            let mut style = context.border_style;
 
             if dy == 0 {
                 // Top border.
@@ -872,7 +868,7 @@ fn render_node(
                 let label_bytes: Vec<char> = node.label.chars().collect();
                 if dx >= label_start && (label_idx as usize) < label_bytes.len() {
                     ch = label_bytes[label_idx as usize];
-                    style = border_style.add_modifier(Modifier::BOLD);
+                    style = context.border_style.add_modifier(Modifier::BOLD);
                 } else {
                     ch = ' ';
                 }
@@ -882,7 +878,7 @@ fn render_node(
             } else {
                 // Port rows.
                 let port_row = (dy as usize).saturating_sub(3);
-                ch = render_port_cell(node, port_row, dx, w, widget, &mut style);
+                ch = render_port_cell(node, port_row, dx, w, context.widget, &mut style);
             }
 
             put_char(buf, area, sx, sy, ch, style);
@@ -947,36 +943,41 @@ fn render_port_cell(
     ' '
 }
 
+/// Edge coordinates for Manhattan routing.
+struct EdgeCoords {
+    sx: i32,
+    sy: i32,
+    tx: i32,
+    ty: i32,
+}
+
 /// Render a Manhattan-routed edge between two canvas points.
 fn render_manhattan_edge(
     buf: &mut Buffer,
     viewport: &Viewport,
     area: Rect,
-    sx: i32,
-    sy: i32,
-    tx: i32,
-    ty: i32,
+    coords: EdgeCoords,
     style: Style,
 ) {
-    let mid_x = (sx + tx) / 2;
+    let mid_x = (coords.sx + coords.tx) / 2;
 
     // Horizontal from source to mid.
-    let (hx_start, hx_end) = if sx <= mid_x {
-        (sx + 1, mid_x)
+    let (hx_start, hx_end) = if coords.sx <= mid_x {
+        (coords.sx + 1, mid_x)
     } else {
-        (mid_x, sx - 1)
+        (mid_x, coords.sx - 1)
     };
     for x in hx_start..=hx_end {
-        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(x, sy)) {
+        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(x, coords.sy)) {
             put_char(buf, area, scr_x, scr_y, '─', style);
         }
     }
 
     // Vertical from sy to ty at mid_x.
-    let (vy_start, vy_end) = if sy <= ty {
-        (sy, ty)
+    let (vy_start, vy_end) = if coords.sy <= coords.ty {
+        (coords.sy, coords.ty)
     } else {
-        (ty, sy)
+        (coords.ty, coords.sy)
     };
     for y in vy_start..=vy_end {
         if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(mid_x, y)) {
@@ -985,26 +986,26 @@ fn render_manhattan_edge(
     }
 
     // Horizontal from mid to target.
-    let (hx_start, hx_end) = if mid_x <= tx {
-        (mid_x, tx - 1)
+    let (hx_start, hx_end) = if mid_x <= coords.tx {
+        (mid_x, coords.tx - 1)
     } else {
-        (tx + 1, mid_x)
+        (coords.tx + 1, mid_x)
     };
     for x in hx_start..=hx_end {
-        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(x, ty)) {
+        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(x, coords.ty)) {
             put_char(buf, area, scr_x, scr_y, '─', style);
         }
     }
 
     // Corner characters.
-    if sy != ty {
-        let corner1 = if sy < ty { '┐' } else { '┘' };
-        let corner2 = if sy < ty { '└' } else { '┌' };
+    if coords.sy != coords.ty {
+        let corner1 = if coords.sy < coords.ty { '┐' } else { '┘' };
+        let corner2 = if coords.sy < coords.ty { '└' } else { '┌' };
 
-        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(mid_x, sy)) {
+        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(mid_x, coords.sy)) {
             put_char(buf, area, scr_x, scr_y, corner1, style);
         }
-        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(mid_x, ty)) {
+        if let Some((scr_x, scr_y)) = viewport.canvas_to_screen(Position::new(mid_x, coords.ty)) {
             put_char(buf, area, scr_x, scr_y, corner2, style);
         }
     }

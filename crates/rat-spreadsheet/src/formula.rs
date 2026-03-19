@@ -37,7 +37,7 @@ enum Token {
     LeftParen, RightParen,
     Comma, Colon,
     Function(String),
-    EOF,
+    Eof,
 }
 
 struct Tokenizer {
@@ -138,7 +138,7 @@ impl Tokenizer {
         self.skip_whitespace();
 
         match self.peek() {
-            None => Token::EOF,
+            None => Token::Eof,
             Some(ch) => match ch {
                 '(' => {
                     self.advance();
@@ -215,12 +215,12 @@ impl Tokenizer {
                         if let Ok(addr) = identifier.parse() {
                             Token::CellRef(addr)
                         } else {
-                            // Invalid cell reference, treat as EOF for now
-                            Token::EOF
+                            // Invalid cell reference, treat as Eof for now
+                            Token::Eof
                         }
                     } else {
-                        // Unknown identifier, treat as EOF for now
-                        Token::EOF
+                        // Unknown identifier, treat as Eof for now
+                        Token::Eof
                     }
                 }
                 _ => {
@@ -246,7 +246,7 @@ impl Parser {
         
         loop {
             let token = tokenizer.next_token();
-            let is_eof = matches!(token, Token::EOF);
+            let is_eof = matches!(token, Token::Eof);
             tokens.push(token);
             if is_eof {
                 break;
@@ -257,7 +257,7 @@ impl Parser {
     }
 
     fn peek(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+        self.tokens.get(self.pos).unwrap_or(&Token::Eof)
     }
 
     fn advance(&mut self) -> &Token {
@@ -405,7 +405,7 @@ pub fn parse(input: &str) -> Result<Expr, CellError> {
     let expr = parser.parse_expression()?;
     
     // Ensure we consumed all tokens
-    if !matches!(parser.peek(), Token::EOF) {
+    if !matches!(parser.peek(), Token::Eof) {
         return Err(CellError::ParseError);
     }
     
@@ -418,8 +418,10 @@ pub trait Grid {
 }
 
 // Function registry
+type FunctionDef = Box<dyn Fn(&[CellValue]) -> CellValue>;
+
 pub struct FunctionRegistry {
-    functions: HashMap<String, Box<dyn Fn(&[CellValue]) -> CellValue>>,
+    functions: HashMap<String, FunctionDef>,
 }
 
 impl Default for FunctionRegistry {
@@ -702,7 +704,7 @@ impl DependencyGraph {
         // Add new dependencies
         let dependencies = extract_dependencies(expr);
         for dep in dependencies {
-            self.dependents.entry(dep).or_insert_with(Vec::new).push(cell);
+            self.dependents.entry(dep).or_default().push(cell);
         }
     }
 
@@ -744,7 +746,7 @@ impl DependencyGraph {
         temp_visited.remove(&cell);
         visited.insert(cell);
         
-        if cell != result.get(0).copied().unwrap_or(CellAddr { col: usize::MAX, row: usize::MAX }) {
+        if cell != result.first().copied().unwrap_or(CellAddr { col: usize::MAX, row: usize::MAX }) {
             result.push(cell);
         }
 

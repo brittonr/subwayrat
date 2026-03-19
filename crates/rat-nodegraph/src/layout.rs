@@ -173,12 +173,9 @@ pub fn auto_layout(graph: &mut Graph, config: &LayoutConfig) {
                 for edge in graph.edges() {
                     let tgt_node = graph.port_owner(edge.target);
                     let src_node = graph.port_owner(edge.source);
-                    if tgt_node == Some(id) {
-                        if let Some(sn) = src_node {
-                            if let Some(&pos) = prev_order.get(&sn) {
-                                pred_positions.push(pos as f64);
-                            }
-                        }
+                    if tgt_node == Some(id) && let Some(sn) = src_node
+                        && let Some(&pos) = prev_order.get(&sn) {
+                        pred_positions.push(pos as f64);
                     }
                 }
                 let avg = if pred_positions.is_empty() {

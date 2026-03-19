@@ -159,6 +159,17 @@ impl Default for EditState {
     }
 }
 
+/// Type aliases for complex callback types
+type StyleCallback = Box<dyn Fn(CellAddr, &CellValue) -> Option<Style>>;
+type ValidatorCallback = Box<dyn Fn(&str) -> Result<(), String>>;
+
+/// Parameters for cell rendering position and size
+struct CellRenderParams {
+    x: u16,
+    y: u16,
+    width: u16,
+}
+
 /// Complete spreadsheet state containing all mutable data
 pub struct SpreadsheetState {
     /// The data grid
@@ -186,10 +197,10 @@ pub struct SpreadsheetState {
     /// Simple undo - last changed cell and its previous value
     pub last_undo: Option<(CellAddr, CellValue)>,
     /// Optional per-cell styling callback
-    pub style_callback: Option<Box<dyn Fn(CellAddr, &CellValue) -> Option<Style>>>,
+    pub style_callback: Option<StyleCallback>,
     /// Per-column validation callbacks. Key is column index.
     /// Returns Ok(()) if valid, Err(message) if invalid.
-    pub validators: std::collections::HashMap<usize, Box<dyn Fn(&str) -> Result<(), String>>>,
+    pub validators: std::collections::HashMap<usize, ValidatorCallback>,
 }
 
 impl SpreadsheetState {
@@ -445,7 +456,13 @@ impl<'a> Spreadsheet<'a> {
                 let available_width = (max_x - x).min(col_width);
                 
                 if available_width > 0 {
-                    self.render_cell(buf, x, y, available_width, cell_addr, cell_value, state);
+                    self.render_cell(
+                        buf, 
+                        CellRenderParams { x, y, width: available_width }, 
+                        cell_addr, 
+                        cell_value, 
+                        state
+                    );
                 }
 
                 x += col_width;
@@ -464,9 +481,7 @@ impl<'a> Spreadsheet<'a> {
     fn render_cell(
         &self,
         buf: &mut Buffer,
-        x: u16,
-        y: u16,
-        width: u16,
+        params: CellRenderParams,
         addr: CellAddr,
         value: &CellValue,
         state: &SpreadsheetState,
@@ -496,39 +511,35 @@ impl<'a> Spreadsheet<'a> {
         }
         
         // Apply selection highlighting
-        if let Selection::Range(range) = get_selection(&state.cursor) {
-            if is_in_range(addr, range) {
-                style = self.style.selection_style;
-            }
+        if let Selection::Range(range) = get_selection(&state.cursor) && is_in_range(addr, range) {
+            style = self.style.selection_style;
         }
         
         // Apply custom styling callback if set
-        if let Some(ref callback) = state.style_callback {
-            if let Some(custom_style) = callback(addr, value) {
-                style = custom_style;
-            }
+        if let Some(ref callback) = state.style_callback && let Some(custom_style) = callback(addr, value) {
+            style = custom_style;
         }
 
         // Truncate content to fit
-        let truncated = truncate_text(&content, width as usize);
+        let truncated = truncate_text(&content, params.width as usize);
         
         // Render the content with proper alignment
-        let start_pos = if right_align && truncated.len() < width as usize {
-            width as usize - truncated.len()
+        let start_pos = if right_align && truncated.len() < params.width as usize {
+            params.width as usize - truncated.len()
         } else {
             0
         };
 
         // Fill cell background
-        for i in 0..width as usize {
-            let cell_x = x + i as u16;
+        for i in 0..params.width as usize {
+            let cell_x = params.x + i as u16;
             let ch = if i >= start_pos && i - start_pos < truncated.len() {
                 truncated.chars().nth(i - start_pos).unwrap_or(' ')
             } else {
                 ' '
             };
 
-            buf[(cell_x, y)]
+            buf[(cell_x, params.y)]
                 .set_char(ch)
                 .set_style(style);
         }
