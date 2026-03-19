@@ -15,6 +15,7 @@ members = [
     "crates/rat-table",
     "crates/rat-widgets",
     "crates/rat-nodegraph",
+    "crates/rat-spreadsheet",
 ]
 
 [workspace.package]

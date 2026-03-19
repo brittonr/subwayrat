@@ -1138,6 +1138,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-spreadsheet"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+ "unicode-width",
+]
+
+[[package]]
 name = "rat-streaming"
 version = "0.1.0"
 dependencies = [
