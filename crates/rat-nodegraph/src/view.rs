@@ -1235,11 +1235,11 @@ mod tests {
         let mut state = make_state();
         state.area = Rect::new(0, 0, 80, 24);
 
-        // Connect the two nodes' ports first: we need compatible types.
-        let ids = state.graph.node_ids();
-
-        // Focus a node.
-        state.focused = Some(ids[0]);
+        // Focus the node that has output ports ("Transform").
+        let src_node = state.graph.nodes()
+            .find(|n| !n.output_ports.is_empty())
+            .unwrap().id;
+        state.focused = Some(src_node);
 
         // Enter starts wiring from first output port.
         let actions = state.handle_key("Enter", false);
