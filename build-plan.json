@@ -2,20 +2,107 @@
   "version": 1,
   "workspaceRoot": "/home/brittonr/git/subwayrat",
   "roots": [
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-branches#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-canvas#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-diff#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-editor#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-image#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-keymap#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-layers#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-leaderkey#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-markdown#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-nodegraph#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-selection#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-spreadsheet#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-streaming#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-table#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-tree#0.1.0",
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-widgets#0.1.0",
     "path+file:///home/brittonr/git/subwayrat/crates/showcase#0.1.0"
   ],
   "workspaceMembers": {
+    "rat-branches": "path+file:///home/brittonr/git/subwayrat/crates/rat-branches#0.1.0",
+    "rat-canvas": "path+file:///home/brittonr/git/subwayrat/crates/rat-canvas#0.1.0",
     "rat-diff": "path+file:///home/brittonr/git/subwayrat/crates/rat-diff#0.1.0",
     "rat-editor": "path+file:///home/brittonr/git/subwayrat/crates/rat-editor#0.1.0",
+    "rat-image": "path+file:///home/brittonr/git/subwayrat/crates/rat-image#0.1.0",
+    "rat-keymap": "path+file:///home/brittonr/git/subwayrat/crates/rat-keymap#0.1.0",
+    "rat-layers": "path+file:///home/brittonr/git/subwayrat/crates/rat-layers#0.1.0",
+    "rat-leaderkey": "path+file:///home/brittonr/git/subwayrat/crates/rat-leaderkey#0.1.0",
     "rat-markdown": "path+file:///home/brittonr/git/subwayrat/crates/rat-markdown#0.1.0",
+    "rat-nodegraph": "path+file:///home/brittonr/git/subwayrat/crates/rat-nodegraph#0.1.0",
+    "rat-selection": "path+file:///home/brittonr/git/subwayrat/crates/rat-selection#0.1.0",
     "rat-spreadsheet": "path+file:///home/brittonr/git/subwayrat/crates/rat-spreadsheet#0.1.0",
+    "rat-streaming": "path+file:///home/brittonr/git/subwayrat/crates/rat-streaming#0.1.0",
     "rat-table": "path+file:///home/brittonr/git/subwayrat/crates/rat-table#0.1.0",
+    "rat-tree": "path+file:///home/brittonr/git/subwayrat/crates/rat-tree#0.1.0",
     "rat-widgets": "path+file:///home/brittonr/git/subwayrat/crates/rat-widgets#0.1.0",
     "showcase": "path+file:///home/brittonr/git/subwayrat/crates/showcase#0.1.0"
   },
-  "cargoLockHash": "6a3ea56ec7f8dc02beeae8683b190ba36dfa0914c6180e31dfee63a54eb598e8",
-  "inputsHash": "f9d74388d4701ef254908d1a45cf0c6d931dc68f9be340355e758e4fa4aa579e",
+  "cargoLockHash": "94f083442995d7d18c3a24211493d4f66bf8f340f5eacadd89fdb943ab884fd7",
+  "inputsHash": "5031f8a53945f5682dbc2b0fdbafdfd4305cf58d18f60784a5422307dbbdc1b8",
   "crates": {
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-branches#0.1.0": {
+      "crateName": "rat-branches",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-branches"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Generic tree branch utilities and comparison widgets for ratatui",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-canvas#0.1.0": {
+      "crateName": "rat-canvas",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-canvas"
+      },
+      "features": [
+        "default",
+        "serde"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
+          "externCrateName": "serde"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Infinite canvas viewport with pan/zoom and coordinate mapping",
+      "license": "MIT"
+    },
     "path+file:///home/brittonr/git/subwayrat/crates/rat-diff#0.1.0": {
       "crateName": "rat-diff",
       "version": "0.1.0",
@@ -86,6 +173,129 @@
       "description": "Multi-line text editor widget for ratatui",
       "license": "MIT"
     },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-image#0.1.0": {
+      "crateName": "rat-image",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-image"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
+          "externCrateName": "base64"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#image@0.25.10",
+          "externCrateName": "image"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Terminal image rendering via Kitty, iTerm2, and Sixel protocols",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-keymap#0.1.0": {
+      "crateName": "rat-keymap",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-keymap"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-layers#0.1.0": {
+      "crateName": "rat-layers",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-layers"
+      },
+      "features": [
+        "default",
+        "serde"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
+          "externCrateName": "serde"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#uuid@1.22.0",
+          "externCrateName": "uuid"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Ordered layer stack with visibility, locking, and item ownership",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-leaderkey#0.1.0": {
+      "crateName": "rat-leaderkey",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-leaderkey"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null
+    },
     "path+file:///home/brittonr/git/subwayrat/crates/rat-markdown#0.1.0": {
       "crateName": "rat-markdown",
       "version": "0.1.0",
@@ -117,6 +327,87 @@
       "crateBin": [],
       "links": null,
       "description": "Markdown to ratatui Spans renderer with syntax highlighting",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-nodegraph#0.1.0": {
+      "crateName": "rat-nodegraph",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-nodegraph"
+      },
+      "features": [
+        "default",
+        "serde"
+      ],
+      "dependencies": [
+        {
+          "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-canvas#0.1.0",
+          "externCrateName": "rat_canvas"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228",
+          "externCrateName": "serde"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde_json@1.0.149",
+          "externCrateName": "serde_json"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Node-based graph editor widget for ratatui with typed ports, directed edges, and auto-layout",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-selection#0.1.0": {
+      "crateName": "rat-selection",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-selection"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",
+          "externCrateName": "base64"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#unicode-width@0.2.2",
+          "externCrateName": "unicode_width"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Mouse text selection, visual-to-logical row mapping, and clipboard support for terminals",
       "license": "MIT"
     },
     "path+file:///home/brittonr/git/subwayrat/crates/rat-spreadsheet#0.1.0": {
@@ -152,6 +443,35 @@
       "description": "Editable spreadsheet widget for ratatui with formulas, cell navigation, and inline editing",
       "license": "MIT"
     },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-streaming#0.1.0": {
+      "crateName": "rat-streaming",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-streaming"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Streaming output buffer with head/tail truncation and incremental search for ratatui",
+      "license": "MIT"
+    },
     "path+file:///home/brittonr/git/subwayrat/crates/rat-table#0.1.0": {
       "crateName": "rat-table",
       "version": "0.1.0",
@@ -179,6 +499,43 @@
       "crateBin": [],
       "links": null,
       "description": "Scrollable data table widget for ratatui with auto column sizing",
+      "license": "MIT"
+    },
+    "path+file:///home/brittonr/git/subwayrat/crates/rat-tree#0.1.0": {
+      "crateName": "rat-tree",
+      "version": "0.1.0",
+      "edition": "2024",
+      "sha256": null,
+      "source": {
+        "type": "local",
+        "path": "crates/rat-tree"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-keymap#0.1.0",
+          "externCrateName": "rat_keymap"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#ratatui@0.30.0",
+          "externCrateName": "ratatui"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#unicode-width@0.2.2",
+          "externCrateName": "unicode_width"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Interactive tree navigation widget for ratatui with keymap integration",
       "license": "MIT"
     },
     "path+file:///home/brittonr/git/subwayrat/crates/rat-widgets#0.1.0": {
@@ -241,6 +598,10 @@
           "externCrateName": "rat_editor"
         },
         {
+          "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-keymap#0.1.0",
+          "externCrateName": "rat_keymap"
+        },
+        {
           "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-markdown#0.1.0",
           "externCrateName": "rat_markdown"
         },
@@ -251,6 +612,10 @@
         {
           "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-table#0.1.0",
           "externCrateName": "rat_table"
+        },
+        {
+          "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-tree#0.1.0",
+          "externCrateName": "rat_tree"
         },
         {
           "packageId": "path+file:///home/brittonr/git/subwayrat/crates/rat-widgets#0.1.0",
@@ -276,6 +641,34 @@
       "links": null,
       "description": "Interactive showcase of all subwayrat TUI widgets",
       "license": "MIT"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#adler2@2.0.1": {
+      "crateName": "adler2",
+      "version": "2.0.1",
+      "edition": "2021",
+      "sha256": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Jonas Schievink <jonasschievink@gmail.com>",
+        "oyvindln <oyvindln@users.noreply.github.com>"
+      ],
+      "description": "A simple clean-room implementation of the Adler-32 checksum",
+      "license": "0BSD OR MIT OR Apache-2.0",
+      "repository": "https://github.com/oyvindln/adler2"
     },
     "registry+https://github.com/rust-lang/crates.io-index#allocator-api2@0.2.21": {
       "crateName": "allocator-api2",
@@ -307,6 +700,64 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/zakarumych/allocator-api2"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#autocfg@1.5.0": {
+      "crateName": "autocfg",
+      "version": "1.5.0",
+      "edition": "2015",
+      "sha256": "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Josh Stone <cuviper@gmail.com>"
+      ],
+      "description": "Automatic cfg for Rust compiler features",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/cuviper/autocfg"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1": {
+      "crateName": "base64",
+      "version": "0.22.1",
+      "edition": "2018",
+      "sha256": "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Marshall Pierce <marshall@mpierce.org>"
+      ],
+      "description": "encodes and decodes base64 as bytes or utf8",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/marshallpierce/rust-base64"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.11.0": {
       "crateName": "bitflags",
       "version": "2.11.0",
@@ -336,6 +787,63 @@
       "homepage": "https://github.com/bitflags/bitflags",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/bitflags/bitflags"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#bytemuck@1.25.0": {
+      "crateName": "bytemuck",
+      "version": "1.25.0",
+      "edition": "2018",
+      "sha256": "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "extern_crate_alloc"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Lokathor <zefria@gmail.com>"
+      ],
+      "description": "A crate for mucking around with piles of bytes.",
+      "license": "Zlib OR Apache-2.0 OR MIT",
+      "repository": "https://github.com/Lokathor/bytemuck"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#byteorder-lite@0.1.0": {
+      "crateName": "byteorder-lite",
+      "version": "0.1.0",
+      "edition": "2021",
+      "sha256": "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Library for reading/writing numbers in big-endian and little-endian.",
+      "homepage": "https://github.com/image-rs/byteorder-lite",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/image-rs/byteorder-lite"
     },
     "registry+https://github.com/rust-lang/crates.io-index#castaway@0.2.4": {
       "crateName": "castaway",
@@ -397,6 +905,33 @@
       "description": "A macro to ergonomically define an item depending on a large number of #[cfg] parameters. Structured like an if-else chain, the first matching branch is the item that gets emitted. ",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/rust-lang/cfg-if"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#color_quant@1.1.0": {
+      "crateName": "color_quant",
+      "version": "1.1.0",
+      "edition": "2015",
+      "sha256": "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "nwin <nwin@users.noreply.github.com>"
+      ],
+      "description": "Color quantization library to reduce n colors to 256 colors.",
+      "license": "MIT",
+      "repository": "https://github.com/image-rs/color_quant.git"
     },
     "registry+https://github.com/rust-lang/crates.io-index#compact_str@0.9.0": {
       "crateName": "compact_str",
@@ -484,6 +1019,42 @@
       "description": "Convert strings into any case",
       "license": "MIT",
       "repository": "https://github.com/rutrum/convert-case"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#crc32fast@1.5.0": {
+      "crateName": "crc32fast",
+      "version": "1.5.0",
+      "edition": "2021",
+      "sha256": "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "std"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
+          "externCrateName": "cfg_if"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Sam Rijs <srijs@airpost.net>",
+        "Alex Crichton <alex@alexcrichton.com>"
+      ],
+      "description": "Fast, SIMD-accelerated CRC32 (IEEE) checksum computation",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/srijs/rust-crc32fast"
     },
     "registry+https://github.com/rust-lang/crates.io-index#crossterm@0.28.1": {
       "crateName": "crossterm",
@@ -981,6 +1552,82 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/lambda-fairy/rust-errno"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#fdeflate@0.3.7": {
+      "crateName": "fdeflate",
+      "version": "0.3.7",
+      "edition": "2021",
+      "sha256": "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#simd-adler32@0.3.8",
+          "externCrateName": "simd_adler32"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The image-rs Developers"
+      ],
+      "description": "Fast specialized deflate implementation",
+      "homepage": "https://github.com/image-rs/fdeflate",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/fdeflate"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#flate2@1.1.9": {
+      "crateName": "flate2",
+      "version": "1.1.9",
+      "edition": "2018",
+      "sha256": "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "any_impl",
+        "default",
+        "miniz_oxide",
+        "rust_backend"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#crc32fast@1.5.0",
+          "externCrateName": "crc32fast"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#miniz_oxide@0.8.9",
+          "externCrateName": "miniz_oxide"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Alex Crichton <alex@alexcrichton.com>",
+        "Josh Triplett <josh@joshtriplett.org>"
+      ],
+      "description": "DEFLATE compression and decompression exposed as Read/BufRead/Write streams. Supports miniz_oxide and multiple zlib implementations. Supports zlib, gzip, and raw deflate streams. ",
+      "homepage": "https://github.com/rust-lang/flate2-rs",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/flate2-rs"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#foldhash@0.2.0": {
       "crateName": "foldhash",
       "version": "0.2.0",
@@ -1007,6 +1654,84 @@
       "description": "A fast, non-cryptographic, minimally DoS-resistant hashing algorithm.",
       "license": "Zlib",
       "repository": "https://github.com/orlp/foldhash"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.2": {
+      "crateName": "getrandom",
+      "version": "0.4.2",
+      "edition": "2024",
+      "sha256": "0de51e6874e94e7bf76d726fc5d13ba782deca734ff60d5bb2fb2607c7406555",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#cfg-if@1.0.4",
+          "externCrateName": "cfg_if"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.183",
+          "externCrateName": "libc"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The Rand Project Developers"
+      ],
+      "description": "A small cross-platform library for retrieving random data from system source",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/getrandom"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#gif@0.14.1": {
+      "crateName": "gif",
+      "version": "0.14.1",
+      "edition": "2021",
+      "sha256": "f5df2ba84018d80c213569363bdcd0c64e6933c67fe4c1d60ecf822971a3c35e",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "color_quant",
+        "default",
+        "raii_no_panic",
+        "std"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#color_quant@1.1.0",
+          "externCrateName": "color_quant"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#weezl@0.1.12",
+          "externCrateName": "weezl"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The image-rs Developers"
+      ],
+      "description": "GIF de- and encoder",
+      "homepage": "https://github.com/image-rs/image-gif",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image-gif"
     },
     "registry+https://github.com/rust-lang/crates.io-index#hashbrown@0.16.1": {
       "crateName": "hashbrown",
@@ -1105,6 +1830,114 @@
       "description": "Utility for applying case rules to Rust identifiers.",
       "license": "MIT/Apache-2.0",
       "repository": "https://github.com/TedDriggs/ident_case"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#image-webp@0.2.4": {
+      "crateName": "image-webp",
+      "version": "0.2.4",
+      "edition": "2021",
+      "sha256": "525e9ff3e1a4be2fbea1fdf0e98686a6d98b4d8f937e1bf7402245af1909e8c3",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#byteorder-lite@0.1.0",
+          "externCrateName": "byteorder_lite"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#quick-error@2.0.1",
+          "externCrateName": "quick_error"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "WebP encoding and decoding in pure Rust",
+      "homepage": "https://github.com/image-rs/image-webp",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image-webp"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#image@0.25.10": {
+      "crateName": "image",
+      "version": "0.25.10",
+      "edition": "2021",
+      "sha256": "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "gif",
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#bytemuck@1.25.0",
+          "externCrateName": "bytemuck"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#byteorder-lite@0.1.0",
+          "externCrateName": "byteorder_lite"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#color_quant@1.1.0",
+          "externCrateName": "color_quant"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#gif@0.14.1",
+          "externCrateName": "gif"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#image-webp@0.2.4",
+          "externCrateName": "image_webp"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#moxcms@0.8.1",
+          "externCrateName": "moxcms"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#num-traits@0.2.19",
+          "externCrateName": "num_traits"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#png@0.18.1",
+          "externCrateName": "png"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#zune-core@0.5.1",
+          "externCrateName": "zune_core"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#zune-jpeg@0.5.13",
+          "externCrateName": "zune_jpeg"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The image-rs Developers"
+      ],
+      "description": "Imaging library. Provides basic image processing and encoders/decoders for common image formats.",
+      "homepage": "https://github.com/image-rs/image",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image"
     },
     "registry+https://github.com/rust-lang/crates.io-index#indoc@2.0.7": {
       "crateName": "indoc",
@@ -1569,6 +2402,50 @@
       "license": "Unlicense OR MIT",
       "repository": "https://github.com/BurntSushi/memchr"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#miniz_oxide@0.8.9": {
+      "crateName": "miniz_oxide",
+      "version": "0.8.9",
+      "edition": "2021",
+      "sha256": "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "simd",
+        "simd-adler32",
+        "with-alloc"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#adler2@2.0.1",
+          "externCrateName": "adler2"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#simd-adler32@0.3.8",
+          "externCrateName": "simd_adler32"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Frommi <daniil.liferenko@gmail.com>",
+        "oyvindln <oyvindln@users.noreply.github.com>",
+        "Rich Geldreich richgel99@gmail.com"
+      ],
+      "description": "DEFLATE compression and decompression library rewritten in Rust based on miniz",
+      "homepage": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#mio@1.1.1": {
       "crateName": "mio",
       "version": "1.1.1",
@@ -1614,6 +2491,58 @@
       "license": "MIT",
       "repository": "https://github.com/tokio-rs/mio"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#moxcms@0.8.1": {
+      "crateName": "moxcms",
+      "version": "0.8.1",
+      "edition": "2024",
+      "sha256": "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "avx",
+        "avx_luts",
+        "avx_shaper_fixed_point_paths",
+        "avx_shaper_paths",
+        "default",
+        "lut",
+        "neon",
+        "neon_luts",
+        "neon_shaper_fixed_point_paths",
+        "neon_shaper_paths",
+        "sse",
+        "sse_luts",
+        "sse_shaper_fixed_point_paths",
+        "sse_shaper_paths"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#num-traits@0.2.19",
+          "externCrateName": "num_traits"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#pxfm@0.1.28",
+          "externCrateName": "pxfm"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Radzivon Bartoshyk"
+      ],
+      "description": "Simple Color Management in Rust",
+      "homepage": "https://github.com/awxkee/moxcms",
+      "license": "BSD-3-Clause OR Apache-2.0",
+      "repository": "https://github.com/awxkee/moxcms.git"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#num-conv@0.2.0": {
       "crateName": "num-conv",
       "version": "0.2.0",
@@ -1640,6 +2569,42 @@
       "description": "`num_conv` is a crate to convert between integer types without using `as` casts. This provides better certainty when refactoring, makes the exact behavior of code more explicit, and allows using turbofish syntax. ",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/jhpratt/num-conv"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#num-traits@0.2.19": {
+      "crateName": "num-traits",
+      "version": "0.2.19",
+      "edition": "2021",
+      "sha256": "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#autocfg@1.5.0",
+          "externCrateName": "autocfg"
+        }
+      ],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The Rust Project Developers"
+      ],
+      "description": "Numeric traits for generic mathematics",
+      "homepage": "https://github.com/rust-num/num-traits",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-num/num-traits"
     },
     "registry+https://github.com/rust-lang/crates.io-index#num_threads@0.1.7": {
       "crateName": "num_threads",
@@ -1746,6 +2711,54 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/Amanieu/parking_lot"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#png@0.18.1": {
+      "crateName": "png",
+      "version": "0.18.1",
+      "edition": "2021",
+      "sha256": "60769b8b31b2a9f263dae2776c37b1b28ae246943cf719eb6946a1db05128a61",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#bitflags@2.11.0",
+          "externCrateName": "bitflags"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#crc32fast@1.5.0",
+          "externCrateName": "crc32fast"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#fdeflate@0.3.7",
+          "externCrateName": "fdeflate"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#flate2@1.1.9",
+          "externCrateName": "flate2"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#miniz_oxide@0.8.9",
+          "externCrateName": "miniz_oxide"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The image-rs Developers"
+      ],
+      "description": "PNG decoding and encoding library in pure Rust",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image-png"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#powerfmt@0.2.0": {
       "crateName": "powerfmt",
       "version": "0.2.0",
@@ -1808,6 +2821,62 @@
       "description": "A substitute implementation of the compiler's `proc_macro` API to decouple token-based libraries from the procedural macro use case.",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/dtolnay/proc-macro2"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#pxfm@0.1.28": {
+      "crateName": "pxfm",
+      "version": "0.1.28",
+      "edition": "2024",
+      "sha256": "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Radzivon Bartoshyk"
+      ],
+      "description": "Fast and accurate math",
+      "license": "BSD-3-Clause OR Apache-2.0",
+      "repository": "https://github.com/awxkee/pxfm"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#quick-error@2.0.1": {
+      "crateName": "quick-error",
+      "version": "2.0.1",
+      "edition": "2018",
+      "sha256": "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Paul Colomiets <paul@colomiets.name>",
+        "Colin Kiegel <kiegel@gmx.de>"
+      ],
+      "description": "    A macro which makes error types pleasant to write. ",
+      "homepage": "http://github.com/tailhook/quick-error",
+      "license": "MIT/Apache-2.0",
+      "repository": "http://github.com/tailhook/quick-error"
     },
     "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45": {
       "crateName": "quote",
@@ -2317,6 +3386,49 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/bluss/scopeguard"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.228": {
+      "crateName": "serde",
+      "version": "1.0.228",
+      "edition": "2021",
+      "sha256": "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "derive",
+        "serde_derive",
+        "std"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228",
+          "externCrateName": "serde_core"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde_derive@1.0.228",
+          "externCrateName": "serde_derive"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+        "David Tolnay <dtolnay@gmail.com>"
+      ],
+      "description": "A generic serialization/deserialization framework",
+      "homepage": "https://serde.rs",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228": {
       "crateName": "serde_core",
       "version": "1.0.228",
@@ -2326,6 +3438,7 @@
         "type": "crates-io"
       },
       "features": [
+        "result",
         "std"
       ],
       "dependencies": [],
@@ -2344,6 +3457,50 @@
         "David Tolnay <dtolnay@gmail.com>"
       ],
       "description": "Serde traits only, with no support for derive -- use the `serde` crate instead",
+      "homepage": "https://serde.rs",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#serde_derive@1.0.228": {
+      "crateName": "serde_derive",
+      "version": "1.0.228",
+      "edition": "2021",
+      "sha256": "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#proc-macro2@1.0.106",
+          "externCrateName": "proc_macro2"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#quote@1.0.45",
+          "externCrateName": "quote"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#syn@2.0.117",
+          "externCrateName": "syn"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": true,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "proc-macro"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+        "David Tolnay <dtolnay@gmail.com>"
+      ],
+      "description": "Macros 1.1 implementation of #[derive(Serialize, Deserialize)]",
       "homepage": "https://serde.rs",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/serde-rs/serde"
@@ -2517,6 +3674,37 @@
       "description": "Unix signal handling",
       "license": "Apache-2.0/MIT",
       "repository": "https://github.com/vorner/signal-hook"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#simd-adler32@0.3.8": {
+      "crateName": "simd-adler32",
+      "version": "0.3.8",
+      "edition": "2018",
+      "sha256": "e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "const-generics",
+        "default",
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Marvin Countryman <me@maar.vin>"
+      ],
+      "description": "A SIMD-accelerated Adler-32 hash algorithm implementation.",
+      "license": "MIT",
+      "repository": "https://github.com/mcountryman/simd-adler32"
     },
     "registry+https://github.com/rust-lang/crates.io-index#similar@2.7.0": {
       "crateName": "similar",
@@ -3056,6 +4244,82 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/unicode-rs/unicode-width"
     },
+    "registry+https://github.com/rust-lang/crates.io-index#uuid@1.22.0": {
+      "crateName": "uuid",
+      "version": "1.22.0",
+      "edition": "2021",
+      "sha256": "a68d3c8f01c0cfa54a75291d83601161799e4a89a39e0929f4b0354d88757a37",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "rng",
+        "serde",
+        "std",
+        "v4"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#getrandom@0.4.2",
+          "externCrateName": "getrandom"
+        },
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#serde_core@1.0.228",
+          "externCrateName": "serde_core"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "Ashley Mannix<ashleymannix@live.com.au>",
+        "Dylan DPC<dylan.dpc@gmail.com>",
+        "Hunar Roop Kahlon<hunar.roop@gmail.com>"
+      ],
+      "description": "A library to generate and parse UUIDs.",
+      "homepage": "https://github.com/uuid-rs/uuid",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/uuid-rs/uuid"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#weezl@0.1.12": {
+      "crateName": "weezl",
+      "version": "0.1.12",
+      "edition": "2018",
+      "sha256": "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "The image-rs Developers"
+      ],
+      "description": "Fast LZW compression and decompression.",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/weezl"
+    },
     "registry+https://github.com/rust-lang/crates.io-index#zmij@1.0.21": {
       "crateName": "zmij",
       "version": "1.0.21",
@@ -3082,6 +4346,69 @@
       "description": "A double-to-string conversion algorithm based on Schubfach and yy",
       "license": "MIT",
       "repository": "https://github.com/dtolnay/zmij"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#zune-core@0.5.1": {
+      "crateName": "zune-core",
+      "version": "0.5.1",
+      "edition": "2021",
+      "sha256": "cb8a0807f7c01457d0379ba880ba6322660448ddebc890ce29bb64da71fb40f9",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "std"
+      ],
+      "dependencies": [],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "description": "Core utilities for image processing in the zune family of crates",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/etemesi254/zune-image"
+    },
+    "registry+https://github.com/rust-lang/crates.io-index#zune-jpeg@0.5.13": {
+      "crateName": "zune-jpeg",
+      "version": "0.5.13",
+      "edition": "2021",
+      "sha256": "ec5f41c76397b7da451efd19915684f727d7e1d516384ca6bd0ec43ec94de23c",
+      "source": {
+        "type": "crates-io"
+      },
+      "features": [
+        "default",
+        "neon",
+        "std",
+        "x86"
+      ],
+      "dependencies": [
+        {
+          "packageId": "registry+https://github.com/rust-lang/crates.io-index#zune-core@0.5.1",
+          "externCrateName": "zune_core"
+        }
+      ],
+      "buildDependencies": [],
+      "procMacro": false,
+      "build": null,
+      "libPath": null,
+      "libName": null,
+      "libCrateTypes": [
+        "lib"
+      ],
+      "crateBin": [],
+      "links": null,
+      "authors": [
+        "caleb <etemesicaleb@gmail.com>"
+      ],
+      "description": "A fast, correct and safe jpeg decoder",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg"
     }
   }
 }
