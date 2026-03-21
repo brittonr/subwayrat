@@ -108,7 +108,8 @@ struct App {
 
     // Tiler tab
     tiler_strip: Strip,
-    tiler_windows: Vec<(WindowId, &'static str, Color)>,
+    tiler_windows: Vec<(WindowId, String, Color)>,
+    tiler_next_panel: usize,
 
     // Misc tab
     last_key: String,
@@ -313,6 +314,7 @@ impl App {
             rat_tree_keymap,
             tiler_strip: Strip::new(StripConfig::default()),
             tiler_windows: Vec::new(),
+            tiler_next_panel: 0,
             last_key: String::new(),
         }
     }
@@ -605,14 +607,79 @@ impl App {
     fn handle_tiler_key(&mut self, code: KeyCode) {
         let size = crossterm::terminal::size().unwrap_or((80, 24));
         match code {
+            // Navigation.
             KeyCode::Left => tile_nav::focus_left(&mut self.tiler_strip, size.0, size.1),
             KeyCode::Right => tile_nav::focus_right(&mut self.tiler_strip, size.0, size.1),
             KeyCode::Up => tile_nav::focus_up(&mut self.tiler_strip),
             KeyCode::Down => tile_nav::focus_down(&mut self.tiler_strip),
             KeyCode::Home => tile_nav::focus_first(&mut self.tiler_strip),
             KeyCode::End => tile_nav::focus_last(&mut self.tiler_strip),
+            // Add panel in new column to the right of focused.
+            KeyCode::Char('a') => {
+                let col = self.tiler_strip.focused()
+                    .and_then(|id| self.tiler_strip.find_window(id))
+                    .map(|(c, _)| c + 1)
+                    .unwrap_or(self.tiler_strip.column_count());
+                self.tiler_add_panel(col, 0);
+            }
+            // Split: add panel below focused in same column.
+            KeyCode::Char('s') => {
+                if let Some((col, win)) = self.tiler_strip.focused()
+                    .and_then(|id| self.tiler_strip.find_window(id))
+                {
+                    self.tiler_add_panel(col, win + 1);
+                }
+            }
+            // Remove focused panel.
+            KeyCode::Char('x') => {
+                if let Some(id) = self.tiler_strip.focused() {
+                    self.tiler_windows.retain(|(wid, _, _)| *wid != id);
+                    self.tiler_strip.remove_window(id);
+                }
+            }
+            // Widen focused column.
+            KeyCode::Char(']') => {
+                if let Some((col, _)) = self.tiler_strip.focused()
+                    .and_then(|id| self.tiler_strip.find_window(id))
+                {
+                    let cur = tiler_column_fixed_width(&self.tiler_strip, col);
+                    self.tiler_strip.resize_column(col, SizeConstraint::Fixed(cur.saturating_add(4)));
+                }
+            }
+            // Narrow focused column.
+            KeyCode::Char('[') => {
+                if let Some((col, _)) = self.tiler_strip.focused()
+                    .and_then(|id| self.tiler_strip.find_window(id))
+                {
+                    let cur = tiler_column_fixed_width(&self.tiler_strip, col);
+                    self.tiler_strip.resize_column(col, SizeConstraint::Fixed(cur.saturating_sub(4).max(8)));
+                }
+            }
             _ => {}
         }
+    }
+
+    fn tiler_add_panel(&mut self, col: usize, stack_pos: usize) {
+        let colors = [
+            Color::Rgb(100, 149, 237), Color::Rgb(144, 238, 144),
+            Color::Rgb(255, 193, 7),   Color::Rgb(220, 160, 255),
+            Color::Rgb(0, 200, 180),   Color::Rgb(255, 127, 80),
+            Color::Rgb(255, 100, 100), Color::Rgb(112, 128, 144),
+        ];
+        self.tiler_next_panel += 1;
+        let idx = self.tiler_next_panel;
+        let color = colors[idx % colors.len()];
+        let name = format!("Panel {idx}");
+        let id = self.tiler_strip.insert_window(
+            col, stack_pos,
+            SizeConstraint::default(), SizeConstraint::default(),
+        );
+        // New columns get a fixed width so the strip can grow beyond the viewport.
+        if self.tiler_strip.column_count() > 0 {
+            self.tiler_strip.resize_column(col, SizeConstraint::Fixed(30));
+        }
+        self.tiler_windows.push((id, name, color));
+        self.tiler_strip.focus_set(id);
     }
 
     fn handle_mouse_click(&mut self, x: u16, y: u16) {
@@ -1270,81 +1337,104 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
 
 // ── Tiler tab ────────────────────────────────────────────────────────────────
 
+fn tiler_column_fixed_width(strip: &Strip, col: usize) -> u16 {
+    match strip.columns().get(col).map(|c| c.width_constraint) {
+        Some(SizeConstraint::Fixed(w)) => w,
+        _ => 30,
+    }
+}
+
 fn init_tiler(app: &mut App) {
-    let panels: Vec<(&str, Color, usize, SizeConstraint, SizeConstraint)> = vec![
-        ("Files",    Color::Rgb(100, 149, 237), 0, SizeConstraint::default(), SizeConstraint::default()),
-        ("Editor",   Color::Rgb(144, 238, 144), 1, SizeConstraint::default(), SizeConstraint::Proportion(2.0)),
-        ("Terminal", Color::Rgb(255, 193, 7),   1, SizeConstraint::default(), SizeConstraint::Proportion(1.0)),
-        ("Preview",  Color::Rgb(220, 160, 255), 2, SizeConstraint::default(), SizeConstraint::default()),
-        ("Logs",     Color::Rgb(0, 200, 180),   3, SizeConstraint::default(), SizeConstraint::default()),
+    let panels: &[(&str, Color, usize, SizeConstraint)] = &[
+        ("Files",    Color::Rgb(100, 149, 237), 0, SizeConstraint::default()),
+        ("Editor",   Color::Rgb(144, 238, 144), 1, SizeConstraint::Proportion(2.0)),
+        ("Terminal", Color::Rgb(255, 193, 7),   1, SizeConstraint::Proportion(1.0)),
+        ("Preview",  Color::Rgb(220, 160, 255), 2, SizeConstraint::default()),
+        ("Git",      Color::Rgb(255, 127, 80),  3, SizeConstraint::default()),
+        ("Tests",    Color::Rgb(0, 200, 180),   4, SizeConstraint::default()),
+        ("Logs",     Color::Rgb(255, 100, 100), 5, SizeConstraint::default()),
     ];
 
-    app.tiler_strip.resize_column(0, SizeConstraint::Fixed(18));
-    for (name, color, col, wc, hc) in panels {
-        let id = app.tiler_strip.insert_window(col, usize::MAX, wc, hc);
-        app.tiler_windows.push((id, name, color));
+    for &(name, color, col, hc) in panels {
+        let id = app.tiler_strip.insert_window(col, usize::MAX, SizeConstraint::default(), hc);
+        app.tiler_windows.push((id, name.into(), color));
+        app.tiler_next_panel += 1;
     }
-    // Wider columns for editor area.
-    app.tiler_strip.resize_column(1, SizeConstraint::Proportion(2.0));
-    app.tiler_strip.resize_column(2, SizeConstraint::Proportion(1.0));
-    app.tiler_strip.resize_column(3, SizeConstraint::Fixed(20));
+    // Fixed-width columns so the strip extends beyond the viewport and scrolls.
+    app.tiler_strip.resize_column(0, SizeConstraint::Fixed(18));
+    app.tiler_strip.resize_column(1, SizeConstraint::Fixed(40));
+    app.tiler_strip.resize_column(2, SizeConstraint::Fixed(30));
+    app.tiler_strip.resize_column(3, SizeConstraint::Fixed(28));
+    app.tiler_strip.resize_column(4, SizeConstraint::Fixed(28));
+    app.tiler_strip.resize_column(5, SizeConstraint::Fixed(24));
 
-    // Focus the editor.
-    if let Some((id, _, _)) = app.tiler_windows.iter().find(|(_, n, _)| *n == "Editor") {
+    if let Some((id, _, _)) = app.tiler_windows.iter().find(|(_, n, _)| n == "Editor") {
         app.tiler_strip.focus_set(*id);
     }
 }
 
 fn draw_tiler_tab(frame: &mut Frame, area: Rect, app: &mut App) {
-    let result = tile_compute_layout(&app.tiler_strip, area.width, area.height.saturating_sub(3));
+    if area.height < 5 || area.width < 20 { return; }
 
-    // Info header.
-    let info_area = Rect { x: area.x, y: area.y, width: area.width, height: 2 };
+    // Reserve 3 rows for header + keybinds, 1 row for scroll bar.
+    let header_h: u16 = 3;
+    let scrollbar_h: u16 = 1;
+    let panel_h = area.height.saturating_sub(header_h + scrollbar_h);
+
+    // Header.
     let focused_name = app.tiler_strip.focused()
         .and_then(|fid| app.tiler_windows.iter().find(|(id, _, _)| *id == fid))
-        .map(|(_, n, _)| *n)
+        .map(|(_, n, _)| n.as_str())
         .unwrap_or("none");
-    let info = Paragraph::new(vec![
+    let col_count = app.tiler_strip.column_count();
+    let win_count = app.tiler_windows.len();
+
+    let header = Paragraph::new(vec![
         Line::from(vec![
             Span::styled(" Scroll Tiler ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  focused: {focused_name}  offset: {}  extent: {}", result.scroll_offset, result.strip_extent),
+            Span::styled(format!("  {win_count} panels  {col_count} columns  focused: {focused_name}"),
                 Style::default().fg(Color::Rgb(140, 140, 140))),
         ]),
         Line::from(vec![
-            Span::styled(" ←/→ ", Style::default().fg(Color::Rgb(100, 149, 237))),
-            Span::styled("columns  ", Style::default().fg(Color::Rgb(120, 120, 120))),
-            Span::styled("↑/↓ ", Style::default().fg(Color::Rgb(100, 149, 237))),
-            Span::styled("stack  ", Style::default().fg(Color::Rgb(120, 120, 120))),
-            Span::styled("Home/End ", Style::default().fg(Color::Rgb(100, 149, 237))),
-            Span::styled("first/last", Style::default().fg(Color::Rgb(120, 120, 120))),
+            Span::styled(" ←→", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" move  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("↑↓", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" stack  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("a", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" add  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("s", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" split  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("x", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" close  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("[]", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" resize  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("Home/End", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" jump", Style::default().fg(Color::Rgb(100, 100, 100))),
         ]),
+        Line::default(),
     ]);
-    frame.render_widget(info, info_area);
+    frame.render_widget(header, Rect { x: area.x, y: area.y, width: area.width, height: header_h });
 
-    // Panel area offset below info.
+    // Panel area.
     let panel_area = Rect {
         x: area.x,
-        y: area.y + 2,
+        y: area.y + header_h,
         width: area.width,
-        height: area.height.saturating_sub(2),
+        height: panel_h,
     };
 
-    // Recompute with actual panel area dimensions.
     let result = tile_compute_layout(&app.tiler_strip, panel_area.width, panel_area.height);
 
+    // Draw panels.
     for vw in &result.visible {
-        let (_, name, color) = app.tiler_windows.iter()
+        let (_, ref name, color) = app.tiler_windows.iter()
             .find(|(id, _, _)| *id == vw.id)
-            .copied()
-            .unwrap_or((vw.id, "?", Color::Gray));
+            .map(|(id, n, c)| (*id, n.clone(), *c))
+            .unwrap_or((vw.id, "?".into(), Color::Gray));
 
         let is_focused = app.tiler_strip.focused() == Some(vw.id);
         let border_color = if is_focused { color } else { Color::Rgb(60, 60, 60) };
-        let title_style = if is_focused {
-            Style::default().fg(color).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::Rgb(120, 120, 120))
-        };
+        let title_mod = if is_focused { Modifier::BOLD } else { Modifier::empty() };
 
         let r = Rect {
             x: panel_area.x + vw.rect.x,
@@ -1352,27 +1442,75 @@ fn draw_tiler_tab(frame: &mut Frame, area: Rect, app: &mut App) {
             width: vw.rect.width,
             height: vw.rect.height,
         };
-
-        // Clamp to frame area.
-        if r.width == 0 || r.height == 0 { continue; }
+        if r.width < 2 || r.height < 2 { continue; }
 
         let block = Block::default()
-            .title(Span::styled(format!(" {name} "), title_style))
+            .title(Span::styled(format!(" {name} "), Style::default().fg(if is_focused { color } else { Color::Rgb(120, 120, 120) }).add_modifier(title_mod)))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border_color));
         let inner = block.inner(r);
         frame.render_widget(block, r);
 
-        // Fill with a colored placeholder.
         if inner.width > 0 && inner.height > 0 {
-            let fill: Vec<Line> = (0..inner.height)
-                .map(|_| Line::from(Span::styled(
-                    "░".repeat(inner.width as usize),
-                    Style::default().fg(color),
-                )))
-                .collect();
-            frame.render_widget(Paragraph::new(fill), inner);
+            // Show some content: panel name, position info, and a subtle pattern.
+            let strip_rect = result.window_rects.get(&vw.id);
+            let mut lines: Vec<Line> = Vec::new();
+            if let Some(sr) = strip_rect {
+                lines.push(Line::from(Span::styled(
+                    format!(" {}×{}", sr.width, sr.height),
+                    Style::default().fg(Color::Rgb(100, 100, 100)),
+                )));
+                if is_focused {
+                    lines.push(Line::from(Span::styled(
+                        format!(" col {} pos {}", sr.x, sr.y),
+                        Style::default().fg(Color::Rgb(80, 80, 80)),
+                    )));
+                }
+            }
+            // Fill remaining lines with a colored pattern.
+            let used = lines.len() as u16;
+            for row in used..inner.height {
+                let ch = if row % 2 == 0 { "·" } else { " " };
+                lines.push(Line::from(Span::styled(
+                    ch.repeat(inner.width as usize),
+                    Style::default().fg(Color::Rgb(40, 40, 40)),
+                )));
+            }
+            frame.render_widget(Paragraph::new(lines), inner);
         }
+    }
+
+    // Scroll indicator bar at bottom.
+    let bar_area = Rect {
+        x: area.x,
+        y: area.y + header_h + panel_h,
+        width: area.width,
+        height: scrollbar_h,
+    };
+    if result.strip_extent > 0 && bar_area.width > 2 {
+        let track_w = bar_area.width as usize;
+        let extent = result.strip_extent.max(1) as f64;
+        let vp_frac = (panel_area.width as f64 / extent).min(1.0);
+        let thumb_w = ((track_w as f64 * vp_frac) as usize).max(1).min(track_w);
+        let thumb_pos = if result.strip_extent > panel_area.width {
+            let max_off = (result.strip_extent - panel_area.width) as f64;
+            ((result.scroll_offset as f64 / max_off) * (track_w - thumb_w) as f64) as usize
+        } else {
+            0
+        };
+
+        let mut bar = String::with_capacity(track_w);
+        for i in 0..track_w {
+            if i >= thumb_pos && i < thumb_pos + thumb_w {
+                bar.push('█');
+            } else {
+                bar.push('░');
+            }
+        }
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(bar, Style::default().fg(Color::Rgb(60, 60, 60))))),
+            bar_area,
+        );
     }
 }
 
