@@ -48,6 +48,7 @@ struct App {
     theme: WidgetTheme,
     running: bool,
     tick: u64,
+    focus: usize, // which widget within the current tab has focus
 
     // Widgets tab
     progress: f64,
@@ -264,6 +265,7 @@ impl App {
             theme,
             running: true,
             tick: 0,
+            focus: 0,
             progress: 0.0,
             progress_dir: 0.004,
             slider_val: 0.35,
@@ -303,6 +305,21 @@ impl App {
         self.notifications.retain(|n| !n.is_expired());
     }
 
+    /// How many focusable widgets the current tab has.
+    fn focusable_count(&self) -> usize {
+        match self.tab_bar.active_index() {
+            0 => 3, // slider, scrollable list, grid
+            1 => 2, // text input, select list
+            2 => 1, // data table
+            3 => 0, // markdown (read-only)
+            4 => 1, // editor
+            5 => 3, // confirm, input dialog, tree view
+            6 => 1, // rat-tree
+            7 => 0, // misc (read-only)
+            _ => 0,
+        }
+    }
+
     fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
         self.last_key = format!("{code:?}");
 
@@ -311,16 +328,46 @@ impl App {
                 self.running = false;
             }
             KeyCode::Char('q') => {
-                self.running = false;
+                // Only quit if the focused widget doesn't consume chars
+                // (text input / input dialog / editor eat 'q')
+                let tab = self.tab_bar.active_index();
+                let eats_chars = matches!(
+                    (tab, self.focus),
+                    (1, 0) | (4, 0) | (5, 1)
+                );
+                if eats_chars {
+                    self.handle_tab_key(code, modifiers);
+                } else {
+                    self.running = false;
+                }
             }
-            KeyCode::Tab if modifiers.contains(KeyModifiers::SHIFT) => {
+            // [ / ] switch between tabs
+            KeyCode::Char('[') => {
                 self.tab_bar.select_prev();
+                self.focus = 0;
+            }
+            KeyCode::Char(']') => {
+                self.tab_bar.select_next();
+                self.focus = 0;
+            }
+            // Tab / Shift+Tab cycle focus within the current tab
+            KeyCode::Tab if modifiers.contains(KeyModifiers::SHIFT) => {
+                let count = self.focusable_count();
+                if count > 0 {
+                    self.focus = if self.focus == 0 { count - 1 } else { self.focus - 1 };
+                }
             }
             KeyCode::Tab => {
-                self.tab_bar.select_next();
+                let count = self.focusable_count();
+                if count > 0 {
+                    self.focus = (self.focus + 1) % count;
+                }
             }
             KeyCode::BackTab => {
-                self.tab_bar.select_prev();
+                let count = self.focusable_count();
+                if count > 0 {
+                    self.focus = if self.focus == 0 { count - 1 } else { self.focus - 1 };
+                }
             }
             _ => self.handle_tab_key(code, modifiers),
         }
@@ -339,35 +386,52 @@ impl App {
     }
 
     fn handle_widgets_key(&mut self, code: KeyCode) {
+        // Notification keys work regardless of focus
         match code {
-            KeyCode::Up => self.scrollable.move_up(),
-            KeyCode::Down => self.scrollable.move_down(),
-            KeyCode::Left => {
-                self.slider_val = (self.slider_val - 0.05).max(0.0);
-            }
-            KeyCode::Right => {
-                self.slider_val = (self.slider_val + 0.05).min(1.0);
-            }
             KeyCode::Char('n') => {
                 let msgs = ["File saved", "Build complete", "3 tests passed"];
                 let msg = msgs[self.tick as usize % msgs.len()];
                 self.notifications.push(Notification::info(msg));
+                return;
             }
             KeyCode::Char('w') => {
                 self.notifications
                     .push(Notification::warning("Disk space running low"));
+                return;
             }
             KeyCode::Char('e') => {
                 self.notifications
                     .push(Notification::error("Connection refused"));
+                return;
             }
+            _ => {}
+        }
+
+        match self.focus {
+            0 => match code { // slider
+                KeyCode::Left => self.slider_val = (self.slider_val - 0.05).max(0.0),
+                KeyCode::Right => self.slider_val = (self.slider_val + 0.05).min(1.0),
+                _ => {}
+            },
+            1 => match code { // scrollable list
+                KeyCode::Up => self.scrollable.move_up(),
+                KeyCode::Down => self.scrollable.move_down(),
+                _ => {}
+            },
+            2 => match code { // grid
+                KeyCode::Up => self.grid.move_up(),
+                KeyCode::Down => self.grid.move_down(),
+                KeyCode::Left => self.grid.move_left(),
+                KeyCode::Right => self.grid.move_right(),
+                _ => {}
+            },
             _ => {}
         }
     }
 
     fn handle_inputs_key(&mut self, code: KeyCode) {
-        if self.text_input.is_focused() {
-            match code {
+        match self.focus {
+            0 => match code { // text input
                 KeyCode::Char(c) => self.text_input.type_char(c),
                 KeyCode::Backspace => self.text_input.backspace(),
                 KeyCode::Delete => self.text_input.delete(),
@@ -376,7 +440,13 @@ impl App {
                 KeyCode::Home => self.text_input.move_home(),
                 KeyCode::End => self.text_input.move_end(),
                 _ => {}
-            }
+            },
+            1 => match code { // select list
+                KeyCode::Up => self.select_list.move_up(),
+                KeyCode::Down => self.select_list.move_down(),
+                _ => {}
+            },
+            _ => {}
         }
     }
 
@@ -449,18 +519,36 @@ impl App {
     }
 
     fn handle_dialogs_key(&mut self, code: KeyCode) {
-        match code {
-            KeyCode::Left | KeyCode::Right => self.confirm.toggle(),
-            KeyCode::Up => self.tree_view.move_up(),
-            KeyCode::Down => self.tree_view.move_down(),
-            KeyCode::Char(c) => self.input_dialog.type_char(c),
-            KeyCode::Backspace => self.input_dialog.backspace(),
+        match self.focus {
+            0 => match code { // confirm dialog
+                KeyCode::Left | KeyCode::Right => self.confirm.toggle(),
+                KeyCode::Enter => { /* could handle confirm action */ }
+                _ => {}
+            },
+            1 => match code { // input dialog
+                KeyCode::Char(c) => self.input_dialog.type_char(c),
+                KeyCode::Backspace => self.input_dialog.backspace(),
+                _ => {}
+            },
+            2 => match code { // tree view
+                KeyCode::Up => self.tree_view.move_up(),
+                KeyCode::Down => self.tree_view.move_down(),
+                _ => {}
+            },
             _ => {}
         }
     }
 }
 
 // ── Drawing ──────────────────────────────────────────────────────────────────
+
+fn border_style(focused: bool) -> Style {
+    if focused {
+        Style::default().fg(Color::Rgb(100, 149, 237))
+    } else {
+        Style::default().fg(Color::Rgb(60, 60, 60))
+    }
+}
 
 fn draw(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
@@ -518,11 +606,16 @@ fn draw(frame: &mut Frame, app: &mut App) {
     // Status bar
     let mut status = Line::from(vec![
         Span::styled(
-            " Tab/Shift+Tab",
+            " [/]",
             Style::default().fg(Color::Rgb(100, 149, 237)),
         ),
         Span::styled(
-            " switch sections  ",
+            " switch tabs  ",
+            Style::default().fg(Color::Rgb(140, 140, 140)),
+        ),
+        Span::styled("Tab", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(
+            " cycle focus  ",
             Style::default().fg(Color::Rgb(140, 140, 140)),
         ),
         Span::styled("q", Style::default().fg(Color::Rgb(100, 149, 237))),
@@ -561,7 +654,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         ])
         .split(cols[0]);
 
-    // Progress bar
+    // Progress bar (not focusable — auto-animated)
     let pb_block = Block::default()
         .title(Span::styled(
             " Progress Bar ",
@@ -581,7 +674,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .with_empty_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     pb.render(frame, pb_inner);
 
-    // Slider
+    // Slider — focus 0
     let sl_block = Block::default()
         .title(Span::styled(
             " Slider (←/→) ",
@@ -590,7 +683,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .border_style(border_style(app.focus == 0));
     let sl_inner = sl_block.inner(left[1]);
     frame.render_widget(sl_block, left[1]);
     let sl = Slider::new(app.slider_val)
@@ -600,7 +693,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .with_thumb_style(Style::default().fg(Color::White));
     sl.render(frame, sl_inner);
 
-    // Loader
+    // Loader (not focusable — auto-animated)
     let ld_block = Block::default()
         .title(Span::styled(
             " Loader ",
@@ -614,7 +707,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     frame.render_widget(ld_block, left[2]);
     app.loader.render_themed(frame, ld_inner, &app.theme);
 
-    // Scrollable list
+    // Scrollable list — focus 1
     let list_block = Block::default()
         .title(Span::styled(
             " ScrollableList (↑/↓) ",
@@ -623,7 +716,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .border_style(border_style(app.focus == 1));
     app.scrollable.render(frame, left[3], Some(list_block));
 
     // Right column: notifications help + grid
@@ -667,7 +760,17 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     ]);
     frame.render_widget(help, help_inner);
 
-    // Grid select
+    // Grid select — focus 2
+    let grid_block = Block::default()
+        .title(Span::styled(
+            " GridSelect (arrows) ",
+            Style::default()
+                .fg(Color::Rgb(100, 149, 237))
+                .add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 2));
+    frame.render_widget(grid_block, right[1]);
     app.grid.render_themed(frame, right[1], &app.theme);
 }
 
@@ -681,7 +784,7 @@ fn draw_inputs_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         ])
         .split(area);
 
-    // Text input
+    // Text input — focus 0
     let input_block = Block::default()
         .title(Span::styled(
             " TextInput ",
@@ -689,10 +792,9 @@ fn draw_inputs_tab(frame: &mut Frame, area: Rect, app: &mut App) {
                 .fg(Color::Rgb(100, 149, 237))
                 .add_modifier(Modifier::BOLD),
         ))
-        .borders(Borders::NONE);
-    let inner = input_block.inner(rows[0]);
-    frame.render_widget(input_block, rows[0]);
-    app.text_input.render(frame, inner, None);
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 0));
+    app.text_input.render(frame, rows[0], Some(input_block));
 
     // Label
     let label = Paragraph::new(Line::from(vec![
@@ -713,7 +815,17 @@ fn draw_inputs_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     ]));
     frame.render_widget(label, rows[1]);
 
-    // SelectList as centered popup
+    // SelectList — focus 1
+    let select_block = Block::default()
+        .title(Span::styled(
+            " SelectList (↑/↓) ",
+            Style::default()
+                .fg(Color::Rgb(100, 149, 237))
+                .add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 1));
+    frame.render_widget(select_block, rows[2]);
     app.select_list.render_themed(frame, rows[2], &app.theme);
 }
 
@@ -843,7 +955,7 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
         ])
         .split(area);
 
-    // Confirm dialog
+    // Confirm dialog — focus 0
     let confirm_block = Block::default()
         .title(Span::styled(
             " ConfirmDialog (←/→) ",
@@ -852,11 +964,11 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .border_style(border_style(app.focus == 0));
     frame.render_widget(confirm_block, cols[0]);
     app.confirm.render_themed(frame, cols[0], &app.theme);
 
-    // Input dialog
+    // Input dialog — focus 1
     let input_block = Block::default()
         .title(Span::styled(
             " InputDialog (type) ",
@@ -865,11 +977,11 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .border_style(border_style(app.focus == 1));
     frame.render_widget(input_block, cols[1]);
     app.input_dialog.render_themed(frame, cols[1], &app.theme);
 
-    // Tree view
+    // Tree view — focus 2
     let tree_block = Block::default()
         .title(Span::styled(
             " TreeView (↑/↓) ",
@@ -878,7 +990,7 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .border_style(border_style(app.focus == 2));
     frame.render_widget(tree_block, cols[2]);
     app.tree_view.render_themed(frame, cols[2], &app.theme);
 }
