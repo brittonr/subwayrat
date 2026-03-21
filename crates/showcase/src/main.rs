@@ -35,6 +35,10 @@ use rat_tree::{
     TreeData, SimpleTree, TreeAction, default_keymap,
 };
 use rat_keymap::Keymap;
+use rat_scrolltile::{
+    Strip, StripConfig, SizeConstraint, WindowId,
+    compute_layout as tile_compute_layout, nav as tile_nav,
+};
 use rat_spreadsheet::{
     Action as SheetAction, Clipboard as SheetClipboard, CellAddr, CellValue,
     Spreadsheet, SpreadsheetState, SpreadsheetStyle as SheetStyle, handle_action,
@@ -51,6 +55,7 @@ const TABS: &[&str] = &[
     "Editor",
     "Dialogs",
     "Tree",
+    "Tiler",
     "Misc",
 ];
 
@@ -100,6 +105,10 @@ struct App {
     rat_tree_data: SimpleTree,
     rat_tree_state: RatTreeState,
     rat_tree_keymap: Keymap<TreeAction, ()>,
+
+    // Tiler tab
+    tiler_strip: Strip,
+    tiler_windows: Vec<(WindowId, &'static str, Color)>,
 
     // Misc tab
     last_key: String,
@@ -302,6 +311,8 @@ impl App {
             rat_tree_data,
             rat_tree_state,
             rat_tree_keymap,
+            tiler_strip: Strip::new(StripConfig::default()),
+            tiler_windows: Vec::new(),
             last_key: String::new(),
         }
     }
@@ -332,7 +343,8 @@ impl App {
             5 => 1, // editor
             6 => 3, // confirm, input dialog, tree view
             7 => 1, // rat-tree
-            8 => 0, // misc (read-only)
+            8 => 0, // tiler (has own nav)
+            9 => 0, // misc (read-only)
             _ => 0,
         }
     }
@@ -405,6 +417,7 @@ impl App {
             5 => self.handle_editor_key(code),
             6 => self.handle_dialogs_key(code),
             7 => self.handle_tree_key(code, modifiers),
+            8 => self.handle_tiler_key(code),
             _ => {}
         }
     }
@@ -589,6 +602,19 @@ impl App {
         }
     }
 
+    fn handle_tiler_key(&mut self, code: KeyCode) {
+        let size = crossterm::terminal::size().unwrap_or((80, 24));
+        match code {
+            KeyCode::Left => tile_nav::focus_left(&mut self.tiler_strip, size.0, size.1),
+            KeyCode::Right => tile_nav::focus_right(&mut self.tiler_strip, size.0, size.1),
+            KeyCode::Up => tile_nav::focus_up(&mut self.tiler_strip),
+            KeyCode::Down => tile_nav::focus_down(&mut self.tiler_strip),
+            KeyCode::Home => tile_nav::focus_first(&mut self.tiler_strip),
+            KeyCode::End => tile_nav::focus_last(&mut self.tiler_strip),
+            _ => {}
+        }
+    }
+
     fn handle_mouse_click(&mut self, x: u16, y: u16) {
         // Click on tab bar?
         if y >= self.tab_bar_area.y
@@ -712,7 +738,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
         5 => draw_editor_tab(frame, content_area, app),
         6 => draw_dialogs_tab(frame, content_area, app),
         7 => draw_tree_tab(frame, content_area, app),
-        8 => draw_misc_tab(frame, content_area, app),
+        8 => draw_tiler_tab(frame, content_area, app),
+        9 => draw_misc_tab(frame, content_area, app),
         _ => {}
     }
 
@@ -1241,6 +1268,114 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(Paragraph::new(color_lines), theme_inner);
 }
 
+// ── Tiler tab ────────────────────────────────────────────────────────────────
+
+fn init_tiler(app: &mut App) {
+    let panels: Vec<(&str, Color, usize, SizeConstraint, SizeConstraint)> = vec![
+        ("Files",    Color::Rgb(100, 149, 237), 0, SizeConstraint::default(), SizeConstraint::default()),
+        ("Editor",   Color::Rgb(144, 238, 144), 1, SizeConstraint::default(), SizeConstraint::Proportion(2.0)),
+        ("Terminal", Color::Rgb(255, 193, 7),   1, SizeConstraint::default(), SizeConstraint::Proportion(1.0)),
+        ("Preview",  Color::Rgb(220, 160, 255), 2, SizeConstraint::default(), SizeConstraint::default()),
+        ("Logs",     Color::Rgb(0, 200, 180),   3, SizeConstraint::default(), SizeConstraint::default()),
+    ];
+
+    app.tiler_strip.resize_column(0, SizeConstraint::Fixed(18));
+    for (name, color, col, wc, hc) in panels {
+        let id = app.tiler_strip.insert_window(col, usize::MAX, wc, hc);
+        app.tiler_windows.push((id, name, color));
+    }
+    // Wider columns for editor area.
+    app.tiler_strip.resize_column(1, SizeConstraint::Proportion(2.0));
+    app.tiler_strip.resize_column(2, SizeConstraint::Proportion(1.0));
+    app.tiler_strip.resize_column(3, SizeConstraint::Fixed(20));
+
+    // Focus the editor.
+    if let Some((id, _, _)) = app.tiler_windows.iter().find(|(_, n, _)| *n == "Editor") {
+        app.tiler_strip.focus_set(*id);
+    }
+}
+
+fn draw_tiler_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let result = tile_compute_layout(&app.tiler_strip, area.width, area.height.saturating_sub(3));
+
+    // Info header.
+    let info_area = Rect { x: area.x, y: area.y, width: area.width, height: 2 };
+    let focused_name = app.tiler_strip.focused()
+        .and_then(|fid| app.tiler_windows.iter().find(|(id, _, _)| *id == fid))
+        .map(|(_, n, _)| *n)
+        .unwrap_or("none");
+    let info = Paragraph::new(vec![
+        Line::from(vec![
+            Span::styled(" Scroll Tiler ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("  focused: {focused_name}  offset: {}  extent: {}", result.scroll_offset, result.strip_extent),
+                Style::default().fg(Color::Rgb(140, 140, 140))),
+        ]),
+        Line::from(vec![
+            Span::styled(" ←/→ ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("columns  ", Style::default().fg(Color::Rgb(120, 120, 120))),
+            Span::styled("↑/↓ ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("stack  ", Style::default().fg(Color::Rgb(120, 120, 120))),
+            Span::styled("Home/End ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("first/last", Style::default().fg(Color::Rgb(120, 120, 120))),
+        ]),
+    ]);
+    frame.render_widget(info, info_area);
+
+    // Panel area offset below info.
+    let panel_area = Rect {
+        x: area.x,
+        y: area.y + 2,
+        width: area.width,
+        height: area.height.saturating_sub(2),
+    };
+
+    // Recompute with actual panel area dimensions.
+    let result = tile_compute_layout(&app.tiler_strip, panel_area.width, panel_area.height);
+
+    for vw in &result.visible {
+        let (_, name, color) = app.tiler_windows.iter()
+            .find(|(id, _, _)| *id == vw.id)
+            .copied()
+            .unwrap_or((vw.id, "?", Color::Gray));
+
+        let is_focused = app.tiler_strip.focused() == Some(vw.id);
+        let border_color = if is_focused { color } else { Color::Rgb(60, 60, 60) };
+        let title_style = if is_focused {
+            Style::default().fg(color).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Rgb(120, 120, 120))
+        };
+
+        let r = Rect {
+            x: panel_area.x + vw.rect.x,
+            y: panel_area.y + vw.rect.y,
+            width: vw.rect.width,
+            height: vw.rect.height,
+        };
+
+        // Clamp to frame area.
+        if r.width == 0 || r.height == 0 { continue; }
+
+        let block = Block::default()
+            .title(Span::styled(format!(" {name} "), title_style))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border_color));
+        let inner = block.inner(r);
+        frame.render_widget(block, r);
+
+        // Fill with a colored placeholder.
+        if inner.width > 0 && inner.height > 0 {
+            let fill: Vec<Line> = (0..inner.height)
+                .map(|_| Line::from(Span::styled(
+                    "░".repeat(inner.width as usize),
+                    Style::default().fg(color),
+                )))
+                .collect();
+            frame.render_widget(Paragraph::new(fill), inner);
+        }
+    }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 fn main() -> io::Result<()> {
@@ -1251,6 +1386,7 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new();
+    init_tiler(&mut app);
     let tick_rate = Duration::from_millis(50);
 
     while app.running {

@@ -17,6 +17,7 @@ members = [
     "crates/rat-nodegraph",
     "crates/rat-spreadsheet",
     "crates/rat-tree",
+    "crates/rat-scrolltile",
     "crates/showcase",
 ]
 

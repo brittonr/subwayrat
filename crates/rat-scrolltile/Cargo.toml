@@ -1,0 +1,9 @@
+[package]
+name = "rat-scrolltile"
+version = "0.1.0"
+description = "Niri-style scrolling tiled layout engine for ratatui"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ratatui = { workspace = true }

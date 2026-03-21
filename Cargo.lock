@@ -1129,6 +1129,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-scrolltile"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "rat-selection"
 version = "0.1.0"
 dependencies = [
@@ -1422,6 +1429,7 @@ dependencies = [
  "rat-editor",
  "rat-keymap",
  "rat-markdown",
+ "rat-scrolltile",
  "rat-spreadsheet",
  "rat-table",
  "rat-tree",
