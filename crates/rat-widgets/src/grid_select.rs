@@ -112,8 +112,8 @@ impl GridSelect {
         let height = popup_height.min(area.height.saturating_sub(4));
         
         // Center popup
-        let x = (area.width.saturating_sub(width)) / 2;
-        let y = (area.height.saturating_sub(height)) / 2;
+        let x = area.x + (area.width.saturating_sub(width)) / 2;
+        let y = area.y + (area.height.saturating_sub(height)) / 2;
         let popup = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, popup);
@@ -137,8 +137,8 @@ impl GridSelect {
     fn render_empty(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         let width = 30.min(area.width.saturating_sub(4));
         let height = 3;
-        let x = (area.width.saturating_sub(width)) / 2;
-        let y = (area.height.saturating_sub(height)) / 2;
+        let x = area.x + (area.width.saturating_sub(width)) / 2;
+        let y = area.y + (area.height.saturating_sub(height)) / 2;
         let popup = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, popup);

@@ -1,11 +1,16 @@
 //! Interactive showcase of all subwayrat TUI widgets.
 //!
-//! Navigate between demos with Tab/Shift+Tab. Press q to quit.
+//! Navigate between tabs with Ctrl+Left/Right or click them.
+//! Cycle focus within a tab with Tab/Shift+Tab.
+//! Press Ctrl+q to quit.
 
 use std::io;
 use std::time::Duration;
 
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{
+    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers,
+    MouseButton, MouseEventKind,
+};
 use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
@@ -25,8 +30,15 @@ use rat_widgets::{
 use rat_editor::Editor;
 use rat_markdown::{MarkdownStyle, PlainHighlighter, render_markdown};
 use rat_table::{DataTable, DataTableStyle};
-use rat_tree::{Tree as RatTree, TreeState as RatTreeState, TreeStyle as RatTreeStyle, TreeData, SimpleTree, TreeAction, default_keymap};
+use rat_tree::{
+    Tree as RatTree, TreeState as RatTreeState, TreeStyle as RatTreeStyle,
+    TreeData, SimpleTree, TreeAction, default_keymap,
+};
 use rat_keymap::Keymap;
+use rat_spreadsheet::{
+    Action as SheetAction, Clipboard as SheetClipboard, CellAddr, CellValue,
+    Spreadsheet, SpreadsheetState, SpreadsheetStyle as SheetStyle, handle_action,
+};
 
 // ── Demo tabs ────────────────────────────────────────────────────────────────
 
@@ -34,6 +46,7 @@ const TABS: &[&str] = &[
     "Widgets",
     "Inputs",
     "Table",
+    "Spreadsheet",
     "Markdown",
     "Editor",
     "Dialogs",
@@ -48,7 +61,12 @@ struct App {
     theme: WidgetTheme,
     running: bool,
     tick: u64,
-    focus: usize, // which widget within the current tab has focus
+    focus: usize,
+
+    /// Stored rects for hit-testing mouse clicks.
+    tab_bar_area: Rect,
+    /// Per-widget areas for the current tab (for mouse focus).
+    widget_areas: Vec<Rect>,
 
     // Widgets tab
     progress: f64,
@@ -65,6 +83,10 @@ struct App {
 
     // Table tab
     data_table: DataTable,
+
+    // Spreadsheet tab
+    sheet_state: SpreadsheetState,
+    sheet_clip: SheetClipboard,
 
     // Editor tab
     editor: Editor,
@@ -86,8 +108,8 @@ struct App {
 impl App {
     fn new() -> Self {
         let theme = WidgetTheme {
-            primary: Color::Rgb(100, 149, 237),    // cornflower blue
-            secondary: Color::Rgb(144, 238, 144),   // light green
+            primary: Color::Rgb(100, 149, 237),
+            secondary: Color::Rgb(144, 238, 144),
             success: Color::Rgb(80, 200, 120),
             warning: Color::Rgb(255, 193, 7),
             error: Color::Rgb(220, 53, 69),
@@ -115,12 +137,8 @@ impl App {
         let select_list = SelectList::new(
             "Pick a Color",
             vec![
-                "Red".into(),
-                "Green".into(),
-                "Blue".into(),
-                "Yellow".into(),
-                "Magenta".into(),
-                "Cyan".into(),
+                "Red".into(), "Green".into(), "Blue".into(),
+                "Yellow".into(), "Magenta".into(), "Cyan".into(),
             ],
         );
 
@@ -139,10 +157,7 @@ impl App {
 
         let data_table = DataTable::new(
             vec![
-                "Name".into(),
-                "Language".into(),
-                "Stars".into(),
-                "License".into(),
+                "Name".into(), "Language".into(), "Stars".into(), "License".into(),
             ],
             vec![
                 vec!["ratatui".into(), "Rust".into(), "12.4k".into(), "MIT".into()],
@@ -156,6 +171,44 @@ impl App {
             ],
         );
 
+        // Spreadsheet with sample data
+        let mut sheet_state = SpreadsheetState::new(8, 20);
+        let headers = ["Item", "Category", "Q1", "Q2", "Q3", "Q4", "Total", "Avg"];
+        for (col, h) in headers.iter().enumerate() {
+            sheet_state.grid.set(
+                CellAddr { col, row: 0 },
+                CellValue::Text(h.to_string()),
+            );
+        }
+        let sample = [
+            ("Widget A", "Hardware", 120.0, 135.0, 142.0, 158.0),
+            ("Widget B", "Hardware", 85.0, 92.0, 88.0, 96.0),
+            ("Service X", "Software", 200.0, 210.0, 225.0, 240.0),
+            ("Service Y", "Software", 150.0, 148.0, 155.0, 162.0),
+            ("Part C", "Hardware", 45.0, 50.0, 48.0, 52.0),
+        ];
+        for (r, (name, cat, q1, q2, q3, q4)) in sample.iter().enumerate() {
+            let row = r + 1;
+            sheet_state.grid.set(CellAddr { col: 0, row }, CellValue::Text(name.to_string()));
+            sheet_state.grid.set(CellAddr { col: 1, row }, CellValue::Text(cat.to_string()));
+            sheet_state.grid.set(CellAddr { col: 2, row }, CellValue::Number(*q1));
+            sheet_state.grid.set(CellAddr { col: 3, row }, CellValue::Number(*q2));
+            sheet_state.grid.set(CellAddr { col: 4, row }, CellValue::Number(*q3));
+            sheet_state.grid.set(CellAddr { col: 5, row }, CellValue::Number(*q4));
+            sheet_state.grid.set(
+                CellAddr { col: 6, row },
+                CellValue::Number(q1 + q2 + q3 + q4),
+            );
+            sheet_state.grid.set(
+                CellAddr { col: 7, row },
+                CellValue::Number((q1 + q2 + q3 + q4) / 4.0),
+            );
+        }
+        sheet_state.set_col_width(0, 12);
+        sheet_state.set_col_width(1, 10);
+        sheet_state.frozen_rows = 1;
+        let sheet_clip = SheetClipboard::default();
+
         let text_input = TextInput::new()
             .with_placeholder("Type something here...")
             .with_focused(true)
@@ -167,61 +220,24 @@ impl App {
         }
 
         let confirm = ConfirmDialog::new("Apply changes to the configuration?");
-
         let input_dialog = rat_widgets::InputDialog::new("Search");
 
         let tree = vec![
             TreeNode {
-                label: "src/".into(),
-                id: "src".into(),
-                depth: 0,
-                expanded: true,
+                label: "src/".into(), id: "src".into(), depth: 0, expanded: true,
                 children: vec![
+                    TreeNode { label: "main.rs".into(), id: "main".into(), depth: 1, expanded: false, children: vec![] },
+                    TreeNode { label: "lib.rs".into(), id: "lib".into(), depth: 1, expanded: false, children: vec![] },
                     TreeNode {
-                        label: "main.rs".into(),
-                        id: "main".into(),
-                        depth: 1,
-                        expanded: false,
-                        children: vec![],
-                    },
-                    TreeNode {
-                        label: "lib.rs".into(),
-                        id: "lib".into(),
-                        depth: 1,
-                        expanded: false,
-                        children: vec![],
-                    },
-                    TreeNode {
-                        label: "utils/".into(),
-                        id: "utils".into(),
-                        depth: 1,
-                        expanded: true,
+                        label: "utils/".into(), id: "utils".into(), depth: 1, expanded: true,
                         children: vec![
-                            TreeNode {
-                                label: "helpers.rs".into(),
-                                id: "helpers".into(),
-                                depth: 2,
-                                expanded: false,
-                                children: vec![],
-                            },
+                            TreeNode { label: "helpers.rs".into(), id: "helpers".into(), depth: 2, expanded: false, children: vec![] },
                         ],
                     },
                 ],
             },
-            TreeNode {
-                label: "Cargo.toml".into(),
-                id: "cargo".into(),
-                depth: 0,
-                expanded: false,
-                children: vec![],
-            },
-            TreeNode {
-                label: "README.md".into(),
-                id: "readme".into(),
-                depth: 0,
-                expanded: false,
-                children: vec![],
-            },
+            TreeNode { label: "Cargo.toml".into(), id: "cargo".into(), depth: 0, expanded: false, children: vec![] },
+            TreeNode { label: "README.md".into(), id: "readme".into(), depth: 0, expanded: false, children: vec![] },
         ];
         let mut tree_view = TreeView::new("File Tree", tree);
         tree_view.visible = true;
@@ -246,7 +262,6 @@ impl App {
             (16, None, "LICENSE".into()),
         ]);
         let mut rat_tree_state = RatTreeState::new(&rat_tree_data);
-        // Expand root nodes so the tree looks interesting
         rat_tree_state.expanded.insert(0);
         rat_tree_state.expanded.insert(3);
         rat_tree_state.expanded.insert(10);
@@ -266,6 +281,8 @@ impl App {
             running: true,
             tick: 0,
             focus: 0,
+            tab_bar_area: Rect::default(),
+            widget_areas: Vec::new(),
             progress: 0.0,
             progress_dir: 0.004,
             slider_val: 0.35,
@@ -276,6 +293,8 @@ impl App {
             select_list,
             grid,
             data_table,
+            sheet_state,
+            sheet_clip,
             editor,
             confirm,
             input_dialog,
@@ -291,7 +310,6 @@ impl App {
         self.tick += 1;
         self.loader.tick();
 
-        // Bounce the progress bar
         self.progress += self.progress_dir;
         if self.progress >= 1.0 {
             self.progress = 1.0;
@@ -301,71 +319,76 @@ impl App {
             self.progress_dir = 0.004;
         }
 
-        // Expire old notifications
         self.notifications.retain(|n| !n.is_expired());
     }
 
-    /// How many focusable widgets the current tab has.
     fn focusable_count(&self) -> usize {
         match self.tab_bar.active_index() {
             0 => 3, // slider, scrollable list, grid
             1 => 2, // text input, select list
             2 => 1, // data table
-            3 => 0, // markdown (read-only)
-            4 => 1, // editor
-            5 => 3, // confirm, input dialog, tree view
-            6 => 1, // rat-tree
-            7 => 0, // misc (read-only)
+            3 => 1, // spreadsheet
+            4 => 0, // markdown (read-only)
+            5 => 1, // editor
+            6 => 3, // confirm, input dialog, tree view
+            7 => 1, // rat-tree
+            8 => 0, // misc (read-only)
             _ => 0,
+        }
+    }
+
+    fn switch_tab(&mut self, idx: usize) {
+        if idx < self.tab_bar.len() {
+            while self.tab_bar.active_index() != idx {
+                self.tab_bar.select_next();
+            }
+            self.focus = 0;
         }
     }
 
     fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
         self.last_key = format!("{code:?}");
 
-        match code {
-            KeyCode::Char('q') if modifiers.contains(KeyModifiers::CONTROL) => {
-                self.running = false;
-            }
-            KeyCode::Char('q') => {
-                // Only quit if the focused widget doesn't consume chars
-                // (text input / input dialog / editor eat 'q')
-                let tab = self.tab_bar.active_index();
-                let eats_chars = matches!(
-                    (tab, self.focus),
-                    (1, 0) | (4, 0) | (5, 1)
-                );
-                if eats_chars {
-                    self.handle_tab_key(code, modifiers);
-                } else {
-                    self.running = false;
+        // Global: Ctrl+q always quits
+        if code == KeyCode::Char('q') && modifiers.contains(KeyModifiers::CONTROL) {
+            self.running = false;
+            return;
+        }
+
+        // Ctrl+Left/Right switch tabs
+        if modifiers.contains(KeyModifiers::CONTROL) {
+            match code {
+                KeyCode::Left => {
+                    self.tab_bar.select_prev();
+                    self.focus = 0;
+                    return;
                 }
+                KeyCode::Right => {
+                    self.tab_bar.select_next();
+                    self.focus = 0;
+                    return;
+                }
+                _ => {}
             }
-            // [ / ] switch between tabs
-            KeyCode::Char('[') => {
-                self.tab_bar.select_prev();
-                self.focus = 0;
-            }
-            KeyCode::Char(']') => {
-                self.tab_bar.select_next();
-                self.focus = 0;
-            }
+        }
+
+        match code {
             // Tab / Shift+Tab cycle focus within the current tab
             KeyCode::Tab if modifiers.contains(KeyModifiers::SHIFT) => {
                 let count = self.focusable_count();
-                if count > 0 {
+                if count > 1 {
                     self.focus = if self.focus == 0 { count - 1 } else { self.focus - 1 };
                 }
             }
             KeyCode::Tab => {
                 let count = self.focusable_count();
-                if count > 0 {
+                if count > 1 {
                     self.focus = (self.focus + 1) % count;
                 }
             }
             KeyCode::BackTab => {
                 let count = self.focusable_count();
-                if count > 0 {
+                if count > 1 {
                     self.focus = if self.focus == 0 { count - 1 } else { self.focus - 1 };
                 }
             }
@@ -373,20 +396,20 @@ impl App {
         }
     }
 
-    fn handle_tab_key(&mut self, code: KeyCode, _modifiers: KeyModifiers) {
+    fn handle_tab_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
         match self.tab_bar.active_index() {
             0 => self.handle_widgets_key(code),
             1 => self.handle_inputs_key(code),
             2 => self.handle_table_key(code),
-            4 => self.handle_editor_key(code),
-            5 => self.handle_dialogs_key(code),
-            6 => self.handle_tree_key(code, _modifiers),
+            3 => self.handle_sheet_key(code, modifiers),
+            5 => self.handle_editor_key(code),
+            6 => self.handle_dialogs_key(code),
+            7 => self.handle_tree_key(code, modifiers),
             _ => {}
         }
     }
 
     fn handle_widgets_key(&mut self, code: KeyCode) {
-        // Notification keys work regardless of focus
         match code {
             KeyCode::Char('n') => {
                 let msgs = ["File saved", "Build complete", "3 tests passed"];
@@ -395,30 +418,28 @@ impl App {
                 return;
             }
             KeyCode::Char('w') => {
-                self.notifications
-                    .push(Notification::warning("Disk space running low"));
+                self.notifications.push(Notification::warning("Disk space running low"));
                 return;
             }
             KeyCode::Char('e') => {
-                self.notifications
-                    .push(Notification::error("Connection refused"));
+                self.notifications.push(Notification::error("Connection refused"));
                 return;
             }
             _ => {}
         }
 
         match self.focus {
-            0 => match code { // slider
+            0 => match code {
                 KeyCode::Left => self.slider_val = (self.slider_val - 0.05).max(0.0),
                 KeyCode::Right => self.slider_val = (self.slider_val + 0.05).min(1.0),
                 _ => {}
             },
-            1 => match code { // scrollable list
+            1 => match code {
                 KeyCode::Up => self.scrollable.move_up(),
                 KeyCode::Down => self.scrollable.move_down(),
                 _ => {}
             },
-            2 => match code { // grid
+            2 => match code {
                 KeyCode::Up => self.grid.move_up(),
                 KeyCode::Down => self.grid.move_down(),
                 KeyCode::Left => self.grid.move_left(),
@@ -431,7 +452,7 @@ impl App {
 
     fn handle_inputs_key(&mut self, code: KeyCode) {
         match self.focus {
-            0 => match code { // text input
+            0 => match code {
                 KeyCode::Char(c) => self.text_input.type_char(c),
                 KeyCode::Backspace => self.text_input.backspace(),
                 KeyCode::Delete => self.text_input.delete(),
@@ -441,7 +462,7 @@ impl App {
                 KeyCode::End => self.text_input.move_end(),
                 _ => {}
             },
-            1 => match code { // select list
+            1 => match code {
                 KeyCode::Up => self.select_list.move_up(),
                 KeyCode::Down => self.select_list.move_down(),
                 _ => {}
@@ -462,6 +483,43 @@ impl App {
         }
     }
 
+    fn handle_sheet_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
+        let action = match code {
+            KeyCode::Up => Some(SheetAction::MoveUp),
+            KeyCode::Down => Some(SheetAction::MoveDown),
+            KeyCode::Left if !self.sheet_state.edit.editing => Some(SheetAction::MoveLeft),
+            KeyCode::Right if !self.sheet_state.edit.editing => Some(SheetAction::MoveRight),
+            KeyCode::Left if self.sheet_state.edit.editing => Some(SheetAction::EditCursorLeft),
+            KeyCode::Right if self.sheet_state.edit.editing => Some(SheetAction::EditCursorRight),
+            KeyCode::Home if modifiers.contains(KeyModifiers::CONTROL) => Some(SheetAction::MoveHomeAll),
+            KeyCode::End if modifiers.contains(KeyModifiers::CONTROL) => Some(SheetAction::MoveEndAll),
+            KeyCode::Home => Some(SheetAction::MoveHome),
+            KeyCode::End => Some(SheetAction::MoveEnd),
+            KeyCode::PageUp => Some(SheetAction::PageUp),
+            KeyCode::PageDown => Some(SheetAction::PageDown),
+            KeyCode::Enter if self.sheet_state.edit.editing => Some(SheetAction::CommitEdit),
+            KeyCode::Enter => Some(SheetAction::EnterEdit(None)),
+            KeyCode::Esc => Some(SheetAction::CancelEdit),
+            KeyCode::Backspace if self.sheet_state.edit.editing => Some(SheetAction::Backspace),
+            KeyCode::Delete if self.sheet_state.edit.editing => Some(SheetAction::Delete),
+            KeyCode::Delete => Some(SheetAction::DeleteContent),
+            KeyCode::Char('z') if modifiers.contains(KeyModifiers::CONTROL) => Some(SheetAction::Undo),
+            KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => Some(SheetAction::Copy),
+            KeyCode::Char('v') if modifiers.contains(KeyModifiers::CONTROL) => Some(SheetAction::Paste),
+            KeyCode::Char(c) => {
+                if self.sheet_state.edit.editing {
+                    Some(SheetAction::TypeChar(c))
+                } else {
+                    Some(SheetAction::EnterEdit(Some(c)))
+                }
+            }
+            _ => None,
+        };
+        if let Some(a) = action {
+            handle_action(&mut self.sheet_state, a, &mut self.sheet_clip);
+        }
+    }
+
     fn handle_editor_key(&mut self, code: KeyCode) {
         match code {
             KeyCode::Char(c) => self.editor.insert_char(c),
@@ -479,7 +537,6 @@ impl App {
     }
 
     fn handle_tree_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
-        // Convert crossterm 0.28 types to ratatui's re-exported crossterm 0.29
         use ratatui::crossterm::event::{
             KeyCode as RKeyCode, KeyEvent as RKeyEvent, KeyModifiers as RKeyMods,
         };
@@ -503,15 +560,9 @@ impl App {
             _ => return,
         };
         let mut rmods = RKeyMods::empty();
-        if modifiers.contains(KeyModifiers::CONTROL) {
-            rmods |= RKeyMods::CONTROL;
-        }
-        if modifiers.contains(KeyModifiers::SHIFT) {
-            rmods |= RKeyMods::SHIFT;
-        }
-        if modifiers.contains(KeyModifiers::ALT) {
-            rmods |= RKeyMods::ALT;
-        }
+        if modifiers.contains(KeyModifiers::CONTROL) { rmods |= RKeyMods::CONTROL; }
+        if modifiers.contains(KeyModifiers::SHIFT) { rmods |= RKeyMods::SHIFT; }
+        if modifiers.contains(KeyModifiers::ALT) { rmods |= RKeyMods::ALT; }
         let event = RKeyEvent::new(rcode, rmods);
         if let Some(action) = self.rat_tree_keymap.resolve(&(), &event) {
             self.rat_tree_state.apply(action, &self.rat_tree_data, 20);
@@ -520,21 +571,85 @@ impl App {
 
     fn handle_dialogs_key(&mut self, code: KeyCode) {
         match self.focus {
-            0 => match code { // confirm dialog
+            0 => match code {
                 KeyCode::Left | KeyCode::Right => self.confirm.toggle(),
-                KeyCode::Enter => { /* could handle confirm action */ }
                 _ => {}
             },
-            1 => match code { // input dialog
+            1 => match code {
                 KeyCode::Char(c) => self.input_dialog.type_char(c),
                 KeyCode::Backspace => self.input_dialog.backspace(),
                 _ => {}
             },
-            2 => match code { // tree view
+            2 => match code {
                 KeyCode::Up => self.tree_view.move_up(),
                 KeyCode::Down => self.tree_view.move_down(),
                 _ => {}
             },
+            _ => {}
+        }
+    }
+
+    fn handle_mouse_click(&mut self, x: u16, y: u16) {
+        // Click on tab bar?
+        if y >= self.tab_bar_area.y
+            && y < self.tab_bar_area.y + self.tab_bar_area.height
+            && x >= self.tab_bar_area.x
+            && x < self.tab_bar_area.x + self.tab_bar_area.width
+        {
+            // Approximate which tab was clicked by dividing the bar evenly
+            let tab_count = self.tab_bar.len() as u16;
+            if tab_count > 0 {
+                let rel_x = x.saturating_sub(self.tab_bar_area.x);
+                let idx = (rel_x * tab_count / self.tab_bar_area.width) as usize;
+                self.switch_tab(idx.min(self.tab_bar.len() - 1));
+            }
+            return;
+        }
+
+        // Click on a widget area to focus it?
+        for (i, area) in self.widget_areas.iter().enumerate() {
+            if x >= area.x && x < area.x + area.width
+                && y >= area.y && y < area.y + area.height
+            {
+                self.focus = i;
+
+                // For spreadsheet, translate click to cell address
+                if self.tab_bar.active_index() == 3 {
+                    self.handle_sheet_click(x, y, *area);
+                }
+                return;
+            }
+        }
+    }
+
+    fn handle_sheet_click(&mut self, x: u16, y: u16, area: Rect) {
+        // Rough translation: skip row header (4 chars) and column header (1 row)
+        let rel_x = x.saturating_sub(area.x + 4) as usize;
+        let rel_y = y.saturating_sub(area.y + 1) as usize;
+        let col = self.sheet_state.scroll.offset_col
+            + rel_x / (self.sheet_state.default_col_width as usize + 1);
+        let row = self.sheet_state.scroll.offset_row + rel_y;
+        if col < self.sheet_state.grid.col_count() && row < self.sheet_state.grid.row_count() {
+            handle_action(
+                &mut self.sheet_state,
+                SheetAction::ClickCell(CellAddr { col, row }),
+                &mut self.sheet_clip,
+            );
+        }
+    }
+
+    fn handle_scroll(&mut self, down: bool) {
+        match self.tab_bar.active_index() {
+            0 if self.focus == 1 => {
+                if down { self.scrollable.move_down(); } else { self.scrollable.move_up(); }
+            }
+            2 => {
+                if down { self.data_table.select_next(); } else { self.data_table.select_prev(); }
+            }
+            3 => {
+                let action = if down { SheetAction::MoveDown } else { SheetAction::MoveUp };
+                handle_action(&mut self.sheet_state, action, &mut self.sheet_clip);
+            }
             _ => {}
         }
     }
@@ -552,8 +667,6 @@ fn border_style(focused: bool) -> Style {
 
 fn draw(frame: &mut Frame, app: &mut App) {
     let size = frame.area();
-
-    // Background
     frame.render_widget(Clear, size);
 
     let outer = Layout::default()
@@ -570,18 +683,14 @@ fn draw(frame: &mut Frame, app: &mut App) {
     let title = Line::from(vec![
         Span::styled(
             " 🐀 subwayrat ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            "widget showcase",
-            Style::default().fg(Color::Rgb(140, 140, 140)),
-        ),
+        Span::styled("widget showcase", Style::default().fg(Color::Rgb(140, 140, 140))),
     ]);
     frame.render_widget(Paragraph::new(title), outer[0]);
 
-    // Tab bar
+    // Tab bar — store area for mouse hit-testing
+    app.tab_bar_area = outer[1];
     app.tab_bar.render(frame, outer[1], None);
 
     // Content area
@@ -591,44 +700,33 @@ fn draw(frame: &mut Frame, app: &mut App) {
     let content_area = content_block.inner(outer[2]);
     frame.render_widget(content_block, outer[2]);
 
+    // Clear widget areas before each tab populates them
+    app.widget_areas.clear();
+
     match app.tab_bar.active_index() {
         0 => draw_widgets_tab(frame, content_area, app),
         1 => draw_inputs_tab(frame, content_area, app),
         2 => draw_table_tab(frame, content_area, app),
-        3 => draw_markdown_tab(frame, content_area, app),
-        4 => draw_editor_tab(frame, content_area, app),
-        5 => draw_dialogs_tab(frame, content_area, app),
-        6 => draw_tree_tab(frame, content_area, app),
-        7 => draw_misc_tab(frame, content_area, app),
+        3 => draw_sheet_tab(frame, content_area, app),
+        4 => draw_markdown_tab(frame, content_area, app),
+        5 => draw_editor_tab(frame, content_area, app),
+        6 => draw_dialogs_tab(frame, content_area, app),
+        7 => draw_tree_tab(frame, content_area, app),
+        8 => draw_misc_tab(frame, content_area, app),
         _ => {}
     }
 
     // Status bar
     let mut status = Line::from(vec![
-        Span::styled(
-            " [/]",
-            Style::default().fg(Color::Rgb(100, 149, 237)),
-        ),
-        Span::styled(
-            " switch tabs  ",
-            Style::default().fg(Color::Rgb(140, 140, 140)),
-        ),
+        Span::styled(" Ctrl+←/→", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(" tabs  ", Style::default().fg(Color::Rgb(140, 140, 140))),
         Span::styled("Tab", Style::default().fg(Color::Rgb(100, 149, 237))),
-        Span::styled(
-            " cycle focus  ",
-            Style::default().fg(Color::Rgb(140, 140, 140)),
-        ),
-        Span::styled("q", Style::default().fg(Color::Rgb(100, 149, 237))),
-        Span::styled(
-            " quit  ",
-            Style::default().fg(Color::Rgb(140, 140, 140)),
-        ),
+        Span::styled(" focus  ", Style::default().fg(Color::Rgb(140, 140, 140))),
+        Span::styled("Ctrl+q", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(" quit  ", Style::default().fg(Color::Rgb(140, 140, 140))),
     ]);
     let last_key_text = format!("last key: {} ", app.last_key);
-    status.spans.push(Span::styled(
-        last_key_text,
-        Style::default().fg(Color::Rgb(80, 80, 80)),
-    ));
+    status.spans.push(Span::styled(last_key_text, Style::default().fg(Color::Rgb(80, 80, 80))));
     frame.render_widget(Paragraph::new(status), outer[3]);
 
     // Notifications overlay
@@ -643,25 +741,19 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(area);
 
-    // Left column
     let left = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // progress bar
-            Constraint::Length(3),  // slider
-            Constraint::Length(2),  // loader
-            Constraint::Min(6),    // scrollable list
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(2),
+            Constraint::Min(6),
         ])
         .split(cols[0]);
 
-    // Progress bar (not focusable — auto-animated)
+    // Progress bar (auto-animated, not focusable)
     let pb_block = Block::default()
-        .title(Span::styled(
-            " Progress Bar ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Progress Bar ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let pb_inner = pb_block.inner(left[0]);
@@ -676,16 +768,12 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 
     // Slider — focus 0
     let sl_block = Block::default()
-        .title(Span::styled(
-            " Slider (←/→) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Slider (←/→) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 0));
     let sl_inner = sl_block.inner(left[1]);
     frame.render_widget(sl_block, left[1]);
+    app.widget_areas.push(left[1]); // index 0
     let sl = Slider::new(app.slider_val)
         .with_left_label("Vol")
         .with_right_label(format!("{:.0}%", app.slider_val * 100.0))
@@ -693,14 +781,9 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .with_thumb_style(Style::default().fg(Color::White));
     sl.render(frame, sl_inner);
 
-    // Loader (not focusable — auto-animated)
+    // Loader (auto-animated, not focusable)
     let ld_block = Block::default()
-        .title(Span::styled(
-            " Loader ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Loader ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::LEFT | Borders::RIGHT)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let ld_inner = ld_block.inner(left[2]);
@@ -709,32 +792,20 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 
     // Scrollable list — focus 1
     let list_block = Block::default()
-        .title(Span::styled(
-            " ScrollableList (↑/↓) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" ScrollableList (↑/↓) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 1));
+    app.widget_areas.push(left[3]); // index 1
     app.scrollable.render(frame, left[3], Some(list_block));
 
-    // Right column: notifications help + grid
+    // Right column
     let right = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(8), // help text
-            Constraint::Min(6),   // grid
-        ])
+        .constraints([Constraint::Length(8), Constraint::Min(6)])
         .split(cols[1]);
 
     let help_block = Block::default()
-        .title(Span::styled(
-            " Notifications ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Notifications ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let help_inner = help_block.inner(right[0]);
@@ -762,15 +833,11 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 
     // Grid select — focus 2
     let grid_block = Block::default()
-        .title(Span::styled(
-            " GridSelect (arrows) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" GridSelect (arrows) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 2));
     frame.render_widget(grid_block, right[1]);
+    app.widget_areas.push(right[1]); // index 2
     app.grid.render_themed(frame, right[1], &app.theme);
 }
 
@@ -778,54 +845,37 @@ fn draw_inputs_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // text input
-            Constraint::Length(2),  // spacer + label
-            Constraint::Min(8),    // select list display
+            Constraint::Length(3),
+            Constraint::Length(2),
+            Constraint::Min(8),
         ])
         .split(area);
 
     // Text input — focus 0
     let input_block = Block::default()
-        .title(Span::styled(
-            " TextInput ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" TextInput ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 0));
+    app.widget_areas.push(rows[0]); // index 0
     app.text_input.render(frame, rows[0], Some(input_block));
 
     // Label
     let label = Paragraph::new(Line::from(vec![
+        Span::styled(" Current value: ", Style::default().fg(Color::Rgb(140, 140, 140))),
         Span::styled(
-            " Current value: ",
-            Style::default().fg(Color::Rgb(140, 140, 140)),
-        ),
-        Span::styled(
-            if app.text_input.value().is_empty() {
-                "(empty)"
-            } else {
-                app.text_input.value()
-            },
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
+            if app.text_input.value().is_empty() { "(empty)" } else { app.text_input.value() },
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
         ),
     ]));
     frame.render_widget(label, rows[1]);
 
     // SelectList — focus 1
     let select_block = Block::default()
-        .title(Span::styled(
-            " SelectList (↑/↓) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" SelectList (↑/↓) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 1));
     frame.render_widget(select_block, rows[2]);
+    app.widget_areas.push(rows[2]); // index 1
     app.select_list.render_themed(frame, rows[2], &app.theme);
 }
 
@@ -833,21 +883,14 @@ fn draw_table_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .title(Span::styled(
             " DataTable (↑/↓ navigate, ←/→ scroll columns) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
 
     let table_style = DataTableStyle {
-        header_style: Style::default()
-            .fg(Color::Rgb(100, 149, 237))
-            .add_modifier(Modifier::BOLD),
-        selected_style: Style::default()
-            .bg(Color::Rgb(40, 50, 70))
-            .fg(Color::White)
-            .add_modifier(Modifier::BOLD),
+        header_style: Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
+        selected_style: Style::default().bg(Color::Rgb(40, 50, 70)).fg(Color::White).add_modifier(Modifier::BOLD),
         normal_style: Style::default().fg(Color::Rgb(180, 180, 180)),
         truncation_suffix: "…".into(),
         column_spacing: 2,
@@ -856,8 +899,7 @@ fn draw_table_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     let info = app.data_table.info();
     let info_text = format!(
         " {} rows × {} cols | row {} ",
-        info.row_count,
-        info.column_count,
+        info.row_count, info.column_count,
         app.data_table.selected_index() + 1,
     );
 
@@ -866,11 +908,52 @@ fn draw_table_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Min(5), Constraint::Length(1)])
         .split(area);
 
+    app.widget_areas.push(outer[0]); // index 0
     app.data_table.render(frame, outer[0], Some(block), &table_style);
 
     let info_line = Paragraph::new(Line::from(Span::styled(
-        info_text,
-        Style::default().fg(Color::Rgb(100, 100, 100)),
+        info_text, Style::default().fg(Color::Rgb(100, 100, 100)),
+    )));
+    frame.render_widget(info_line, outer[1]);
+}
+
+fn draw_sheet_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let outer = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(5), Constraint::Length(1)])
+        .split(area);
+
+    let block = Block::default()
+        .title(Span::styled(
+            " Spreadsheet (arrows navigate, Enter edit, Esc cancel) ",
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(border_style(true));
+
+    let sheet_style = SheetStyle {
+        header_style: Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
+        cursor_style: Style::default().bg(Color::Rgb(40, 50, 70)).fg(Color::White).add_modifier(Modifier::BOLD),
+        selection_style: Style::default().bg(Color::Rgb(30, 40, 60)).fg(Color::Rgb(200, 200, 200)),
+        cell_style: Style::default().fg(Color::Rgb(180, 180, 180)),
+        edit_style: Style::default().fg(Color::Rgb(255, 255, 200)).bg(Color::Rgb(50, 50, 80)),
+    };
+
+    let widget = Spreadsheet::new().block(block).style(sheet_style);
+    app.widget_areas.push(outer[0]); // index 0
+    frame.render_stateful_widget(widget, outer[0], &mut app.sheet_state);
+
+    // Info line
+    let pos = app.sheet_state.cursor.position;
+    let col_letter = (b'A' + pos.col as u8) as char;
+    let editing = if app.sheet_state.edit.editing {
+        format!(" editing: {} ", app.sheet_state.edit.buffer)
+    } else {
+        String::new()
+    };
+    let info_text = format!(" Cell {col_letter}{} {editing}", pos.row + 1);
+    let info_line = Paragraph::new(Line::from(Span::styled(
+        info_text, Style::default().fg(Color::Rgb(100, 100, 100)),
     )));
     frame.render_widget(info_line, outer[1]);
 }
@@ -916,12 +999,7 @@ That horizontal rule above is `---` in source."#;
     let lines = render_markdown(md_text, &md_style, &PlainHighlighter);
 
     let block = Block::default()
-        .title(Span::styled(
-            " Markdown Renderer ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Markdown Renderer ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
 
@@ -934,9 +1012,7 @@ fn draw_editor_tab(frame: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .title(Span::styled(
             " Editor (type to edit, arrows to move) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
@@ -957,12 +1033,7 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
 
     // Confirm dialog — focus 0
     let confirm_block = Block::default()
-        .title(Span::styled(
-            " ConfirmDialog (←/→) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" ConfirmDialog (←/→) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 0));
     frame.render_widget(confirm_block, cols[0]);
@@ -970,12 +1041,7 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
 
     // Input dialog — focus 1
     let input_block = Block::default()
-        .title(Span::styled(
-            " InputDialog (type) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" InputDialog (type) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 1));
     frame.render_widget(input_block, cols[1]);
@@ -983,12 +1049,7 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
 
     // Tree view — focus 2
     let tree_block = Block::default()
-        .title(Span::styled(
-            " TreeView (↑/↓) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" TreeView (↑/↓) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(border_style(app.focus == 2));
     frame.render_widget(tree_block, cols[2]);
@@ -1001,23 +1062,17 @@ fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(area);
 
-    // Left: the tree widget
     let tree_block = Block::default()
         .title(Span::styled(
             " rat-tree (j/k navigate, l/h expand/collapse, Space toggle) ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
 
     let tree_style = RatTreeStyle::default()
         .with_selected_style(
-            Style::default()
-                .bg(Color::Rgb(40, 50, 70))
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
+            Style::default().bg(Color::Rgb(40, 50, 70)).fg(Color::White).add_modifier(Modifier::BOLD),
         )
         .with_normal_style(Style::default().fg(Color::Rgb(180, 180, 180)));
 
@@ -1027,7 +1082,7 @@ fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 
     frame.render_stateful_widget(tree_widget, cols[0], &mut app.rat_tree_state);
 
-    // Right: info panel
+    // Info panel
     let info = app.rat_tree_state.info();
     let cursor_label = info.cursor_node_id
         .map(|id| app.rat_tree_data.node_label(id).to_string())
@@ -1036,12 +1091,7 @@ fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     let is_leaf = info.cursor_is_leaf.map(|b| if b { "yes" } else { "no" }).unwrap_or("-");
 
     let info_block = Block::default()
-        .title(Span::styled(
-            " Tree Info ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" Tree Info ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let info_inner = info_block.inner(cols[1]);
@@ -1109,20 +1159,11 @@ fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(12), // crate overview
-            Constraint::Min(4),    // theme colors
-        ])
+        .constraints([Constraint::Length(13), Constraint::Min(4)])
         .split(area);
 
-    // Crate overview
     let crate_block = Block::default()
-        .title(Span::styled(
-            " subwayrat crates ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" subwayrat crates ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let crate_inner = crate_block.inner(rows[0]);
@@ -1140,6 +1181,10 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(vec![
             Span::styled("rat-table       ", Style::default().fg(Color::Rgb(255, 193, 7)).add_modifier(Modifier::BOLD)),
             Span::styled("Scrollable data table with auto column sizing", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("rat-spreadsheet ", Style::default().fg(Color::Rgb(255, 200, 160)).add_modifier(Modifier::BOLD)),
+            Span::styled("Editable spreadsheet with formulas and cell navigation", Style::default().fg(Color::Rgb(160, 160, 160))),
         ]),
         Line::from(vec![
             Span::styled("rat-markdown    ", Style::default().fg(Color::Rgb(220, 160, 255)).add_modifier(Modifier::BOLD)),
@@ -1162,10 +1207,6 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
             Span::styled("Node-based graph editor with typed ports and auto-layout", Style::default().fg(Color::Rgb(160, 160, 160))),
         ]),
         Line::from(vec![
-            Span::styled("rat-spreadsheet ", Style::default().fg(Color::Rgb(255, 200, 160)).add_modifier(Modifier::BOLD)),
-            Span::styled("Editable spreadsheet with formulas and cell navigation", Style::default().fg(Color::Rgb(160, 160, 160))),
-        ]),
-        Line::from(vec![
             Span::styled("rat-tree        ", Style::default().fg(Color::Rgb(80, 200, 120)).add_modifier(Modifier::BOLD)),
             Span::styled("Interactive tree navigation with keymap integration", Style::default().fg(Color::Rgb(160, 160, 160))),
         ]),
@@ -1178,12 +1219,7 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
 
     // Theme colors
     let theme_block = Block::default()
-        .title(Span::styled(
-            " WidgetTheme Colors ",
-            Style::default()
-                .fg(Color::Rgb(100, 149, 237))
-                .add_modifier(Modifier::BOLD),
-        ))
+        .title(Span::styled(" WidgetTheme Colors ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let theme_inner = theme_block.inner(rows[1]);
@@ -1192,39 +1228,15 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
     let swatch = |label: &str, color: Color| -> Vec<Span<'static>> {
         vec![
             Span::styled("██ ", Style::default().fg(color)),
-            Span::styled(
-                format!("{label:<16}"),
-                Style::default().fg(Color::Rgb(180, 180, 180)),
-            ),
+            Span::styled(format!("{label:<16}"), Style::default().fg(Color::Rgb(180, 180, 180))),
         ]
     };
 
     let t = &app.theme;
     let color_lines = vec![
-        Line::from(
-            [
-                swatch("primary", t.primary),
-                swatch("secondary", t.secondary),
-                swatch("success", t.success),
-            ]
-            .concat(),
-        ),
-        Line::from(
-            [
-                swatch("warning", t.warning),
-                swatch("error", t.error),
-                swatch("text", t.text),
-            ]
-            .concat(),
-        ),
-        Line::from(
-            [
-                swatch("text_muted", t.text_muted),
-                swatch("text_disabled", t.text_disabled),
-                swatch("border_focused", t.border_focused),
-            ]
-            .concat(),
-        ),
+        Line::from([swatch("primary", t.primary), swatch("secondary", t.secondary), swatch("success", t.success)].concat()),
+        Line::from([swatch("warning", t.warning), swatch("error", t.error), swatch("text", t.text)].concat()),
+        Line::from([swatch("text_muted", t.text_muted), swatch("text_disabled", t.text_disabled), swatch("border_focused", t.border_focused)].concat()),
     ];
     frame.render_widget(Paragraph::new(color_lines), theme_inner);
 }
@@ -1233,7 +1245,7 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
 
 fn main() -> io::Result<()> {
     enable_raw_mode()?;
-    execute!(io::stdout(), EnterAlternateScreen)?;
+    execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
 
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
@@ -1244,12 +1256,20 @@ fn main() -> io::Result<()> {
     while app.running {
         terminal.draw(|f| draw(f, &mut app))?;
 
-        let timeout = tick_rate;
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == event::KeyEventKind::Press {
+        if event::poll(tick_rate)? {
+            match event::read()? {
+                Event::Key(key) if key.kind == event::KeyEventKind::Press => {
                     app.handle_key(key.code, key.modifiers);
                 }
+                Event::Mouse(mouse) => match mouse.kind {
+                    MouseEventKind::Down(MouseButton::Left) => {
+                        app.handle_mouse_click(mouse.column, mouse.row);
+                    }
+                    MouseEventKind::ScrollDown => app.handle_scroll(true),
+                    MouseEventKind::ScrollUp => app.handle_scroll(false),
+                    _ => {}
+                },
+                _ => {}
             }
         }
 
@@ -1257,7 +1277,7 @@ fn main() -> io::Result<()> {
     }
 
     disable_raw_mode()?;
-    execute!(io::stdout(), LeaveAlternateScreen)?;
+    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
 
     Ok(())
 }
