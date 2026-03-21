@@ -12,6 +12,7 @@ use ratatui::widgets::Paragraph;
 
 use crate::theme::WidgetTheme;
 
+#[derive(Debug, Clone)]
 pub struct TreeNode {
     pub label: String,
     pub id: String,
@@ -20,28 +21,27 @@ pub struct TreeNode {
     pub depth: usize,
 }
 
-pub struct TreeView {
+/// Pure data model for a tree view — no ratatui dependency.
+pub struct TreeViewModel {
     pub root: Vec<TreeNode>,
     pub selected: usize,
     pub visible: bool,
-    pub title: String,
-    flat_cache: Vec<(String, String, usize)>, // (label, id, depth)
+    pub flat_cache: Vec<(String, String, usize)>, // (label, id, depth)
 }
 
-impl TreeView {
-    pub fn new(title: impl Into<String>, root: Vec<TreeNode>) -> Self {
-        let mut tv = Self {
+impl TreeViewModel {
+    pub fn new(root: Vec<TreeNode>) -> Self {
+        let mut model = Self {
             root,
             selected: 0,
             visible: false,
-            title: title.into(),
             flat_cache: Vec::new(),
         };
-        tv.rebuild_cache();
-        tv
+        model.rebuild_cache();
+        model
     }
 
-    fn rebuild_cache(&mut self) {
+    pub fn rebuild_cache(&mut self) {
         self.flat_cache.clear();
         fn flatten(nodes: &[TreeNode], cache: &mut Vec<(String, String, usize)>) {
             for node in nodes {
@@ -57,6 +57,7 @@ impl TreeView {
     pub fn move_up(&mut self) {
         self.selected = self.selected.saturating_sub(1);
     }
+
     pub fn move_down(&mut self) {
         self.selected = (self.selected + 1).min(self.flat_cache.len().saturating_sub(1));
     }
@@ -66,9 +67,35 @@ impl TreeView {
             .get(self.selected)
             .map(|(_, id, _)| id.as_str())
     }
+}
+
+pub struct TreeView {
+    pub model: TreeViewModel,
+    pub title: String,
+}
+
+impl TreeView {
+    pub fn new(title: impl Into<String>, root: Vec<TreeNode>) -> Self {
+        Self {
+            model: TreeViewModel::new(root),
+            title: title.into(),
+        }
+    }
+
+    pub fn move_up(&mut self) {
+        self.model.move_up();
+    }
+
+    pub fn move_down(&mut self) {
+        self.model.move_down();
+    }
+
+    pub fn selected_id(&self) -> Option<&str> {
+        self.model.selected_id()
+    }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
@@ -88,12 +115,13 @@ impl TreeView {
         frame.render_widget(block, popup);
 
         let lines: Vec<Line> = self
+            .model
             .flat_cache
             .iter()
             .enumerate()
             .map(|(i, (label, _, depth))| {
                 let indent = "  ".repeat(*depth);
-                let style = if i == self.selected {
+                let style = if i == self.model.selected {
                     Style::default().bg(ratatui::style::Color::DarkGray).add_modifier(ratatui::style::Modifier::BOLD)
                 } else {
                     Style::default()
@@ -106,7 +134,7 @@ impl TreeView {
     }
 
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
@@ -126,12 +154,13 @@ impl TreeView {
         frame.render_widget(block, popup);
 
         let lines: Vec<Line> = self
+            .model
             .flat_cache
             .iter()
             .enumerate()
             .map(|(i, (label, _, depth))| {
                 let indent = "  ".repeat(*depth);
-                let style = if i == self.selected {
+                let style = if i == self.model.selected {
                     theme.highlight_style()
                 } else {
                     Style::default()

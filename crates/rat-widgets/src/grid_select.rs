@@ -28,18 +28,17 @@ impl GridItem {
     }
 }
 
-pub struct GridSelect {
-    pub title: String,
+/// Pure data model for a grid selection — no ratatui dependency.
+pub struct GridSelectModel {
     pub items: Vec<GridItem>,
     pub columns: usize,
     pub selected: usize,
     pub visible: bool,
 }
 
-impl GridSelect {
-    pub fn new(title: impl Into<String>, items: Vec<GridItem>, columns: usize) -> Self {
+impl GridSelectModel {
+    pub fn new(items: Vec<GridItem>, columns: usize) -> Self {
         Self {
-            title: title.into(),
             items,
             columns: columns.max(1), // Ensure at least 1 column
             selected: 0,
@@ -86,25 +85,67 @@ impl GridSelect {
             self.selected = idx.min(self.items.len() - 1);
         }
     }
+}
+
+pub struct GridSelect {
+    pub model: GridSelectModel,
+    pub title: String,
+}
+
+impl GridSelect {
+    pub fn new(title: impl Into<String>, items: Vec<GridItem>, columns: usize) -> Self {
+        Self {
+            model: GridSelectModel::new(items, columns),
+            title: title.into(),
+        }
+    }
+
+    pub fn move_left(&mut self) {
+        self.model.move_left();
+    }
+
+    pub fn move_right(&mut self) {
+        self.model.move_right();
+    }
+
+    pub fn move_up(&mut self) {
+        self.model.move_up();
+    }
+
+    pub fn move_down(&mut self) {
+        self.model.move_down();
+    }
+
+    pub fn selected_index(&self) -> usize {
+        self.model.selected_index()
+    }
+
+    pub fn selected_item(&self) -> Option<&GridItem> {
+        self.model.selected_item()
+    }
+
+    pub fn set_selected(&mut self, idx: usize) {
+        self.model.set_selected(idx);
+    }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         self.render_themed(frame, area, &WidgetTheme::default());
     }
 
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
-        if self.items.is_empty() {
+        if self.model.items.is_empty() {
             self.render_empty(frame, area, theme);
             return;
         }
 
         // Calculate popup dimensions
-        let rows = self.items.len().div_ceil(self.columns);
+        let rows = self.model.items.len().div_ceil(self.model.columns);
         let cell_width = 20; // Fixed cell width for simplicity
-        let popup_width = (self.columns * cell_width + self.columns - 1 + 2) as u16; // +2 for borders
+        let popup_width = (self.model.columns * cell_width + self.model.columns - 1 + 2) as u16; // +2 for borders
         let popup_height = (rows + 2) as u16; // +2 for borders
 
         // Clamp to area size
@@ -156,7 +197,7 @@ impl GridSelect {
     }
 
     fn render_grid(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        let rows = self.items.len().div_ceil(self.columns);
+        let rows = self.model.items.len().div_ceil(self.model.columns);
         
         // Create row constraints
         let row_constraints: Vec<Constraint> = (0..rows)
@@ -176,7 +217,7 @@ impl GridSelect {
             let row_area = row_layout[row];
             
             // Create column constraints for this row
-            let items_in_row = ((row + 1) * self.columns).min(self.items.len()) - row * self.columns;
+            let items_in_row = ((row + 1) * self.model.columns).min(self.model.items.len()) - row * self.model.columns;
             let col_constraints: Vec<Constraint> = (0..items_in_row)
                 .map(|_| Constraint::Ratio(1, items_in_row as u32))
                 .collect();
@@ -187,15 +228,15 @@ impl GridSelect {
                 .split(row_area);
 
             for col in 0..items_in_row {
-                let item_index = row * self.columns + col;
-                if item_index >= self.items.len() {
+                let item_index = row * self.model.columns + col;
+                if item_index >= self.model.items.len() {
                     break;
                 }
 
-                let item = &self.items[item_index];
+                let item = &self.model.items[item_index];
                 let cell_area = col_layout[col];
                 
-                let is_selected = item_index == self.selected;
+                let is_selected = item_index == self.model.selected;
                 self.render_cell(frame, cell_area, item, is_selected, theme);
             }
         }
@@ -253,25 +294,25 @@ mod tests {
         let grid = GridSelect::new("Test", items, 2);
         
         assert_eq!(grid.title, "Test");
-        assert_eq!(grid.items.len(), 3);
-        assert_eq!(grid.columns, 2);
-        assert_eq!(grid.selected, 0);
-        assert!(grid.visible);
+        assert_eq!(grid.model.items.len(), 3);
+        assert_eq!(grid.model.columns, 2);
+        assert_eq!(grid.model.selected, 0);
+        assert!(grid.model.visible);
     }
 
     #[test]
     fn new_empty_grid() {
         let grid = GridSelect::new("Empty", vec![], 3);
-        assert_eq!(grid.items.len(), 0);
-        assert_eq!(grid.selected_index(), 0);
-        assert!(grid.selected_item().is_none());
+        assert_eq!(grid.model.items.len(), 0);
+        assert_eq!(grid.model.selected_index(), 0);
+        assert!(grid.model.selected_item().is_none());
     }
 
     #[test]
     fn columns_minimum_one() {
         let items = vec![GridItem::new("Item")];
         let grid = GridSelect::new("Test", items, 0);
-        assert_eq!(grid.columns, 1);
+        assert_eq!(grid.model.columns, 1);
     }
 
     #[test]
@@ -283,11 +324,11 @@ mod tests {
         ];
         let mut grid = GridSelect::new("Test", items, 3);
         
-        assert_eq!(grid.selected, 0);
+        assert_eq!(grid.model.selected, 0);
         grid.move_right();
-        assert_eq!(grid.selected, 1);
+        assert_eq!(grid.model.selected, 1);
         grid.move_right();
-        assert_eq!(grid.selected, 2);
+        assert_eq!(grid.model.selected, 2);
     }
 
     #[test]
@@ -297,7 +338,7 @@ mod tests {
         
         grid.set_selected(1); // Last item
         grid.move_right();
-        assert_eq!(grid.selected, 1); // Should stay at last item
+        assert_eq!(grid.model.selected, 1); // Should stay at last item
     }
 
     #[test]
@@ -310,11 +351,11 @@ mod tests {
         let mut grid = GridSelect::new("Test", items, 3);
         
         grid.set_selected(2);
-        assert_eq!(grid.selected, 2);
+        assert_eq!(grid.model.selected, 2);
         grid.move_left();
-        assert_eq!(grid.selected, 1);
+        assert_eq!(grid.model.selected, 1);
         grid.move_left();
-        assert_eq!(grid.selected, 0);
+        assert_eq!(grid.model.selected, 0);
     }
 
     #[test]
@@ -322,9 +363,9 @@ mod tests {
         let items = vec![GridItem::new("A"), GridItem::new("B")];
         let mut grid = GridSelect::new("Test", items, 2);
         
-        assert_eq!(grid.selected, 0);
+        assert_eq!(grid.model.selected, 0);
         grid.move_left();
-        assert_eq!(grid.selected, 0); // Should stay at 0
+        assert_eq!(grid.model.selected, 0); // Should stay at 0
     }
 
     #[test]
@@ -337,7 +378,7 @@ mod tests {
         
         grid.set_selected(1); // Second item in first row
         grid.move_down();
-        assert_eq!(grid.selected, 4); // Second item in second row (1 + 3)
+        assert_eq!(grid.model.selected, 4); // Second item in second row (1 + 3)
     }
 
     #[test]
@@ -350,7 +391,7 @@ mod tests {
         
         grid.set_selected(2); // Third item in first row
         grid.move_down();
-        assert_eq!(grid.selected, 4); // Should clamp to last item (index 4)
+        assert_eq!(grid.model.selected, 4); // Should clamp to last item (index 4)
     }
 
     #[test]
@@ -363,7 +404,7 @@ mod tests {
         
         grid.set_selected(4); // Second item in second row
         grid.move_up();
-        assert_eq!(grid.selected, 1); // Second item in first row (4 - 3)
+        assert_eq!(grid.model.selected, 1); // Second item in first row (4 - 3)
     }
 
     #[test]
@@ -376,7 +417,7 @@ mod tests {
         
         grid.set_selected(1); // Second item in first row
         grid.move_up();
-        assert_eq!(grid.selected, 0); // Should saturating_sub to 0
+        assert_eq!(grid.model.selected, 0); // Should saturating_sub to 0
     }
 
     #[test]
@@ -387,13 +428,13 @@ mod tests {
         ];
         let mut grid = GridSelect::new("Test", items, 2);
         
-        assert_eq!(grid.selected_item().unwrap().label, "First");
+        assert_eq!(grid.model.selected_item().unwrap().label, "First");
         grid.set_selected(1);
-        assert_eq!(grid.selected_item().unwrap().label, "Second");
+        assert_eq!(grid.model.selected_item().unwrap().label, "Second");
         
         // Out of bounds
         grid.set_selected(10);
-        assert_eq!(grid.selected_index(), 1); // Should clamp to last valid index
+        assert_eq!(grid.model.selected_index(), 1); // Should clamp to last valid index
     }
 
     #[test]
@@ -416,7 +457,7 @@ mod tests {
         let mut grid = GridSelect::new("Test", items, 2);
         
         grid.set_selected(5); // Way out of bounds
-        assert_eq!(grid.selected, 1); // Should clamp to last valid index (1)
+        assert_eq!(grid.model.selected, 1); // Should clamp to last valid index (1)
     }
 
     #[test]
@@ -428,8 +469,8 @@ mod tests {
         grid.move_right();
         grid.move_up();
         grid.move_down();
-        assert_eq!(grid.selected, 0);
-        assert!(grid.selected_item().is_none());
+        assert_eq!(grid.model.selected, 0);
+        assert!(grid.model.selected_item().is_none());
     }
 
     #[test]
@@ -442,30 +483,30 @@ mod tests {
         let mut grid = GridSelect::new("Test", items, 3);
         
         // Start at 0
-        assert_eq!(grid.selected, 0);
+        assert_eq!(grid.model.selected, 0);
         
         // Right to 1
         grid.move_right();
-        assert_eq!(grid.selected, 1);
+        assert_eq!(grid.model.selected, 1);
         
         // Down to 4
         grid.move_down();
-        assert_eq!(grid.selected, 4);
+        assert_eq!(grid.model.selected, 4);
         
         // Right to 5
         grid.move_right();
-        assert_eq!(grid.selected, 5);
+        assert_eq!(grid.model.selected, 5);
         
         // Down to 7 (clamped from 5+3=8 to last item 7)
         grid.move_down();
-        assert_eq!(grid.selected, 7);
+        assert_eq!(grid.model.selected, 7);
         
         // Up to 4
         grid.move_up();
-        assert_eq!(grid.selected, 4);
+        assert_eq!(grid.model.selected, 4);
         
         // Left to 3
         grid.move_left();
-        assert_eq!(grid.selected, 3);
+        assert_eq!(grid.model.selected, 3);
     }
 }

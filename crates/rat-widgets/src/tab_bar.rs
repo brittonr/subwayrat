@@ -10,15 +10,85 @@ use ratatui::widgets::{Block, Paragraph};
 use ratatui::Frame;
 
 /// A single tab entry.
+#[derive(Debug, Clone)]
 pub struct Tab {
     pub label: String,
     pub count: Option<usize>,
 }
 
+/// Pure data model for a tab bar — no ratatui dependency.
+pub struct TabBarModel {
+    pub tabs: Vec<Tab>,
+    pub active: usize,
+}
+
+impl TabBarModel {
+    pub fn new(labels: Vec<&str>) -> Self {
+        let tabs = labels
+            .into_iter()
+            .map(|l| Tab {
+                label: l.to_string(),
+                count: None,
+            })
+            .collect();
+        Self {
+            tabs,
+            active: 0,
+        }
+    }
+
+    /// Advance to the next tab, wrapping around.
+    pub fn select_next(&mut self) {
+        if !self.tabs.is_empty() {
+            self.active = (self.active + 1) % self.tabs.len();
+        }
+    }
+
+    /// Move to the previous tab, wrapping around.
+    pub fn select_prev(&mut self) {
+        if !self.tabs.is_empty() {
+            self.active = if self.active == 0 {
+                self.tabs.len() - 1
+            } else {
+                self.active - 1
+            };
+        }
+    }
+
+    pub fn active_index(&self) -> usize {
+        self.active
+    }
+
+    pub fn active_label(&self) -> &str {
+        if self.tabs.is_empty() {
+            ""
+        } else {
+            &self.tabs[self.active].label
+        }
+    }
+
+    /// Update the count badge for a specific tab.
+    /// No-op if `tab_idx` is out of range.
+    pub fn set_count(&mut self, tab_idx: usize, count: usize) {
+        if let Some(tab) = self.tabs.get_mut(tab_idx) {
+            tab.count = Some(count);
+        }
+    }
+
+    /// Number of tabs.
+    pub fn len(&self) -> usize {
+        self.tabs.len()
+    }
+
+    /// True if the tab bar has no tabs.
+    pub fn is_empty(&self) -> bool {
+        self.tabs.is_empty()
+    }
+}
+
 /// Horizontal tab bar rendered as styled spans.
 pub struct TabBar {
-    tabs: Vec<Tab>,
-    active: usize,
+    pub model: TabBarModel,
     active_style: Style,
     inactive_style: Style,
     separator: String,
@@ -31,16 +101,8 @@ impl TabBar {
     /// Defaults: active = Yellow+Bold, inactive = default fg,
     /// separator = " | ", border = Cyan, first tab selected.
     pub fn new(labels: Vec<&str>) -> Self {
-        let tabs = labels
-            .into_iter()
-            .map(|l| Tab {
-                label: l.to_string(),
-                count: None,
-            })
-            .collect();
         Self {
-            tabs,
-            active: 0,
+            model: TabBarModel::new(labels),
             active_style: Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
@@ -53,7 +115,7 @@ impl TabBar {
     /// Set count badges. Length must match number of tabs;
     /// extra entries are ignored, missing entries left as None.
     pub fn with_counts(mut self, counts: Vec<Option<usize>>) -> Self {
-        for (tab, count) in self.tabs.iter_mut().zip(counts) {
+        for (tab, count) in self.model.tabs.iter_mut().zip(counts) {
             tab.count = count;
         }
         self
@@ -61,8 +123,8 @@ impl TabBar {
 
     /// Set the active tab index (clamped to valid range).
     pub fn with_active(mut self, idx: usize) -> Self {
-        if !self.tabs.is_empty() {
-            self.active = idx.min(self.tabs.len() - 1);
+        if !self.model.tabs.is_empty() {
+            self.model.active = idx.min(self.model.tabs.len() - 1);
         }
         self
     }
@@ -89,36 +151,36 @@ impl TabBar {
 
     /// Advance to the next tab, wrapping around.
     pub fn select_next(&mut self) {
-        if !self.tabs.is_empty() {
-            self.active = (self.active + 1) % self.tabs.len();
-        }
+        self.model.select_next();
     }
 
     /// Move to the previous tab, wrapping around.
     pub fn select_prev(&mut self) {
-        if !self.tabs.is_empty() {
-            self.active = if self.active == 0 {
-                self.tabs.len() - 1
-            } else {
-                self.active - 1
-            };
-        }
+        self.model.select_prev();
     }
 
     pub fn active_index(&self) -> usize {
-        self.active
+        self.model.active_index()
     }
 
     pub fn active_label(&self) -> &str {
-        &self.tabs[self.active].label
+        self.model.active_label()
     }
 
     /// Update the count badge for a specific tab.
     /// No-op if `tab_idx` is out of range.
     pub fn set_count(&mut self, tab_idx: usize, count: usize) {
-        if let Some(tab) = self.tabs.get_mut(tab_idx) {
-            tab.count = Some(count);
-        }
+        self.model.set_count(tab_idx, count);
+    }
+
+    /// Number of tabs.
+    pub fn len(&self) -> usize {
+        self.model.len()
+    }
+
+    /// True if the tab bar has no tabs.
+    pub fn is_empty(&self) -> bool {
+        self.model.is_empty()
     }
 
     /// Build the line of styled spans for the tab bar.
@@ -126,12 +188,12 @@ impl TabBar {
         let sep_style = Style::default().fg(Color::DarkGray);
         let mut spans: Vec<Span<'_>> = Vec::new();
 
-        for (i, tab) in self.tabs.iter().enumerate() {
+        for (i, tab) in self.model.tabs.iter().enumerate() {
             if i > 0 {
                 spans.push(Span::styled(self.separator.as_str(), sep_style));
             }
 
-            let style = if i == self.active {
+            let style = if i == self.model.active {
                 self.active_style
             } else {
                 self.inactive_style
@@ -155,16 +217,6 @@ impl TabBar {
             paragraph = paragraph.block(b);
         }
         frame.render_widget(paragraph, area);
-    }
-
-    /// Number of tabs.
-    pub fn len(&self) -> usize {
-        self.tabs.len()
-    }
-
-    /// True if the tab bar has no tabs.
-    pub fn is_empty(&self) -> bool {
-        self.tabs.is_empty()
     }
 }
 
@@ -221,24 +273,24 @@ mod tests {
         let mut bar = TabBar::new(vec!["Tracks", "Albums"]);
         bar.set_count(0, 42);
         bar.set_count(1, 7);
-        assert_eq!(bar.tabs[0].count, Some(42));
-        assert_eq!(bar.tabs[1].count, Some(7));
+        assert_eq!(bar.model.tabs[0].count, Some(42));
+        assert_eq!(bar.model.tabs[1].count, Some(7));
     }
 
     #[test]
     fn set_count_out_of_range_is_noop() {
         let mut bar = TabBar::new(vec!["A"]);
         bar.set_count(5, 99); // should not panic
-        assert_eq!(bar.tabs[0].count, None);
+        assert_eq!(bar.model.tabs[0].count, None);
     }
 
     #[test]
     fn with_counts_builder() {
         let bar = TabBar::new(vec!["A", "B", "C"])
             .with_counts(vec![Some(10), None, Some(30)]);
-        assert_eq!(bar.tabs[0].count, Some(10));
-        assert_eq!(bar.tabs[1].count, None);
-        assert_eq!(bar.tabs[2].count, Some(30));
+        assert_eq!(bar.model.tabs[0].count, Some(10));
+        assert_eq!(bar.model.tabs[1].count, None);
+        assert_eq!(bar.model.tabs[2].count, Some(30));
     }
 
     #[test]

@@ -22,9 +22,9 @@ use ratatui::widgets::Wrap;
 
 use crate::compare::{BranchComparison, CompareBlock};
 
-/// Branch comparison overlay state for TUI rendering
+/// Pure data model for branch comparison overlay state
 #[derive(Debug, Default)]
-pub struct BranchCompareView {
+pub struct BranchCompareViewModel {
     /// The comparison data (None when not open)
     pub comparison: Option<BranchComparison>,
     /// Whether the view is visible
@@ -37,7 +37,14 @@ pub struct BranchCompareView {
     pub scroll_b: usize,
 }
 
-impl BranchCompareView {
+/// Branch comparison overlay state for TUI rendering
+#[derive(Debug, Default)]
+pub struct BranchCompareView {
+    /// The data model
+    pub model: BranchCompareViewModel,
+}
+
+impl BranchCompareViewModel {
     pub fn new() -> Self {
         Self::default()
     }
@@ -94,14 +101,52 @@ impl BranchCompareView {
             }
         })
     }
+}
+
+impl BranchCompareView {
+    pub fn new() -> Self {
+        Self {
+            model: BranchCompareViewModel::new(),
+        }
+    }
+
+    /// Open the comparison view with comparison data
+    pub fn open(&mut self, comparison: BranchComparison) {
+        self.model.open(comparison);
+    }
+
+    /// Close the view
+    pub fn close(&mut self) {
+        self.model.close();
+    }
+
+    /// Scroll the focused pane down
+    pub fn scroll_down(&mut self) {
+        self.model.scroll_down();
+    }
+
+    /// Scroll the focused pane up
+    pub fn scroll_up(&mut self) {
+        self.model.scroll_up();
+    }
+
+    /// Toggle focus between left and right pane
+    pub fn toggle_focus(&mut self) {
+        self.model.toggle_focus();
+    }
+
+    /// Get the leaf ID of the focused branch
+    pub fn focused_leaf_id(&self) -> Option<usize> {
+        self.model.focused_leaf_id()
+    }
 
     /// Render the comparison view as a floating overlay
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
         
-        let cmp = match &self.comparison {
+        let cmp = match &self.model.comparison {
             Some(c) => c,
             None => return,
         };
@@ -168,8 +213,8 @@ impl BranchCompareView {
             &cmp.name_a,
             &cmp.branch_a,
             cmp.tokens_a,
-            self.scroll_a,
-            !self.right_focused,
+            self.model.scroll_a,
+            !self.model.right_focused,
             panes[0],
         );
         render_comparison_pane(
@@ -177,8 +222,8 @@ impl BranchCompareView {
             &cmp.name_b,
             &cmp.branch_b,
             cmp.tokens_b,
-            self.scroll_b,
-            self.right_focused,
+            self.model.scroll_b,
+            self.model.right_focused,
             panes[1],
         );
     }
@@ -309,11 +354,11 @@ mod tests {
     #[test]
     fn view_toggle_focus() {
         let mut view = BranchCompareView::new();
-        assert!(!view.right_focused);
+        assert!(!view.model.right_focused);
         view.toggle_focus();
-        assert!(view.right_focused);
+        assert!(view.model.right_focused);
         view.toggle_focus();
-        assert!(!view.right_focused);
+        assert!(!view.model.right_focused);
     }
 
     #[test]
@@ -324,11 +369,11 @@ mod tests {
 
         // Each branch has 1 unique block
         view.scroll_down();
-        assert_eq!(view.scroll_a, 0); // clamped (only 1 block)
+        assert_eq!(view.model.scroll_a, 0); // clamped (only 1 block)
 
         // Scroll up from 0 stays at 0
         view.scroll_up();
-        assert_eq!(view.scroll_a, 0);
+        assert_eq!(view.model.scroll_a, 0);
     }
 
     #[test]
@@ -347,12 +392,12 @@ mod tests {
         let comparison = make_comparison();
         let mut view = BranchCompareView::new();
         view.open(comparison);
-        assert!(view.visible);
-        assert!(view.comparison.is_some());
+        assert!(view.model.visible);
+        assert!(view.model.comparison.is_some());
 
         view.close();
-        assert!(!view.visible);
-        assert!(view.comparison.is_none());
+        assert!(!view.model.visible);
+        assert!(view.model.comparison.is_none());
     }
 
     #[test]
@@ -361,10 +406,10 @@ mod tests {
         let mut view = BranchCompareView::new();
         view.open(comparison);
         
-        assert!(view.visible);
-        assert!(view.comparison.is_some());
-        assert!(!view.right_focused);
-        assert_eq!(view.scroll_a, 0);
-        assert_eq!(view.scroll_b, 0);
+        assert!(view.model.visible);
+        assert!(view.model.comparison.is_some());
+        assert!(!view.model.right_focused);
+        assert_eq!(view.model.scroll_a, 0);
+        assert_eq!(view.model.scroll_b, 0);
     }
 }

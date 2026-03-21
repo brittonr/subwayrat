@@ -240,7 +240,7 @@ impl App {
             TreeNode { label: "README.md".into(), id: "readme".into(), depth: 0, expanded: false, children: vec![] },
         ];
         let mut tree_view = TreeView::new("File Tree", tree);
-        tree_view.visible = true;
+        tree_view.model.visible = true;
 
         let rat_tree_data = SimpleTree::new(vec![
             (0, None, "src/".into()),

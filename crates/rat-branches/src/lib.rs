@@ -11,6 +11,6 @@ pub mod tree;
 
 // Re-export main types for convenience
 pub use compare::{BranchComparison, CompareBlock};
-pub use compare_view::BranchCompareView;
-pub use switcher::{NodeSwitcher, SwitcherItem};
+pub use compare_view::{BranchCompareView, BranchCompareViewModel};
+pub use switcher::{NodeSwitcher, NodeSwitcherModel, SwitcherItem};
 pub use tree::TreeNode;

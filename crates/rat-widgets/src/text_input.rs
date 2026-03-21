@@ -12,74 +12,21 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 
 pub type Completer = Box<dyn Fn(&str) -> Vec<String>>;
 
-pub struct TextInput {
-    value: String,
-    cursor_pos: usize,
-    focused: bool,
-    focused_border: Color,
-    unfocused_border: Color,
-    text_style: Style,
-    cursor_style: Style,
-    placeholder: String,
-    placeholder_style: Style,
-    completer: Option<Completer>,
+/// Pure data model for text input — no ratatui dependency.
+pub struct TextInputModel {
+    pub value: String,
+    pub cursor_pos: usize,
+    pub completer: Option<Completer>,
 }
 
-impl TextInput {
+impl TextInputModel {
     pub fn new() -> Self {
         Self {
             value: String::new(),
             cursor_pos: 0,
-            focused: false,
-            focused_border: Color::Cyan,
-            unfocused_border: Color::DarkGray,
-            text_style: Style::default().fg(Color::White),
-            cursor_style: Style::default()
-                .fg(Color::White)
-                .add_modifier(Modifier::SLOW_BLINK),
-            placeholder: String::new(),
-            placeholder_style: Style::default().fg(Color::DarkGray),
             completer: None,
         }
     }
-
-    pub fn with_value(mut self, value: impl Into<String>) -> Self {
-        self.value = value.into();
-        self.cursor_pos = self.value.len();
-        self
-    }
-
-    pub fn with_placeholder(mut self, p: impl Into<String>) -> Self {
-        self.placeholder = p.into();
-        self
-    }
-
-    pub fn with_focused(mut self, focused: bool) -> Self {
-        self.focused = focused;
-        self
-    }
-
-    pub fn with_focused_border(mut self, c: Color) -> Self {
-        self.focused_border = c;
-        self
-    }
-
-    pub fn with_unfocused_border(mut self, c: Color) -> Self {
-        self.unfocused_border = c;
-        self
-    }
-
-    pub fn with_text_style(mut self, s: Style) -> Self {
-        self.text_style = s;
-        self
-    }
-
-    pub fn with_completer(mut self, c: Completer) -> Self {
-        self.completer = Some(c);
-        self
-    }
-
-    // -- accessors --
 
     pub fn value(&self) -> &str {
         &self.value
@@ -89,20 +36,6 @@ impl TextInput {
         self.value = v.to_string();
         self.cursor_pos = self.value.len();
     }
-
-    pub fn focus(&mut self) {
-        self.focused = true;
-    }
-
-    pub fn blur(&mut self) {
-        self.focused = false;
-    }
-
-    pub fn is_focused(&self) -> bool {
-        self.focused
-    }
-
-    // -- editing --
 
     pub fn type_char(&mut self, c: char) {
         self.value.insert(self.cursor_pos, c);
@@ -197,6 +130,139 @@ impl TextInput {
         self.cursor_pos = 0;
         val
     }
+}
+
+impl Default for TextInputModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct TextInput {
+    pub model: TextInputModel,
+    focused: bool,
+    focused_border: Color,
+    unfocused_border: Color,
+    text_style: Style,
+    cursor_style: Style,
+    placeholder: String,
+    placeholder_style: Style,
+}
+
+impl TextInput {
+    pub fn new() -> Self {
+        Self {
+            model: TextInputModel::new(),
+            focused: false,
+            focused_border: Color::Cyan,
+            unfocused_border: Color::DarkGray,
+            text_style: Style::default().fg(Color::White),
+            cursor_style: Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::SLOW_BLINK),
+            placeholder: String::new(),
+            placeholder_style: Style::default().fg(Color::DarkGray),
+        }
+    }
+
+    pub fn with_value(mut self, value: impl Into<String>) -> Self {
+        self.model.set_value(&value.into());
+        self
+    }
+
+    pub fn with_placeholder(mut self, p: impl Into<String>) -> Self {
+        self.placeholder = p.into();
+        self
+    }
+
+    pub fn with_focused(mut self, focused: bool) -> Self {
+        self.focused = focused;
+        self
+    }
+
+    pub fn with_focused_border(mut self, c: Color) -> Self {
+        self.focused_border = c;
+        self
+    }
+
+    pub fn with_unfocused_border(mut self, c: Color) -> Self {
+        self.unfocused_border = c;
+        self
+    }
+
+    pub fn with_text_style(mut self, s: Style) -> Self {
+        self.text_style = s;
+        self
+    }
+
+    pub fn with_completer(mut self, c: Completer) -> Self {
+        self.model.completer = Some(c);
+        self
+    }
+
+    // -- focus management --
+
+    pub fn focus(&mut self) {
+        self.focused = true;
+    }
+
+    pub fn blur(&mut self) {
+        self.focused = false;
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.focused
+    }
+
+    // -- delegation methods --
+
+    pub fn value(&self) -> &str {
+        self.model.value()
+    }
+
+    pub fn set_value(&mut self, v: &str) {
+        self.model.set_value(v);
+    }
+
+    pub fn type_char(&mut self, c: char) {
+        self.model.type_char(c);
+    }
+
+    pub fn backspace(&mut self) {
+        self.model.backspace();
+    }
+
+    pub fn delete(&mut self) {
+        self.model.delete();
+    }
+
+    pub fn move_left(&mut self) {
+        self.model.move_left();
+    }
+
+    pub fn move_right(&mut self) {
+        self.model.move_right();
+    }
+
+    pub fn move_home(&mut self) {
+        self.model.move_home();
+    }
+
+    pub fn move_end(&mut self) {
+        self.model.move_end();
+    }
+
+    pub fn clear(&mut self) {
+        self.model.clear();
+    }
+
+    pub fn complete(&mut self) -> Vec<String> {
+        self.model.complete()
+    }
+
+    pub fn submit(&mut self) -> String {
+        self.model.submit()
+    }
 
     // -- rendering --
 
@@ -223,7 +289,7 @@ impl TextInput {
         let visible_width = inner.width as usize;
 
         // Empty + unfocused → placeholder
-        if self.value.is_empty() && !self.focused {
+        if self.model.value.is_empty() && !self.focused {
             let shown: String = self.placeholder.chars().take(visible_width).collect();
             let line = Line::from(Span::styled(shown, self.placeholder_style));
             frame.render_widget(Paragraph::new(line), inner);
@@ -231,7 +297,7 @@ impl TextInput {
         }
 
         // Compute scroll offset so the cursor stays visible.
-        let char_count = self.value[..self.cursor_pos].chars().count();
+        let char_count = self.model.value[..self.model.cursor_pos].chars().count();
         let scroll_offset = if char_count >= visible_width {
             char_count - visible_width + 1
         } else {
@@ -239,7 +305,7 @@ impl TextInput {
         };
 
         // Build visible slice: skip `scroll_offset` chars, take `visible_width`.
-        let visible_chars: Vec<char> = self.value.chars().skip(scroll_offset).collect();
+        let visible_chars: Vec<char> = self.model.value.chars().skip(scroll_offset).collect();
         let cursor_col = char_count - scroll_offset; // column within visible region
 
         if self.focused {
@@ -309,7 +375,7 @@ mod tests {
         input.type_char('b');
         input.type_char('c');
         assert_eq!(input.value(), "abc");
-        assert_eq!(input.cursor_pos, 3);
+        assert_eq!(input.model.cursor_pos, 3);
     }
 
     #[test]
@@ -319,7 +385,7 @@ mod tests {
         input.move_right(); // after 'a'
         input.type_char('b');
         assert_eq!(input.value(), "abc");
-        assert_eq!(input.cursor_pos, 2);
+        assert_eq!(input.model.cursor_pos, 2);
     }
 
     #[test]
@@ -327,7 +393,7 @@ mod tests {
         let mut input = TextInput::new().with_value("abc");
         input.backspace();
         assert_eq!(input.value(), "ab");
-        assert_eq!(input.cursor_pos, 2);
+        assert_eq!(input.model.cursor_pos, 2);
     }
 
     #[test]
@@ -336,7 +402,7 @@ mod tests {
         input.move_home();
         input.backspace();
         assert_eq!(input.value(), "abc");
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
     }
 
     #[test]
@@ -345,7 +411,7 @@ mod tests {
         input.move_home();
         input.delete();
         assert_eq!(input.value(), "bc");
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
     }
 
     #[test]
@@ -358,19 +424,19 @@ mod tests {
     #[test]
     fn cursor_movement() {
         let mut input = TextInput::new().with_value("hello");
-        assert_eq!(input.cursor_pos, 5);
+        assert_eq!(input.model.cursor_pos, 5);
 
         input.move_home();
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
 
         input.move_right();
-        assert_eq!(input.cursor_pos, 1);
+        assert_eq!(input.model.cursor_pos, 1);
 
         input.move_end();
-        assert_eq!(input.cursor_pos, 5);
+        assert_eq!(input.model.cursor_pos, 5);
 
         input.move_left();
-        assert_eq!(input.cursor_pos, 4);
+        assert_eq!(input.model.cursor_pos, 4);
     }
 
     #[test]
@@ -378,14 +444,14 @@ mod tests {
         let mut input = TextInput::new().with_value("x");
         input.move_home();
         input.move_left();
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
     }
 
     #[test]
     fn move_right_at_end_stays() {
         let mut input = TextInput::new().with_value("x");
         input.move_right();
-        assert_eq!(input.cursor_pos, 1);
+        assert_eq!(input.model.cursor_pos, 1);
     }
 
     #[test]
@@ -394,7 +460,7 @@ mod tests {
         let val = input.submit();
         assert_eq!(val, "query");
         assert_eq!(input.value(), "");
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
     }
 
     #[test]
@@ -402,7 +468,7 @@ mod tests {
         let mut input = TextInput::new().with_value("stuff");
         input.clear();
         assert_eq!(input.value(), "");
-        assert_eq!(input.cursor_pos, 0);
+        assert_eq!(input.model.cursor_pos, 0);
     }
 
     #[test]
@@ -410,7 +476,7 @@ mod tests {
         let mut input = TextInput::new();
         input.set_value("hi");
         assert_eq!(input.value(), "hi");
-        assert_eq!(input.cursor_pos, 2);
+        assert_eq!(input.model.cursor_pos, 2);
     }
 
     #[test]
@@ -433,15 +499,15 @@ mod tests {
     fn multibyte_chars() {
         let mut input = TextInput::new().with_value("café");
         // "café" = 5 bytes (é is 2 bytes)
-        assert_eq!(input.cursor_pos, 5);
+        assert_eq!(input.model.cursor_pos, 5);
 
         input.backspace(); // remove 'é'
         assert_eq!(input.value(), "caf");
-        assert_eq!(input.cursor_pos, 3);
+        assert_eq!(input.model.cursor_pos, 3);
 
         input.type_char('é');
         assert_eq!(input.value(), "café");
-        assert_eq!(input.cursor_pos, 5);
+        assert_eq!(input.model.cursor_pos, 5);
     }
 
     #[test]
@@ -451,7 +517,7 @@ mod tests {
         input.move_right(); // past 'a', cursor at byte 1
         input.delete(); // remove 'é'
         assert_eq!(input.value(), "ab");
-        assert_eq!(input.cursor_pos, 1);
+        assert_eq!(input.model.cursor_pos, 1);
     }
 
     #[test]
@@ -499,7 +565,7 @@ mod tests {
         let matches = input.complete();
         assert_eq!(matches, vec!["hello"]);
         assert_eq!(input.value(), "hello");
-        assert_eq!(input.cursor_pos, 5);
+        assert_eq!(input.model.cursor_pos, 5);
     }
 
     #[test]

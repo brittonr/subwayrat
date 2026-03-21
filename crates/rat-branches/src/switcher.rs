@@ -52,11 +52,11 @@ impl SwitcherItem {
     }
 }
 
-/// Generic tree node switcher with filtering
+/// Pure data model for tree node switcher with filtering
 #[derive(Debug, Default)]
-pub struct NodeSwitcher {
+pub struct NodeSwitcherModel {
     /// All items
-    items: Vec<SwitcherItem>,
+    pub items: Vec<SwitcherItem>,
     /// Current filter text
     pub filter: String,
     /// Selected index in the filtered list
@@ -65,7 +65,14 @@ pub struct NodeSwitcher {
     pub visible: bool,
 }
 
-impl NodeSwitcher {
+/// Generic tree node switcher with filtering
+#[derive(Debug, Default)]
+pub struct NodeSwitcher {
+    /// The data model
+    pub model: NodeSwitcherModel,
+}
+
+impl NodeSwitcherModel {
     pub fn new() -> Self {
         Self::default()
     }
@@ -147,10 +154,64 @@ impl NodeSwitcher {
         let filtered = self.filtered_items();
         filtered.get(self.selected).map(|item| item.node_id)
     }
+}
+
+impl NodeSwitcher {
+    pub fn new() -> Self {
+        Self {
+            model: NodeSwitcherModel::new(),
+        }
+    }
+
+    /// Open the switcher with nodes from a tree
+    /// 
+    /// The `to_item` function converts each leaf node to a `SwitcherItem`
+    pub fn open<N: TreeNode>(
+        &mut self, 
+        nodes: &[N], 
+        to_item: impl Fn(&N, Vec<usize>) -> SwitcherItem
+    ) {
+        self.model.open(nodes, to_item);
+    }
+
+    /// Close the switcher
+    pub fn close(&mut self) {
+        self.model.close();
+    }
+
+    /// Get filtered items based on current filter text
+    pub fn filtered_items(&self) -> Vec<&SwitcherItem> {
+        self.model.filtered_items()
+    }
+
+    /// Move selection up
+    pub fn move_up(&mut self) {
+        self.model.move_up();
+    }
+
+    /// Move selection down
+    pub fn move_down(&mut self) {
+        self.model.move_down();
+    }
+
+    /// Type a character into the filter
+    pub fn type_char(&mut self, c: char) {
+        self.model.type_char(c);
+    }
+
+    /// Delete the last filter character
+    pub fn backspace(&mut self) {
+        self.model.backspace();
+    }
+
+    /// Get the selected item's node ID
+    pub fn selected_node_id(&self) -> Option<usize> {
+        self.model.selected_node_id()
+    }
 
     /// Render the switcher as a floating overlay
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
@@ -180,7 +241,7 @@ impl NodeSwitcher {
         // Filter input line
         let filter_line = Line::from(vec![
             Span::styled(" Filter: ", Style::default().fg(Color::DarkGray)),
-            Span::styled(&self.filter, Style::default().fg(Color::White)),
+            Span::styled(&self.model.filter, Style::default().fg(Color::White)),
             Span::styled(
                 "_",
                 Style::default()
@@ -194,11 +255,11 @@ impl NodeSwitcher {
 
         // Item list
         let list_area = Rect::new(inner.x, inner.y + 1, inner.width, inner.height - 1);
-        let filtered = self.filtered_items();
+        let filtered = self.model.filtered_items();
 
         let mut lines = Vec::new();
         for (i, item) in filtered.iter().enumerate() {
-            let is_selected = i == self.selected;
+            let is_selected = i == self.model.selected;
 
             let bg = if is_selected {
                 Color::DarkGray
@@ -261,7 +322,7 @@ impl NodeSwitcher {
 
         // Scroll to keep selected visible
         let visible_height = list_area.height as usize;
-        let selected_visual = self.selected * 2; // 2 lines per entry
+        let selected_visual = self.model.selected * 2; // 2 lines per entry
         let scroll = if selected_visual >= visible_height {
             (selected_visual - visible_height / 2) as u16
         } else {
@@ -328,11 +389,11 @@ mod tests {
         let mut switcher = NodeSwitcher::new();
         switcher.open(&nodes, node_to_item);
 
-        assert!(switcher.visible);
-        assert_eq!(switcher.items.len(), 2);
+        assert!(switcher.model.visible);
+        assert_eq!(switcher.model.items.len(), 2);
         // Active item should sort first
-        assert!(switcher.items[0].is_active);
-        assert_eq!(switcher.items[0].node_id, 1);
+        assert!(switcher.model.items[0].is_active);
+        assert_eq!(switcher.model.items[0].node_id, 1);
     }
 
     #[test]
@@ -388,16 +449,16 @@ mod tests {
         let mut switcher = NodeSwitcher::new();
         switcher.open(&nodes, node_to_item);
 
-        assert_eq!(switcher.selected, 0);
+        assert_eq!(switcher.model.selected, 0);
         switcher.move_down();
-        assert_eq!(switcher.selected, 1);
+        assert_eq!(switcher.model.selected, 1);
         switcher.move_down();
-        assert_eq!(switcher.selected, 1); // clamped
+        assert_eq!(switcher.model.selected, 1); // clamped
 
         switcher.move_up();
-        assert_eq!(switcher.selected, 0);
+        assert_eq!(switcher.model.selected, 0);
         switcher.move_up();
-        assert_eq!(switcher.selected, 0); // clamped
+        assert_eq!(switcher.model.selected, 0); // clamped
     }
 
     #[test]
@@ -419,11 +480,11 @@ mod tests {
     #[test]
     fn close_resets_state() {
         let mut switcher = NodeSwitcher::new();
-        switcher.visible = true;
-        switcher.filter = "test".to_string();
+        switcher.model.visible = true;
+        switcher.model.filter = "test".to_string();
         switcher.close();
-        assert!(!switcher.visible);
-        assert!(switcher.filter.is_empty());
+        assert!(!switcher.model.visible);
+        assert!(switcher.model.filter.is_empty());
     }
 
     #[test]

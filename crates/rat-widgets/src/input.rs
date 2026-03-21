@@ -13,16 +13,15 @@ use ratatui::widgets::Paragraph;
 
 use crate::theme::WidgetTheme;
 
-pub struct InputDialog {
-    pub title: String,
+/// Pure data model for an input dialog — no ratatui dependency.
+pub struct InputDialogModel {
     pub value: String,
     pub visible: bool,
 }
 
-impl InputDialog {
-    pub fn new(title: impl Into<String>) -> Self {
+impl InputDialogModel {
+    pub fn new() -> Self {
         Self {
-            title: title.into(),
             value: String::new(),
             visible: true,
         }
@@ -41,13 +40,45 @@ impl InputDialog {
         self.visible = false;
         val
     }
+}
+
+impl Default for InputDialogModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct InputDialog {
+    pub model: InputDialogModel,
+    pub title: String,
+}
+
+impl InputDialog {
+    pub fn new(title: impl Into<String>) -> Self {
+        Self {
+            model: InputDialogModel::new(),
+            title: title.into(),
+        }
+    }
+
+    pub fn type_char(&mut self, c: char) {
+        self.model.type_char(c);
+    }
+
+    pub fn backspace(&mut self) {
+        self.model.backspace();
+    }
+
+    pub fn submit(&mut self) -> String {
+        self.model.submit()
+    }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         self.render_themed(frame, area, &WidgetTheme::default());
     }
 
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
@@ -67,7 +98,7 @@ impl InputDialog {
         frame.render_widget(block, popup);
 
         let input_line = Line::from(vec![
-            Span::styled(&self.value, Style::default().fg(theme.text)),
+            Span::styled(&self.model.value, Style::default().fg(theme.text)),
             Span::styled(
                 "_",
                 Style::default()
