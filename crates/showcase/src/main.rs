@@ -25,6 +25,8 @@ use rat_widgets::{
 use rat_editor::Editor;
 use rat_markdown::{MarkdownStyle, PlainHighlighter, render_markdown};
 use rat_table::{DataTable, DataTableStyle};
+use rat_tree::{Tree as RatTree, TreeState as RatTreeState, TreeStyle as RatTreeStyle, TreeData, SimpleTree, TreeAction, default_keymap};
+use rat_keymap::Keymap;
 
 // ── Demo tabs ────────────────────────────────────────────────────────────────
 
@@ -35,6 +37,7 @@ const TABS: &[&str] = &[
     "Markdown",
     "Editor",
     "Dialogs",
+    "Tree",
     "Misc",
 ];
 
@@ -69,6 +72,11 @@ struct App {
     confirm: ConfirmDialog,
     input_dialog: rat_widgets::InputDialog,
     tree_view: TreeView,
+
+    // Tree tab
+    rat_tree_data: SimpleTree,
+    rat_tree_state: RatTreeState,
+    rat_tree_keymap: Keymap<TreeAction, ()>,
 
     // Misc tab
     last_key: String,
@@ -217,6 +225,33 @@ impl App {
         let mut tree_view = TreeView::new("File Tree", tree);
         tree_view.visible = true;
 
+        let rat_tree_data = SimpleTree::new(vec![
+            (0, None, "src/".into()),
+            (1, Some(0), "main.rs".into()),
+            (2, Some(0), "lib.rs".into()),
+            (3, Some(0), "model/".into()),
+            (4, Some(3), "tree.rs".into()),
+            (5, Some(3), "state.rs".into()),
+            (6, Some(0), "render/".into()),
+            (7, Some(6), "widget.rs".into()),
+            (8, Some(6), "style.rs".into()),
+            (9, Some(6), "guides.rs".into()),
+            (10, None, "tests/".into()),
+            (11, Some(10), "model_test.rs".into()),
+            (12, Some(10), "nav_test.rs".into()),
+            (13, Some(10), "render_test.rs".into()),
+            (14, None, "Cargo.toml".into()),
+            (15, None, "README.md".into()),
+            (16, None, "LICENSE".into()),
+        ]);
+        let mut rat_tree_state = RatTreeState::new(&rat_tree_data);
+        // Expand root nodes so the tree looks interesting
+        rat_tree_state.expanded.insert(0);
+        rat_tree_state.expanded.insert(3);
+        rat_tree_state.expanded.insert(10);
+        rat_tree_state.recompute(&rat_tree_data);
+        let rat_tree_keymap = default_keymap();
+
         Self {
             tab_bar: TabBar::new(TABS.to_vec())
                 .with_active_style(
@@ -243,6 +278,9 @@ impl App {
             confirm,
             input_dialog,
             tree_view,
+            rat_tree_data,
+            rat_tree_state,
+            rat_tree_keymap,
             last_key: String::new(),
         }
     }
@@ -295,6 +333,7 @@ impl App {
             2 => self.handle_table_key(code),
             4 => self.handle_editor_key(code),
             5 => self.handle_dialogs_key(code),
+            6 => self.handle_tree_key(code, _modifiers),
             _ => {}
         }
     }
@@ -369,6 +408,46 @@ impl App {
         }
     }
 
+    fn handle_tree_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
+        // Convert crossterm 0.28 types to ratatui's re-exported crossterm 0.29
+        use ratatui::crossterm::event::{
+            KeyCode as RKeyCode, KeyEvent as RKeyEvent, KeyModifiers as RKeyMods,
+        };
+        let rcode = match code {
+            KeyCode::Char(c) => RKeyCode::Char(c),
+            KeyCode::Up => RKeyCode::Up,
+            KeyCode::Down => RKeyCode::Down,
+            KeyCode::Left => RKeyCode::Left,
+            KeyCode::Right => RKeyCode::Right,
+            KeyCode::Enter => RKeyCode::Enter,
+            KeyCode::Esc => RKeyCode::Esc,
+            KeyCode::Tab => RKeyCode::Tab,
+            KeyCode::BackTab => RKeyCode::BackTab,
+            KeyCode::Backspace => RKeyCode::Backspace,
+            KeyCode::Delete => RKeyCode::Delete,
+            KeyCode::Home => RKeyCode::Home,
+            KeyCode::End => RKeyCode::End,
+            KeyCode::PageUp => RKeyCode::PageUp,
+            KeyCode::PageDown => RKeyCode::PageDown,
+            KeyCode::F(n) => RKeyCode::F(n),
+            _ => return,
+        };
+        let mut rmods = RKeyMods::empty();
+        if modifiers.contains(KeyModifiers::CONTROL) {
+            rmods |= RKeyMods::CONTROL;
+        }
+        if modifiers.contains(KeyModifiers::SHIFT) {
+            rmods |= RKeyMods::SHIFT;
+        }
+        if modifiers.contains(KeyModifiers::ALT) {
+            rmods |= RKeyMods::ALT;
+        }
+        let event = RKeyEvent::new(rcode, rmods);
+        if let Some(action) = self.rat_tree_keymap.resolve(&(), &event) {
+            self.rat_tree_state.apply(action, &self.rat_tree_data, 20);
+        }
+    }
+
     fn handle_dialogs_key(&mut self, code: KeyCode) {
         match code {
             KeyCode::Left | KeyCode::Right => self.confirm.toggle(),
@@ -431,7 +510,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
         3 => draw_markdown_tab(frame, content_area, app),
         4 => draw_editor_tab(frame, content_area, app),
         5 => draw_dialogs_tab(frame, content_area, app),
-        6 => draw_misc_tab(frame, content_area, app),
+        6 => draw_tree_tab(frame, content_area, app),
+        7 => draw_misc_tab(frame, content_area, app),
         _ => {}
     }
 
@@ -803,6 +883,117 @@ fn draw_dialogs_tab(frame: &mut Frame, area: Rect, app: &App) {
     app.tree_view.render_themed(frame, cols[2], &app.theme);
 }
 
+fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
+
+    // Left: the tree widget
+    let tree_block = Block::default()
+        .title(Span::styled(
+            " rat-tree (j/k navigate, l/h expand/collapse, Space toggle) ",
+            Style::default()
+                .fg(Color::Rgb(100, 149, 237))
+                .add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+
+    let tree_style = RatTreeStyle::default()
+        .with_selected_style(
+            Style::default()
+                .bg(Color::Rgb(40, 50, 70))
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )
+        .with_normal_style(Style::default().fg(Color::Rgb(180, 180, 180)));
+
+    let tree_widget = RatTree::new(&app.rat_tree_data)
+        .style(tree_style)
+        .block(tree_block);
+
+    frame.render_stateful_widget(tree_widget, cols[0], &mut app.rat_tree_state);
+
+    // Right: info panel
+    let info = app.rat_tree_state.info();
+    let cursor_label = info.cursor_node_id
+        .map(|id| app.rat_tree_data.node_label(id).to_string())
+        .unwrap_or_else(|| "(none)".into());
+    let cursor_depth = info.cursor_depth.map(|d: usize| d.to_string()).unwrap_or_else(|| "-".into());
+    let is_leaf = info.cursor_is_leaf.map(|b| if b { "yes" } else { "no" }).unwrap_or("-");
+
+    let info_block = Block::default()
+        .title(Span::styled(
+            " Tree Info ",
+            Style::default()
+                .fg(Color::Rgb(100, 149, 237))
+                .add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+    let info_inner = info_block.inner(cols[1]);
+    frame.render_widget(info_block, cols[1]);
+
+    let info_lines = vec![
+        Line::from(vec![
+            Span::styled("Visible rows:  ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(format!("{}", info.visible_count), Style::default().fg(Color::Rgb(100, 149, 237))),
+        ]),
+        Line::from(vec![
+            Span::styled("Cursor node:   ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(cursor_label, Style::default().fg(Color::Rgb(144, 238, 144))),
+        ]),
+        Line::from(vec![
+            Span::styled("Cursor depth:  ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(cursor_depth, Style::default().fg(Color::Rgb(255, 193, 7))),
+        ]),
+        Line::from(vec![
+            Span::styled("Is leaf:       ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(is_leaf.to_string(), Style::default().fg(Color::Rgb(220, 160, 255))),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled("Keybindings", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD))),
+        Line::from(vec![
+            Span::styled("j/↓  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Move down", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("k/↑  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Move up", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("l/→  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Expand", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("h/←  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Collapse", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("Space", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled(" Toggle", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("p    ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Go to parent", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("o    ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("First child", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("J/K  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("Next/prev sibling", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("g/G  ", Style::default().fg(Color::Rgb(100, 149, 237))),
+            Span::styled("First/last row", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+    ];
+    frame.render_widget(Paragraph::new(info_lines), info_inner);
+}
+
 fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
@@ -861,6 +1052,10 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(vec![
             Span::styled("rat-spreadsheet ", Style::default().fg(Color::Rgb(255, 200, 160)).add_modifier(Modifier::BOLD)),
             Span::styled("Editable spreadsheet with formulas and cell navigation", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("rat-tree        ", Style::default().fg(Color::Rgb(80, 200, 120)).add_modifier(Modifier::BOLD)),
+            Span::styled("Interactive tree navigation with keymap integration", Style::default().fg(Color::Rgb(160, 160, 160))),
         ]),
         Line::from(vec![
             Span::styled("+ 6 more        ", Style::default().fg(Color::Rgb(80, 80, 80)).add_modifier(Modifier::BOLD)),

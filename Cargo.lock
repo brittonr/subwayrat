@@ -1160,6 +1160,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-tree"
+version = "0.1.0"
+dependencies = [
+ "rat-keymap",
+ "ratatui",
+ "unicode-width",
+]
+
+[[package]]
 name = "rat-widgets"
 version = "0.1.0"
 dependencies = [
@@ -1411,9 +1420,11 @@ dependencies = [
  "crossterm 0.28.1",
  "rat-diff",
  "rat-editor",
+ "rat-keymap",
  "rat-markdown",
  "rat-spreadsheet",
  "rat-table",
+ "rat-tree",
  "rat-widgets",
  "ratatui",
 ]

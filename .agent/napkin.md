@@ -31,4 +31,6 @@
 - rat-table exists as a read-only scrollable data table
 - rat-editor exists for text editing
 - rat-selection handles selection models
+- rat-tree exists for interactive tree navigation with keymap integration
 - openspec schema is `spec-driven`, config at `openspec/changes/<name>/.openspec.yaml`
+- Doc-test examples referencing `rat_tree` (or any workspace crate) from within the crate need `ignore` or `no_run` — the doctest harness can't resolve `use rat_tree::...` as an external crate

@@ -18,3 +18,5 @@ rat-diff = { version = "0.1.0", path = "../rat-diff" }
 rat-table = { version = "0.1.0", path = "../rat-table" }
 rat-markdown = { version = "0.1.0", path = "../rat-markdown" }
 rat-spreadsheet = { version = "0.1.0", path = "../rat-spreadsheet" }
+rat-tree = { version = "0.1.0", path = "../rat-tree" }
+rat-keymap = { version = "0.1.0", path = "../rat-keymap" }
