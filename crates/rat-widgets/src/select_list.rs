@@ -12,17 +12,16 @@ use ratatui::widgets::ListItem;
 
 use crate::theme::WidgetTheme;
 
-pub struct SelectList {
-    pub title: String,
+/// Pure data model for a selection list — no ratatui dependency.
+pub struct SelectListModel {
     pub items: Vec<String>,
     pub selected: usize,
     pub visible: bool,
 }
 
-impl SelectList {
-    pub fn new(title: impl Into<String>, items: Vec<String>) -> Self {
+impl SelectListModel {
+    pub fn new(items: Vec<String>) -> Self {
         Self {
-            title: title.into(),
             items,
             selected: 0,
             visible: true,
@@ -40,18 +39,44 @@ impl SelectList {
     pub fn select(&self) -> Option<String> {
         self.items.get(self.selected).cloned()
     }
+}
+
+pub struct SelectList {
+    pub model: SelectListModel,
+    pub title: String,
+}
+
+impl SelectList {
+    pub fn new(title: impl Into<String>, items: Vec<String>) -> Self {
+        Self {
+            model: SelectListModel::new(items),
+            title: title.into(),
+        }
+    }
+
+    pub fn move_up(&mut self) {
+        self.model.move_up();
+    }
+
+    pub fn move_down(&mut self) {
+        self.model.move_down();
+    }
+
+    pub fn select(&self) -> Option<String> {
+        self.model.select()
+    }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         self.render_themed(frame, area, &WidgetTheme::default());
     }
 
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        if !self.visible {
+        if !self.model.visible {
             return;
         }
 
         let width = 40.min(area.width.saturating_sub(4));
-        let height = (self.items.len() as u16 + 2).min(area.height.saturating_sub(4));
+        let height = (self.model.items.len() as u16 + 2).min(area.height.saturating_sub(4));
         let x = area.x + (area.width.saturating_sub(width)) / 2;
         let y = area.y + (area.height.saturating_sub(height)) / 2;
         let popup = Rect::new(x, y, width, height);
@@ -63,11 +88,12 @@ impl SelectList {
             .border_style(Style::default().fg(theme.primary));
 
         let items: Vec<ListItem> = self
+            .model
             .items
             .iter()
             .enumerate()
             .map(|(i, item)| {
-                let style = if i == self.selected {
+                let style = if i == self.model.selected {
                     theme.highlight_style()
                 } else {
                     Style::default().fg(theme.text)

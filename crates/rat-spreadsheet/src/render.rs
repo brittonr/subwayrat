@@ -9,6 +9,7 @@
 use crate::cell::{CellAddr, CellRange, CellValue, Grid};
 use crate::formula::{DependencyGraph, FunctionRegistry};
 use crate::nav::{CursorState, ScrollState, Selection, get_selection};
+use crate::edit_state::EditState;
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -53,111 +54,7 @@ impl Default for SpreadsheetStyle {
     }
 }
 
-/// State for cell editing
-#[derive(Debug, Clone)]
-pub struct EditState {
-    /// Whether we're currently editing
-    pub editing: bool,
-    /// Text buffer being edited
-    pub buffer: String,
-    /// Cursor position within buffer
-    pub cursor_pos: usize,
-    /// Previous value for undo/cancel
-    pub previous_value: Option<CellValue>,
-}
 
-impl EditState {
-    /// Create a new edit state
-    pub fn new() -> Self {
-        Self {
-            editing: false,
-            buffer: String::new(),
-            cursor_pos: 0,
-            previous_value: None,
-        }
-    }
-
-    /// Start editing with initial text
-    pub fn start_edit(&mut self, initial: String) {
-        self.editing = true;
-        self.buffer = initial;
-        self.cursor_pos = self.buffer.len();
-    }
-
-    /// Insert a character at cursor position
-    pub fn insert_char(&mut self, ch: char) {
-        self.buffer.insert(self.cursor_pos, ch);
-        self.cursor_pos += ch.len_utf8();
-    }
-
-    /// Delete character at cursor position
-    pub fn delete_char(&mut self) {
-        if self.cursor_pos < self.buffer.len() {
-            self.buffer.remove(self.cursor_pos);
-        }
-    }
-
-    /// Delete character before cursor (backspace)
-    pub fn backspace(&mut self) {
-        if self.cursor_pos > 0 {
-            let mut iter = self.buffer.char_indices().rev();
-            if let Some((i, _)) = iter.find(|&(i, _)| i < self.cursor_pos) {
-                self.buffer.remove(i);
-                self.cursor_pos = i;
-            } else {
-                self.buffer.remove(0);
-                self.cursor_pos = 0;
-            }
-        }
-    }
-
-    /// Move cursor left
-    pub fn move_cursor_left(&mut self) {
-        if self.cursor_pos > 0 {
-            let mut iter = self.buffer.char_indices().rev();
-            if let Some((i, _)) = iter.find(|&(i, _)| i < self.cursor_pos) {
-                self.cursor_pos = i;
-            } else {
-                self.cursor_pos = 0;
-            }
-        }
-    }
-
-    /// Move cursor right
-    pub fn move_cursor_right(&mut self) {
-        if self.cursor_pos < self.buffer.len() {
-            let mut iter = self.buffer.char_indices();
-            if let Some((i, _)) = iter.find(|&(i, _)| i > self.cursor_pos) {
-                self.cursor_pos = i;
-            } else {
-                self.cursor_pos = self.buffer.len();
-            }
-        }
-    }
-
-    /// Commit the current buffer and reset editing state
-    pub fn commit_buffer(&mut self) -> String {
-        self.editing = false;
-        let buffer = std::mem::take(&mut self.buffer);
-        self.cursor_pos = 0;
-        self.previous_value = None;
-        buffer
-    }
-
-    /// Cancel editing and return previous value if any
-    pub fn cancel(&mut self) -> Option<CellValue> {
-        self.editing = false;
-        self.buffer.clear();
-        self.cursor_pos = 0;
-        self.previous_value.take()
-    }
-}
-
-impl Default for EditState {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 /// Type aliases for complex callback types
 type StyleCallback = Box<dyn Fn(CellAddr, &CellValue) -> Option<Style>>;
@@ -172,18 +69,27 @@ struct CellRenderParams {
 
 /// Complete spreadsheet state containing all mutable data
 pub struct SpreadsheetState {
+    // -- Data model --
     /// The data grid
     pub grid: Grid,
-    /// Cursor navigation state
-    pub cursor: CursorState,
-    /// Scroll state for viewport
-    pub scroll: ScrollState,
     /// Edit state for cell editing
     pub edit: EditState,
     /// Dependency graph for formula recalculation
     pub dep_graph: DependencyGraph,
     /// Function registry for formula evaluation
     pub fn_registry: FunctionRegistry,
+    /// Simple undo - last changed cell and its previous value
+    pub last_undo: Option<(CellAddr, CellValue)>,
+    /// Per-column validation callbacks
+    pub validators: std::collections::HashMap<usize, ValidatorCallback>,
+
+    // -- Navigation --
+    /// Cursor navigation state
+    pub cursor: CursorState,
+    /// Scroll state for viewport
+    pub scroll: ScrollState,
+
+    // -- Visual layout --
     /// Custom column widths
     pub col_widths: Vec<u16>,
     /// Default column width
@@ -194,33 +100,33 @@ pub struct SpreadsheetState {
     pub frozen_rows: usize,
     /// Number of frozen columns  
     pub frozen_cols: usize,
-    /// Simple undo - last changed cell and its previous value
-    pub last_undo: Option<(CellAddr, CellValue)>,
     /// Optional per-cell styling callback
     pub style_callback: Option<StyleCallback>,
-    /// Per-column validation callbacks. Key is column index.
-    /// Returns Ok(()) if valid, Err(message) if invalid.
-    pub validators: std::collections::HashMap<usize, ValidatorCallback>,
 }
 
 impl SpreadsheetState {
     /// Create a new spreadsheet state
     pub fn new(cols: usize, rows: usize) -> Self {
         Self {
+            // -- Data model --
             grid: Grid::new(cols, rows),
-            cursor: CursorState::new(),
-            scroll: ScrollState::new(),
             edit: EditState::new(),
             dep_graph: DependencyGraph::new(),
             fn_registry: FunctionRegistry::new(),
+            last_undo: None,
+            validators: std::collections::HashMap::new(),
+
+            // -- Navigation --
+            cursor: CursorState::new(),
+            scroll: ScrollState::new(),
+
+            // -- Visual layout --
             col_widths: Vec::new(),
             default_col_width: 10,
             min_col_width: 3,
             frozen_rows: 0,
             frozen_cols: 0,
-            last_undo: None,
             style_callback: None,
-            validators: std::collections::HashMap::new(),
         }
     }
 
@@ -617,30 +523,7 @@ mod tests {
         assert_eq!(col_name(52), "BA");
     }
 
-    #[test]
-    fn test_edit_state() {
-        let mut edit = EditState::new();
-        
-        assert!(!edit.editing);
-        
-        edit.start_edit("hello".to_string());
-        assert!(edit.editing);
-        assert_eq!(edit.buffer, "hello");
-        assert_eq!(edit.cursor_pos, 5);
-        
-        edit.insert_char('!');
-        assert_eq!(edit.buffer, "hello!");
-        assert_eq!(edit.cursor_pos, 6);
-        
-        edit.backspace();
-        assert_eq!(edit.buffer, "hello");
-        assert_eq!(edit.cursor_pos, 5);
-        
-        let result = edit.commit_buffer();
-        assert_eq!(result, "hello");
-        assert!(!edit.editing);
-        assert!(edit.buffer.is_empty());
-    }
+
 
     #[test]
     fn test_format_cell_value() {

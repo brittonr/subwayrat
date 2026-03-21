@@ -122,6 +122,37 @@ impl NodeGraphState {
             (n.y, n.x)
         });
     }
+
+    /// Apply a graph action, performing the actual mutation.
+    /// Call this after handle_mouse_click / handle_key / handle_mouse_drag
+    /// to commit the returned intents.
+    pub fn apply_action(&mut self, action: &GraphAction) {
+        match action {
+            GraphAction::EdgeCreated { source, target } => {
+                let _ = self.graph.add_edge(*source, *target);
+            }
+            GraphAction::EdgeDeleted { source, target } => {
+                let _ = self.graph.remove_edge(*source, *target);
+            }
+            GraphAction::NodeMoved { node, x, y } => {
+                if let Some(n) = self.graph.node_mut(*node) {
+                    n.x = *x;
+                    n.y = *y;
+                }
+            }
+            // Selection changes and wiring state are view-layer, no graph mutation needed
+            GraphAction::SelectionChanged { .. }
+            | GraphAction::WiringStarted { .. }
+            | GraphAction::WiringCancelled => {}
+        }
+    }
+
+    /// Apply all actions from a handler result.
+    pub fn apply_actions(&mut self, actions: &[GraphAction]) {
+        for action in actions {
+            self.apply_action(action);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -329,12 +360,28 @@ impl NodeGraphState {
             // Wiring mode — clicking a port completes the wire.
             (InteractionMode::Wiring { source, .. }, HitTarget::Port(target_port)) => {
                 let source = *source;
-                let result = self.graph.add_edge(source, target_port);
-                if result.is_ok() {
-                    actions.push(GraphAction::EdgeCreated {
-                        source,
-                        target: target_port,
-                    });
+                
+                // Check compatibility without mutating the graph
+                if let (Some(src_port), Some(tgt_port)) = (self.graph.port(source), self.graph.port(target_port)) {
+                    // Verify source is Output, target is Input
+                    if src_port.direction == PortDirection::Output 
+                        && tgt_port.direction == PortDirection::Input {
+                        // Verify they're on different nodes
+                        if let (Some(src_node), Some(tgt_node)) = (
+                            self.graph.port_owner(source), 
+                            self.graph.port_owner(target_port)
+                        ) {
+                            if src_node != tgt_node {
+                                // Check type compatibility (exact string match)
+                                if src_port.type_tag == tgt_port.type_tag {
+                                    actions.push(GraphAction::EdgeCreated {
+                                        source,
+                                        target: target_port,
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
                 self.mode = InteractionMode::Normal;
             }
@@ -434,13 +481,13 @@ impl NodeGraphState {
         // Move selected nodes.
         let selected: Vec<NodeId> = self.selected.iter().copied().collect();
         for &id in &selected {
-            if let Some(node) = self.graph.node_mut(id) {
-                node.x += dx;
-                node.y += dy;
+            if let Some(node) = self.graph.node(id) {
+                let new_x = node.x + dx;
+                let new_y = node.y + dy;
                 actions.push(GraphAction::NodeMoved {
                     node: id,
-                    x: node.x,
-                    y: node.y,
+                    x: new_x,
+                    y: new_y,
                 });
             }
         }
@@ -496,7 +543,7 @@ impl NodeGraphState {
             }
 
             "Delete" | "Backspace" => {
-                if let Some((src, tgt)) = self.selected_edge.take() && self.graph.remove_edge(src, tgt).is_ok() {
+                if let Some((src, tgt)) = self.selected_edge.take() {
                     actions.push(GraphAction::EdgeDeleted {
                         source: src,
                         target: tgt,
@@ -567,11 +614,29 @@ impl NodeGraphState {
                     InteractionMode::Wiring { source, .. } => {
                         // Complete wire to focused port.
                         let source = *source;
-                        if let Some(target) = self.focused_port && self.graph.add_edge(source, target).is_ok() {
-                            actions.push(GraphAction::EdgeCreated {
-                                source,
-                                target,
-                            });
+                        if let Some(target) = self.focused_port {
+                            // Check compatibility without mutating the graph
+                            if let (Some(src_port), Some(tgt_port)) = (self.graph.port(source), self.graph.port(target)) {
+                                // Verify source is Output, target is Input
+                                if src_port.direction == PortDirection::Output 
+                                    && tgt_port.direction == PortDirection::Input {
+                                    // Verify they're on different nodes
+                                    if let (Some(src_node), Some(tgt_node)) = (
+                                        self.graph.port_owner(source), 
+                                        self.graph.port_owner(target)
+                                    ) {
+                                        if src_node != tgt_node {
+                                            // Check type compatibility (exact string match)
+                                            if src_port.type_tag == tgt_port.type_tag {
+                                                actions.push(GraphAction::EdgeCreated {
+                                                    source,
+                                                    target,
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                         self.mode = InteractionMode::Normal;
                         self.focused_port = None;
@@ -598,33 +663,33 @@ impl NodeGraphState {
             // Arrow key nudge.
             "Up" => {
                 for &id in &self.selected.clone() {
-                    if let Some(n) = self.graph.node_mut(id) {
-                        n.y -= 1;
-                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: n.y });
+                    if let Some(n) = self.graph.node(id) {
+                        let new_y = n.y - 1;
+                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: new_y });
                     }
                 }
             }
             "Down" => {
                 for &id in &self.selected.clone() {
-                    if let Some(n) = self.graph.node_mut(id) {
-                        n.y += 1;
-                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: n.y });
+                    if let Some(n) = self.graph.node(id) {
+                        let new_y = n.y + 1;
+                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: new_y });
                     }
                 }
             }
             "Left" => {
                 for &id in &self.selected.clone() {
-                    if let Some(n) = self.graph.node_mut(id) {
-                        n.x -= 1;
-                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: n.y });
+                    if let Some(n) = self.graph.node(id) {
+                        let new_x = n.x - 1;
+                        actions.push(GraphAction::NodeMoved { node: id, x: new_x, y: n.y });
                     }
                 }
             }
             "Right" => {
                 for &id in &self.selected.clone() {
-                    if let Some(n) = self.graph.node_mut(id) {
-                        n.x += 1;
-                        actions.push(GraphAction::NodeMoved { node: id, x: n.x, y: n.y });
+                    if let Some(n) = self.graph.node(id) {
+                        let new_x = n.x + 1;
+                        actions.push(GraphAction::NodeMoved { node: id, x: new_x, y: n.y });
                     }
                 }
             }
@@ -1189,6 +1254,7 @@ mod tests {
 
         let orig_x = state.graph.node(id).unwrap().x;
         let actions = state.handle_key("Right", false);
+        state.apply_actions(&actions);
 
         assert_eq!(state.graph.node(id).unwrap().x, orig_x + 1);
         assert!(actions
@@ -1255,6 +1321,7 @@ mod tests {
 
         // Enter completes the wire.
         let actions = state.handle_key("Enter", false);
+        state.apply_actions(&actions);
         assert!(matches!(state.mode, InteractionMode::Normal));
         // Edge should have been created (same type "string").
         assert!(actions
@@ -1283,6 +1350,7 @@ mod tests {
         // Select and delete it.
         state.selected_edge = Some((src, tgt));
         let actions = state.handle_key("Delete", false);
+        state.apply_actions(&actions);
         assert_eq!(state.graph.edge_count(), 0);
         assert!(actions
             .iter()

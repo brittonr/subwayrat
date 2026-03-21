@@ -1,7 +1,11 @@
 //! Streaming output buffer with head/tail truncation and incremental search.
 
 pub mod streaming_output;
+pub mod streaming_render;
 pub mod output_search;
+pub mod search_render;
 
 pub use streaming_output::{StreamingConfig, StreamingOutput, StreamingOutputManager};
-pub use output_search::{OutputSearch, SearchMatch, SearchMode, apply_search_highlights};
+pub use streaming_render::{render_streaming_lines, render_streaming_stats};
+pub use output_search::{OutputSearch, SearchMatch, SearchMode};
+pub use search_render::{render_search_overlay, apply_search_highlights};

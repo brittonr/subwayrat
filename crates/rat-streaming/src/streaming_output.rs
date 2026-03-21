@@ -6,11 +6,11 @@
 
 use std::collections::HashMap;
 
-use ratatui::style::Color;
-use ratatui::style::Modifier;
-use ratatui::style::Style;
-use ratatui::text::Line;
-use ratatui::text::Span;
+/// A line item in the display buffer.
+pub enum DisplayLine {
+    Text(String),
+    Omitted(usize),
+}
 
 /// Configuration for the streaming output buffer.
 #[derive(Debug, Clone)]
@@ -54,7 +54,7 @@ pub struct StreamingOutput {
     /// Number of lines dropped (between head and tail).
     omitted: usize,
     /// Scroll offset (0 = top of visible window).
-    scroll_offset: usize,
+    pub scroll_offset: usize,
     /// Whether to auto-scroll to the bottom on new output.
     auto_follow: bool,
     /// Whether the user has explicitly focused this tool's output.
@@ -184,81 +184,12 @@ impl StreamingOutput {
         self.auto_follow = true;
     }
 
-    /// Render lines for the inline chat view.
-    ///
-    /// Returns the visible slice of lines based on scroll state and
-    /// `visible_height`. Lines are prefixed with the chat border and
-    /// tool-output style.
-    ///
-    /// `visible_height` is how many lines of output to show (not counting
-    /// the stats footer).
-    pub fn render_lines<'a>(&mut self, visible_height: usize, border_style: Style) -> Vec<Line<'a>> {
-        let output_style = Style::default().fg(Color::DarkGray);
-        let omit_style = Style::default().fg(Color::DarkGray).add_modifier(Modifier::DIM);
 
-        // Build the full logical line list.
-        let display_count = self.display_line_count();
 
-        // Clamp scroll offset.
-        let max_offset = display_count.saturating_sub(visible_height);
-        if self.auto_follow || self.scroll_offset > max_offset {
-            self.scroll_offset = max_offset;
-        }
 
-        let start = self.scroll_offset;
-        let end = (start + visible_height).min(display_count);
-
-        let mut result = Vec::with_capacity(end - start);
-
-        for i in start..end {
-            let line = self.get_display_line(i);
-            match line {
-                DisplayLine::Text(text) => {
-                    result.push(Line::from(vec![
-                        Span::styled("│ ", border_style),
-                        Span::styled(format!("  │ {}", text), output_style),
-                    ]));
-                }
-                DisplayLine::Omitted(n) => {
-                    result.push(Line::from(vec![
-                        Span::styled("│ ", border_style),
-                        Span::styled(format!("  ┄ {} lines omitted ┄", n), omit_style),
-                    ]));
-                }
-            }
-        }
-
-        result
-    }
-
-    /// Render a compact stats footer line.
-    pub fn render_stats<'a>(&self, border_style: Style) -> Line<'a> {
-        let stats_style = Style::default().fg(Color::DarkGray).add_modifier(Modifier::DIM);
-
-        let follow_indicator = if self.auto_follow { "↓follow" } else { "scroll" };
-        let truncated = if self.omitted > 0 {
-            format!(" ({} omitted)", self.omitted)
-        } else {
-            String::new()
-        };
-
-        Line::from(vec![
-            Span::styled("│ ", border_style),
-            Span::styled(
-                format!(
-                    "  {} lines · {} · {}{}",
-                    self.total_lines,
-                    format_bytes(self.total_bytes),
-                    follow_indicator,
-                    truncated,
-                ),
-                stats_style,
-            ),
-        ])
-    }
 
     /// Get a logical display line by index.
-    fn get_display_line(&self, index: usize) -> DisplayLine {
+    pub fn get_display_line(&self, index: usize) -> DisplayLine {
         let head_len = self.head.len();
 
         if index < head_len {
@@ -287,11 +218,7 @@ impl Default for StreamingOutput {
     }
 }
 
-/// Internal enum for get_display_line.
-enum DisplayLine {
-    Text(String),
-    Omitted(usize),
-}
+
 
 /// Manages streaming output buffers for all active tool executions.
 #[derive(Debug)]
@@ -382,16 +309,7 @@ impl Default for StreamingOutputManager {
     }
 }
 
-/// Format a byte count as human-readable.
-fn format_bytes(bytes: usize) -> String {
-    if bytes >= 1024 * 1024 {
-        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
-    } else if bytes >= 1024 {
-        format!("{:.1} KB", bytes as f64 / 1024.0)
-    } else {
-        format!("{} B", bytes)
-    }
-}
+
 
 #[cfg(test)]
 mod tests {
@@ -520,55 +438,11 @@ mod tests {
         assert!(out.auto_follow());
     }
 
-    #[test]
-    fn render_lines_basic() {
-        let mut out = StreamingOutput::new();
-        out.push_line("hello");
-        out.push_line("world");
 
-        let border = Style::default().fg(Color::DarkGray);
-        let lines = out.render_lines(10, border);
-        assert_eq!(lines.len(), 2);
 
-        let text: String = lines[0].spans.iter().map(|s| s.content.as_ref()).collect();
-        assert!(text.contains("hello"));
-    }
 
-    #[test]
-    fn render_lines_with_truncation() {
-        let config = StreamingConfig {
-            max_lines: 10,
-            head_lines: 2,
-            tail_lines: 2,
-            visible_lines: 16,
-        };
-        let mut out = StreamingOutput::with_config(config);
 
-        for i in 0..10 {
-            out.push_line(&format!("L{}", i));
-        }
 
-        let border = Style::default().fg(Color::DarkGray);
-        // Show all display lines (5 total: 2 head + omit + 2 tail).
-        let lines = out.render_lines(10, border);
-        assert_eq!(lines.len(), 5);
-
-        // Check omission marker.
-        let omit_text: String = lines[2].spans.iter().map(|s| s.content.as_ref()).collect();
-        assert!(omit_text.contains("6 lines omitted"));
-    }
-
-    #[test]
-    fn render_stats_footer() {
-        let mut out = StreamingOutput::new();
-        out.push_text("hello\nworld");
-
-        let border = Style::default().fg(Color::DarkGray);
-        let stats = out.render_stats(border);
-        let text: String = stats.spans.iter().map(|s| s.content.as_ref()).collect();
-        assert!(text.contains("2 lines"));
-        assert!(text.contains("follow"));
-    }
 
     #[test]
     fn manager_add_and_get() {
@@ -618,23 +492,9 @@ mod tests {
         assert!(mgr.focused_call_id().is_none());
     }
 
-    #[test]
-    fn format_bytes_display() {
-        assert_eq!(format_bytes(0), "0 B");
-        assert_eq!(format_bytes(512), "512 B");
-        assert_eq!(format_bytes(1024), "1.0 KB");
-        assert_eq!(format_bytes(1536), "1.5 KB");
-        assert_eq!(format_bytes(1024 * 1024), "1.0 MB");
-        assert_eq!(format_bytes(2 * 1024 * 1024 + 512 * 1024), "2.5 MB");
-    }
 
-    #[test]
-    fn empty_buffer_render() {
-        let mut out = StreamingOutput::new();
-        let border = Style::default().fg(Color::DarkGray);
-        let lines = out.render_lines(10, border);
-        assert!(lines.is_empty());
-    }
+
+
 
     #[test]
     fn scroll_down_clamps() {

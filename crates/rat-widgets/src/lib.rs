@@ -18,7 +18,7 @@ pub mod path_complete;
 pub mod theme;
 
 pub use scroll::FreeScroll;
-pub use select_list::SelectList;
+pub use select_list::{SelectList, SelectListModel};
 pub use input::InputDialog;
 pub use loader::Loader;
 pub use notification::{Notification, NotificationLevel};

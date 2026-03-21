@@ -1,34 +1,4 @@
-## ADDED Requirements
-
-### Requirement: Single and multi-node selection
-The interaction layer SHALL support selecting a single node by clicking it
-or pressing Enter when focused. Multi-select SHALL be supported via
-Shift+click or box selection. Clicking empty canvas SHALL clear selection.
-
-#### Scenario: Click to select single node
-- **WHEN** user clicks on a node
-- **THEN** that node becomes the only selected node, and a
-  `GraphAction::SelectionChanged` is returned
-
-#### Scenario: Shift-click for multi-select
-- **WHEN** user shift-clicks a second node while one is already selected
-- **THEN** both nodes are selected
-
-#### Scenario: Click empty space clears selection
-- **WHEN** user clicks on empty canvas area
-- **THEN** selection is cleared and `GraphAction::SelectionChanged` is
-  returned with an empty set
-
-### Requirement: Node dragging
-Selected nodes SHALL be movable by mouse drag or arrow keys. Input handlers SHALL return `GraphAction::NodeMoved` intents WITHOUT directly mutating `node.x`/`node.y`. The caller SHALL apply the action via `apply_action()`. When multiple nodes are selected, all move together preserving relative positions.
-
-#### Scenario: Arrow key nudge
-- **WHEN** user presses Right arrow with a node selected
-- **THEN** `handle_key` returns `GraphAction::NodeMoved { node, x, y }` and the node position is unchanged until `apply_action` is called
-
-#### Scenario: Drag single node
-- **WHEN** user drags a selected node from (10,5) by delta (3,2)
-- **THEN** `handle_mouse_drag` returns `GraphAction::NodeMoved` with new position (13,7) and the node position is unchanged until `apply_action` is called
+## MODIFIED Requirements
 
 ### Requirement: Edge creation by port-to-port wiring
 Users SHALL create edges by clicking an output port then clicking a compatible input port. A "wiring" visual (line from source port to cursor) SHALL be shown while wiring is in progress. Pressing Escape SHALL cancel wiring. Clicking an incompatible port SHALL cancel wiring and show no edge. Input handlers SHALL return `GraphAction::EdgeCreated` intents WITHOUT directly calling `graph.add_edge()`. The caller SHALL apply the action via `apply_action()` to perform the mutation.
@@ -52,14 +22,16 @@ Users SHALL delete an edge by selecting it and pressing Delete/Backspace, or via
 - **WHEN** an edge is selected and user presses Delete
 - **THEN** `handle_key` returns `GraphAction::EdgeDeleted { source, target }` and the edge is NOT removed until `apply_action` is called
 
-### Requirement: Box selection
-Users SHALL drag a rectangle on empty canvas to select all nodes whose
-bounding boxes intersect the rectangle.
+### Requirement: Node dragging
+Selected nodes SHALL be movable by mouse drag or arrow keys. Input handlers SHALL return `GraphAction::NodeMoved` intents WITHOUT directly mutating `node.x`/`node.y`. The caller SHALL apply the action via `apply_action()`. When multiple nodes are selected, all move together preserving relative positions.
 
-#### Scenario: Box select multiple nodes
-- **WHEN** user drags a selection rectangle from (0,0) to (50,30) and
-  three nodes fall within that area
-- **THEN** all three nodes become selected
+#### Scenario: Arrow key nudge
+- **WHEN** user presses Right arrow with a node selected
+- **THEN** `handle_key` returns `GraphAction::NodeMoved { node, x, y }` and the node position is unchanged until `apply_action` is called
+
+#### Scenario: Drag single node
+- **WHEN** user drags a selected node from (10,5) by delta (3,2)
+- **THEN** `handle_mouse_drag` returns `GraphAction::NodeMoved` with new position (13,7) and the node position is unchanged until `apply_action` is called
 
 ### Requirement: Keyboard-only navigation
 All interactions SHALL be achievable without a mouse. Tab SHALL cycle focus between nodes. Arrow keys SHALL move the focused/selected node (via action intents). Enter on a port SHALL start wiring mode. Tab in wiring mode SHALL cycle through compatible target ports. Enter SHALL confirm the wire (via action intent).
