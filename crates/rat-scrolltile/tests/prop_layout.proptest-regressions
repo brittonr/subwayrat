@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 399e354acab25fb916facefe537f961860128bc16f8f47386304069193450010 # shrinks to sw = StripWithIds { strip: Strip { columns: [Column { windows: [Window { id: WindowId(1), width_constraint: Fixed(1), height_constraint: Fixed(57) }], width_constraint: Fixed(1) }], config: StripConfig { axis: Horizontal, column_gap: 0, window_gap: 0 }, focus: None, cross_affinity: None, scroll_mode: FocusTracking, next_id: 2 }, ids: [WindowId(1)], ids_by_col: [[WindowId(1)]] }, (vw, vh) = (10, 10)
+cc 7f9c75fa30b3570a8c8b7eadbbdedd1b089f6e7f064878fe012e8e6f88c68e86 # shrinks to sw = StripWithIds { strip: Strip { columns: [Column { windows: [Window { id: WindowId(1), width_constraint: Proportion(0.1), height_constraint: Fixed(1) }], width_constraint: Proportion(0.1) }, Column { windows: [Window { id: WindowId(2), width_constraint: Fixed(142), height_constraint: Fixed(1) }], width_constraint: Fixed(142) }], config: StripConfig { axis: Horizontal, column_gap: 0, window_gap: 0 }, focus: None, cross_affinity: None, scroll_mode: FocusTracking, next_id: 3 }, ids: [WindowId(1), WindowId(2)], ids_by_col: [[WindowId(1)], [WindowId(2)]] }, (vw, vh) = (10, 10)
