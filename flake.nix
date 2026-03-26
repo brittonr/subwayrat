@@ -19,10 +19,9 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        ws = unit2nix.lib.${system}.buildFromUnitGraph {
+        ws = unit2nix.lib.${system}.buildFromUnitGraphAuto {
           inherit pkgs;
           src = ./.;
-          resolvedJson = ./build-plan.json;
         };
       in
       {
