@@ -43,3 +43,6 @@ pub use formula::{parse as parse_formula, evaluate, evaluate_with_registry};
 pub use nav::{CursorState, ScrollState, Selection};
 pub use render::{Spreadsheet, SpreadsheetState, SpreadsheetStyle};
 pub use event::{Action, Clipboard, handle_action};
+
+#[cfg(feature = "org-compat")]
+pub mod org_table;

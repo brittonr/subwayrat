@@ -44,6 +44,24 @@ use rat_spreadsheet::{
     Spreadsheet, SpreadsheetState, SpreadsheetStyle as SheetStyle, handle_action,
 };
 
+use rat_outline::{
+    OutlineState, OutlineStyle, Outline,
+    Action as OutlineAction, handle_action as outline_handle_action,
+};
+use rat_agenda::{
+    AgendaState, AgendaStyle, Agenda, AgendaItem, Date, Time, ViewMode,
+    Action as AgendaAction, handle_action as agenda_handle_action,
+};
+use rat_datepicker::{
+    CalendarGrid, CalendarGridState, CalendarStyle, CalendarAction,
+    TimeInput, TimeInputState, TimeAction,
+    calendar::CalDate,
+    calendar::handle_calendar_action,
+    time_input::handle_time_action,
+};
+// rat-fuzzy, rat-capture, rat-backlinks, rat-tags are available as library
+// widgets — they work as overlay/popup components composed by the app.
+
 // ── Demo tabs ────────────────────────────────────────────────────────────────
 
 const TABS: &[&str] = &[
@@ -56,6 +74,9 @@ const TABS: &[&str] = &[
     "Dialogs",
     "Tree",
     "Tiler",
+    "Outline",
+    "Agenda",
+    "DatePick",
     "Misc",
 ];
 
@@ -110,6 +131,17 @@ struct App {
     tiler_strip: Strip,
     tiler_windows: Vec<(WindowId, String, Color)>,
     tiler_next_panel: usize,
+
+    // Outline tab
+    outline_state: OutlineState,
+
+    // Agenda tab
+    agenda_state: AgendaState,
+    agenda_items: Vec<AgendaItem>,
+
+    // DatePicker tab
+    calendar_state: CalendarGridState,
+    time_state: TimeInputState,
 
     // Misc tab
     last_key: String,
@@ -278,6 +310,36 @@ impl App {
         rat_tree_state.recompute(&rat_tree_data);
         let rat_tree_keymap = default_keymap();
 
+        // Outline demo
+        let mut outline_state = OutlineState::new();
+        outline_state.load_text(
+            "* TODO Project Alpha\nDesign the new widget system.\n\
+             ** IN_PROGRESS [#A] Core engine :code:rust:\n\
+             Implement the parser and state machine.\n\
+             ** TODO [#B] Tests :test:\nWrite property-based tests.\n\
+             *** TODO Unit tests\n*** TODO Integration tests\n\
+             * DONE Project Beta :archived:\nShipped in v0.9.\n\
+             ** DONE Documentation\n** DONE Release notes\n\
+             * TODO Backlog\n- Review PRs\n- Update deps\n"
+        );
+
+        // Agenda demo
+        let today = Date::new(2026, 3, 26);
+        let agenda_items = vec![
+            AgendaItem { id: "1".into(), title: "Team standup".into(), status: Some("TODO".into()), priority: Some('A'), tags: vec!["work".into()], scheduled: Some(today), deadline: None, time_start: Some(Time::new(9, 30)), time_end: Some(Time::new(9, 45)), source_file: None, source_line: None },
+            AgendaItem { id: "2".into(), title: "Code review".into(), status: Some("TODO".into()), priority: Some('B'), tags: vec!["work".into()], scheduled: Some(today), deadline: None, time_start: Some(Time::new(14, 0)), time_end: None, source_file: None, source_line: None },
+            AgendaItem { id: "3".into(), title: "Write tests".into(), status: Some("IN_PROGRESS".into()), priority: None, tags: vec!["code".into()], scheduled: Some(today), deadline: Some(today.add_days(2)), time_start: None, time_end: None, source_file: None, source_line: None },
+            AgendaItem { id: "4".into(), title: "Grocery shopping".into(), status: Some("TODO".into()), priority: Some('C'), tags: vec!["personal".into()], scheduled: Some(today.next_day()), deadline: None, time_start: Some(Time::new(18, 0)), time_end: None, source_file: None, source_line: None },
+            AgendaItem { id: "5".into(), title: "Dentist appointment".into(), status: Some("TODO".into()), priority: Some('A'), tags: vec!["personal".into()], scheduled: Some(today.add_days(3)), deadline: None, time_start: Some(Time::new(10, 0)), time_end: Some(Time::new(11, 0)), source_file: None, source_line: None },
+        ];
+        let mut agenda_state = AgendaState::new(today);
+        agenda_state.refresh(&agenda_items);
+
+        // DatePicker demo
+        let cal_today = CalDate::new(2026, 3, 26);
+        let calendar_state = CalendarGridState::new(cal_today);
+        let time_state = TimeInputState::new(14, 30);
+
         Self {
             tab_bar: TabBar::new(TABS.to_vec())
                 .with_active_style(
@@ -315,6 +377,11 @@ impl App {
             tiler_strip: Strip::new(StripConfig::default()),
             tiler_windows: Vec::new(),
             tiler_next_panel: 0,
+            outline_state,
+            agenda_state,
+            agenda_items,
+            calendar_state,
+            time_state,
             last_key: String::new(),
         }
     }
@@ -346,7 +413,10 @@ impl App {
             6 => 3, // confirm, input dialog, tree view
             7 => 1, // rat-tree
             8 => 0, // tiler (has own nav)
-            9 => 0, // misc (read-only)
+            9 => 1, // outline
+            10 => 1, // agenda
+            11 => 2, // datepicker (calendar, time)
+            12 => 0, // misc (read-only)
             _ => 0,
         }
     }
@@ -420,6 +490,9 @@ impl App {
             6 => self.handle_dialogs_key(code),
             7 => self.handle_tree_key(code, modifiers),
             8 => self.handle_tiler_key(code),
+            9 => self.handle_outline_key(code),
+            10 => self.handle_agenda_key(code),
+            11 => self.handle_datepicker_key(code),
             _ => {}
         }
     }
@@ -682,6 +755,81 @@ impl App {
         self.tiler_strip.focus_set(id);
     }
 
+    fn handle_outline_key(&mut self, code: KeyCode) {
+        let action = match code {
+            KeyCode::Char(c) => OutlineAction::InsertChar(c),
+            KeyCode::Enter => OutlineAction::InsertChar('\n'),
+            KeyCode::Backspace => OutlineAction::DeleteBack,
+            KeyCode::Delete => OutlineAction::DeleteForward,
+            KeyCode::Left => OutlineAction::MoveLeft,
+            KeyCode::Right => OutlineAction::MoveRight,
+            KeyCode::Up => OutlineAction::MoveUp,
+            KeyCode::Down => OutlineAction::MoveDown,
+            KeyCode::Home => OutlineAction::MoveHome,
+            KeyCode::End => OutlineAction::MoveEnd,
+            KeyCode::F(5) => OutlineAction::CycleVisibility,
+            KeyCode::F(6) => OutlineAction::CycleTodo,
+            KeyCode::F(7) => OutlineAction::Promote,
+            KeyCode::F(8) => OutlineAction::Demote,
+            KeyCode::F(9) => OutlineAction::FoldAll,
+            KeyCode::F(10) => OutlineAction::UnfoldAll,
+            KeyCode::F(11) => OutlineAction::MoveSubtreeUp,
+            KeyCode::F(12) => OutlineAction::MoveSubtreeDown,
+            _ => return,
+        };
+        outline_handle_action(&mut self.outline_state, action);
+    }
+
+    fn handle_agenda_key(&mut self, code: KeyCode) {
+        let action = match code {
+            KeyCode::Left => AgendaAction::PrevDay,
+            KeyCode::Right => AgendaAction::NextDay,
+            KeyCode::Up => AgendaAction::SelectPrevItem,
+            KeyCode::Down => AgendaAction::SelectNextItem,
+            KeyCode::Char('[') => AgendaAction::PrevWeek,
+            KeyCode::Char(']') => AgendaAction::NextWeek,
+            KeyCode::Char('{') => AgendaAction::PrevMonth,
+            KeyCode::Char('}') => AgendaAction::NextMonth,
+            KeyCode::Char('d') => AgendaAction::SwitchView(ViewMode::Day),
+            KeyCode::Char('w') => AgendaAction::SwitchView(ViewMode::Week),
+            KeyCode::Char('m') => AgendaAction::SwitchView(ViewMode::Month),
+            _ => return,
+        };
+        let result = agenda_handle_action(&mut self.agenda_state, action);
+        if result == rat_agenda::ActionResult::NeedsRefresh {
+            self.agenda_state.refresh(&self.agenda_items);
+        }
+    }
+
+    fn handle_datepicker_key(&mut self, code: KeyCode) {
+        match self.focus {
+            0 => {
+                let action = match code {
+                    KeyCode::Left => CalendarAction::PrevDay,
+                    KeyCode::Right => CalendarAction::NextDay,
+                    KeyCode::Up => CalendarAction::PrevWeek,
+                    KeyCode::Down => CalendarAction::NextWeek,
+                    KeyCode::Char('[') => CalendarAction::PrevMonth,
+                    KeyCode::Char(']') => CalendarAction::NextMonth,
+                    _ => return,
+                };
+                handle_calendar_action(&mut self.calendar_state, action);
+            }
+            1 => {
+                let action = match code {
+                    KeyCode::Up => TimeAction::Increment,
+                    KeyCode::Down => TimeAction::Decrement,
+                    KeyCode::Left | KeyCode::BackTab => TimeAction::PrevField,
+                    KeyCode::Right | KeyCode::Tab => TimeAction::NextField,
+                    KeyCode::Char(c) if c.is_ascii_digit() => TimeAction::Digit(c as u8 - b'0'),
+                    _ => return,
+                };
+                handle_time_action(&mut self.time_state, action);
+            }
+            _ => {}
+        }
+    }
+
     fn handle_mouse_click(&mut self, x: u16, y: u16) {
         // Click on tab bar?
         if y >= self.tab_bar_area.y
@@ -806,7 +954,10 @@ fn draw(frame: &mut Frame, app: &mut App) {
         6 => draw_dialogs_tab(frame, content_area, app),
         7 => draw_tree_tab(frame, content_area, app),
         8 => draw_tiler_tab(frame, content_area, app),
-        9 => draw_misc_tab(frame, content_area, app),
+        9 => draw_outline_tab(frame, content_area, app),
+        10 => draw_agenda_tab(frame, content_area, app),
+        11 => draw_datepicker_tab(frame, content_area, app),
+        12 => draw_misc_tab(frame, content_area, app),
         _ => {}
     }
 
@@ -1250,10 +1401,146 @@ fn draw_tree_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     frame.render_widget(Paragraph::new(info_lines), info_inner);
 }
 
+fn draw_outline_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
+        .split(area);
+
+    let outline_block = Block::default()
+        .title(Span::styled(
+            " Outline Editor ",
+            Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_style(border_style(true));
+
+    let outline_widget = Outline::new(OutlineStyle::default()).block(outline_block);
+    app.widget_areas.push(cols[0]);
+    frame.render_stateful_widget(outline_widget, cols[0], &mut app.outline_state);
+
+    // Help panel
+    let help_block = Block::default()
+        .title(Span::styled(" Keybindings ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+    let help_inner = help_block.inner(cols[1]);
+    frame.render_widget(help_block, cols[1]);
+
+    let help = vec![
+        Line::from(vec![Span::styled("F5 ", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled("Cycle fold", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F6 ", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled("Cycle TODO", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F7 ", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled("Promote", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F8 ", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled("Demote", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F9 ", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled("Fold all", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F10", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled(" Unfold all", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F11", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled(" Move subtree ↑", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(vec![Span::styled("F12", Style::default().fg(Color::Rgb(100, 149, 237))), Span::styled(" Move subtree ↓", Style::default().fg(Color::Rgb(160, 160, 160)))]),
+        Line::from(""),
+        Line::from(Span::styled("Headings", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(format!("  {} headings detected", app.outline_state.headings.len()), Style::default().fg(Color::Rgb(140, 140, 140)))),
+        Line::from(Span::styled(format!("  {} total lines", app.outline_state.line_count()), Style::default().fg(Color::Rgb(140, 140, 140)))),
+    ];
+    frame.render_widget(Paragraph::new(help), help_inner);
+}
+
+fn draw_agenda_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(2), Constraint::Min(5)])
+        .split(area);
+
+    // View mode hint
+    let mode_str = match app.agenda_state.view_mode {
+        ViewMode::Day => "Day",
+        ViewMode::Week => "Week",
+        ViewMode::Month => "Month",
+    };
+    let hint = Paragraph::new(Line::from(vec![
+        Span::styled(" View: ", Style::default().fg(Color::Rgb(140, 140, 140))),
+        Span::styled(mode_str, Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)),
+        Span::styled("  d", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled("/day  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+        Span::styled("w", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled("/week  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+        Span::styled("m", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled("/month  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+        Span::styled("←→", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(" day  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+        Span::styled("[]", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(" week  ", Style::default().fg(Color::Rgb(100, 100, 100))),
+        Span::styled("{}", Style::default().fg(Color::Rgb(100, 149, 237))),
+        Span::styled(" month", Style::default().fg(Color::Rgb(100, 100, 100))),
+    ]));
+    frame.render_widget(hint, rows[0]);
+
+    let block = Block::default()
+        .title(Span::styled(" Agenda ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(border_style(true));
+
+    let widget = Agenda::new(AgendaStyle::default()).block(block);
+    app.widget_areas.push(rows[1]);
+    frame.render_stateful_widget(widget, rows[1], &mut app.agenda_state);
+}
+
+fn draw_datepicker_tab(frame: &mut Frame, area: Rect, app: &mut App) {
+    let cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(24), Constraint::Length(20)])
+        .split(area);
+
+    // Calendar
+    let cal_block = Block::default()
+        .title(Span::styled(" Calendar (arrows, [/] month) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 0));
+
+    let cal_widget = CalendarGrid::new(CalendarStyle::default()).block(cal_block);
+    app.widget_areas.push(cols[0]);
+    frame.render_stateful_widget(cal_widget, cols[0], &mut app.calendar_state);
+
+    // Time + info
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(4)])
+        .split(cols[1]);
+
+    let time_block = Block::default()
+        .title(Span::styled(" Time (↑↓ digits) ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 1));
+
+    let time_widget = TimeInput::new().block(time_block);
+    app.widget_areas.push(right[0]);
+    frame.render_stateful_widget(time_widget, right[0], &mut app.time_state);
+
+    // Info
+    let info_block = Block::default()
+        .title(Span::styled(" Selection ", Style::default().fg(Color::Rgb(100, 149, 237)).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+    let info_inner = info_block.inner(right[1]);
+    frame.render_widget(info_block, right[1]);
+
+    let sel = &app.calendar_state.selected;
+    let info = Paragraph::new(vec![
+        Line::from(vec![
+            Span::styled("Date: ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(format!("{:04}-{:02}-{:02}", sel.year, sel.month, sel.day), Style::default().fg(Color::Rgb(100, 149, 237))),
+        ]),
+        Line::from(vec![
+            Span::styled("Time: ", Style::default().fg(Color::Rgb(140, 140, 140))),
+            Span::styled(app.time_state.to_string(), Style::default().fg(Color::Rgb(144, 238, 144))),
+        ]),
+    ]);
+    frame.render_widget(info, info_inner);
+}
+
 fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(13), Constraint::Min(4)])
+        .constraints([Constraint::Length(16), Constraint::Min(4)])
         .split(area);
 
     let crate_block = Block::default()
@@ -1305,8 +1592,20 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
             Span::styled("Interactive tree navigation with keymap integration", Style::default().fg(Color::Rgb(160, 160, 160))),
         ]),
         Line::from(vec![
-            Span::styled("+ 6 more        ", Style::default().fg(Color::Rgb(80, 80, 80)).add_modifier(Modifier::BOLD)),
-            Span::styled("keymap, leaderkey, branches, layers, selection, image", Style::default().fg(Color::Rgb(100, 100, 100))),
+            Span::styled("rat-outline     ", Style::default().fg(Color::Rgb(255, 160, 100)).add_modifier(Modifier::BOLD)),
+            Span::styled("Folding structured editor with heading hierarchy", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("rat-agenda      ", Style::default().fg(Color::Rgb(200, 160, 255)).add_modifier(Modifier::BOLD)),
+            Span::styled("Day/week/month agenda views with filters", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("rat-datepicker  ", Style::default().fg(Color::Rgb(100, 200, 255)).add_modifier(Modifier::BOLD)),
+            Span::styled("Calendar grid, time input, repeater input", Style::default().fg(Color::Rgb(160, 160, 160))),
+        ]),
+        Line::from(vec![
+            Span::styled("+ 11 more       ", Style::default().fg(Color::Rgb(80, 80, 80)).add_modifier(Modifier::BOLD)),
+            Span::styled("fuzzy, capture, backlinks, tags, keymap, leaderkey, etc.", Style::default().fg(Color::Rgb(100, 100, 100))),
         ]),
     ];
     frame.render_widget(Paragraph::new(crates_text), crate_inner);

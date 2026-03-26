@@ -47,6 +47,28 @@ impl Editor {
         &self.lines
     }
 
+    /// Mutable access to the line buffer.
+    pub fn content_mut(&mut self) -> &mut Vec<String> {
+        &mut self.lines
+    }
+
+    /// Current cursor line (0-indexed).
+    pub fn cursor_line(&self) -> usize {
+        self.cursor_line
+    }
+
+    /// Current cursor column (byte offset).
+    pub fn cursor_col(&self) -> usize {
+        self.cursor_col
+    }
+
+    /// Set cursor position. Clamps to valid range.
+    pub fn set_cursor(&mut self, line: usize, col: usize) {
+        self.cursor_line = line.min(self.lines.len().saturating_sub(1));
+        let line_len = self.lines[self.cursor_line].len();
+        self.cursor_col = col.min(line_len);
+    }
+
     /// Check if the editor is empty (no meaningful content)
     pub fn is_empty(&self) -> bool {
         self.lines.iter().all(|l| l.is_empty())

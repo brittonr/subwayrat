@@ -18,6 +18,13 @@ members = [
     "crates/rat-spreadsheet",
     "crates/rat-tree",
     "crates/rat-scrolltile",
+    "crates/rat-outline",
+    "crates/rat-agenda",
+    "crates/rat-datepicker",
+    "crates/rat-fuzzy",
+    "crates/rat-capture",
+    "crates/rat-backlinks",
+    "crates/rat-tags",
     "crates/showcase",
 ]
 

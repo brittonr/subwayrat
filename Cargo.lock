@@ -1134,6 +1134,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-agenda"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
+name = "rat-backlinks"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "rat-branches"
 version = "0.1.0"
 dependencies = [
@@ -1145,6 +1159,21 @@ name = "rat-canvas"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "rat-capture"
+version = "0.1.0"
+dependencies = [
+ "rat-editor",
+ "ratatui",
+]
+
+[[package]]
+name = "rat-datepicker"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]
@@ -1163,6 +1192,13 @@ version = "0.1.0"
 dependencies = [
  "ratatui",
  "unicode-width",
+]
+
+[[package]]
+name = "rat-fuzzy"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]
@@ -1216,6 +1252,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-outline"
+version = "0.1.0"
+dependencies = [
+ "rat-editor",
+ "ratatui",
+ "unicode-width",
+]
+
+[[package]]
 name = "rat-scrolltile"
 version = "0.1.0"
 dependencies = [
@@ -1249,6 +1294,13 @@ dependencies = [
 
 [[package]]
 name = "rat-table"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
+name = "rat-tags"
 version = "0.1.0"
 dependencies = [
  "ratatui",
@@ -1525,13 +1577,20 @@ name = "showcase"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.28.1",
+ "rat-agenda",
+ "rat-backlinks",
+ "rat-capture",
+ "rat-datepicker",
  "rat-diff",
  "rat-editor",
+ "rat-fuzzy",
  "rat-keymap",
  "rat-markdown",
+ "rat-outline",
  "rat-scrolltile",
  "rat-spreadsheet",
  "rat-table",
+ "rat-tags",
  "rat-tree",
  "rat-widgets",
  "ratatui",

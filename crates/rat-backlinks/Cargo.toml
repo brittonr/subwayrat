@@ -1,0 +1,9 @@
+[package]
+name = "rat-backlinks"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Backlinks panel widget for ratatui showing incoming references"
+
+[dependencies]
+ratatui = { workspace = true }

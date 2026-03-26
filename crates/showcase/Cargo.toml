@@ -21,3 +21,10 @@ rat-spreadsheet = { version = "0.1.0", path = "../rat-spreadsheet" }
 rat-tree = { version = "0.1.0", path = "../rat-tree" }
 rat-keymap = { version = "0.1.0", path = "../rat-keymap" }
 rat-scrolltile = { version = "0.1.0", path = "../rat-scrolltile" }
+rat-outline = { version = "0.1.0", path = "../rat-outline" }
+rat-agenda = { version = "0.1.0", path = "../rat-agenda" }
+rat-datepicker = { version = "0.1.0", path = "../rat-datepicker" }
+rat-fuzzy = { version = "0.1.0", path = "../rat-fuzzy" }
+rat-capture = { version = "0.1.0", path = "../rat-capture" }
+rat-backlinks = { version = "0.1.0", path = "../rat-backlinks" }
+rat-tags = { version = "0.1.0", path = "../rat-tags" }
