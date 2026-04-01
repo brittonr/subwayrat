@@ -1,13 +1,9 @@
 //! Helix-style leader key popup menu for ratatui applications.
 //!
-//! Pressing a leader key (typically Space) opens a which-key overlay showing
-//! available actions. A single keypress executes an action or opens a submenu.
-//! Escape or any unrecognized key dismisses the menu.
-//!
-//! The menu is generic over the action type `A`, so any application can plug in
-//! its own action enum. Items are contributed dynamically via [`MenuContributor`],
-//! supporting builtins, plugins, and user config with priority-based conflict
-//! resolution.
+//! The state machine, builder, and types live in `ratcore::leaderkey`
+//! (shared with the Dioxus web frontend). This crate provides:
+//! - crossterm `KeyEvent` → `MenuInput` conversion
+//! - ratatui rendering
 //!
 //! # Example
 //!

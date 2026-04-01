@@ -1232,6 +1232,7 @@ name = "rat-leaderkey"
 version = "0.1.0"
 dependencies = [
  "ratatui",
+ "ratcore",
 ]
 
 [[package]]

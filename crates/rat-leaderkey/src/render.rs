@@ -6,8 +6,9 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
+use ratcore::leaderkey::LeaderAction;
+
 use crate::state::LeaderMenu;
-use crate::types::LeaderAction;
 
 impl<A> LeaderMenu<A> {
     /// Render the leader menu overlay.
@@ -15,7 +16,7 @@ impl<A> LeaderMenu<A> {
     /// Draws a centered popup with the current menu level's items.
     /// No-op when the menu is not visible.
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        if !self.visible {
+        if !self.visible() {
             return;
         }
 
@@ -30,8 +31,7 @@ impl<A> LeaderMenu<A> {
             .items
             .iter()
             .map(|i| {
-                let suffix =
-                    u16::from(matches!(i.action, LeaderAction::Submenu(_)));
+                let suffix = u16::from(matches!(i.action, LeaderAction::Submenu(_)));
                 5 + i.label.len() as u16 + suffix
             })
             .max()
@@ -48,10 +48,11 @@ impl<A> LeaderMenu<A> {
         frame.render_widget(Clear, popup_area);
 
         // Title with breadcrumb trail.
-        let title = if self.breadcrumb.is_empty() {
+        let breadcrumb = self.breadcrumb();
+        let title = if breadcrumb.is_empty() {
             " Space ".to_string()
         } else {
-            format!(" Space › {} ", self.breadcrumb.join(" › "))
+            format!(" Space › {} ", breadcrumb.join(" › "))
         };
 
         let block = Block::default()
@@ -96,7 +97,7 @@ impl<A> LeaderMenu<A> {
 
         // Spacer + hint.
         lines.push(Line::from(""));
-        let hint = if self.stack.len() > 1 {
+        let hint = if self.inner.depth() > 0 {
             "esc back"
         } else {
             "esc close"
