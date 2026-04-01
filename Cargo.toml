@@ -36,3 +36,4 @@ license = "MIT"
 ratatui = "0.30"
 unicode-width = "0.2"
 base64 = "0.22"
+ratcore = { path = "../ratcore" }

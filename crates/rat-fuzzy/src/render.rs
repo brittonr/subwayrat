@@ -100,7 +100,7 @@ impl<S: FuzzySource> StatefulWidget for FuzzyFinder<'_, S> {
                 }
             }
 
-            if let Some(candidate) = candidates.get(scored.candidate_idx) {
+            if let Some(candidate) = candidates.get(scored.index) {
                 // Icon
                 let mut spans: Vec<Span<'static>> = Vec::new();
                 if let Some(icon) = candidate.icon {
@@ -109,7 +109,6 @@ impl<S: FuzzySource> StatefulWidget for FuzzyFinder<'_, S> {
 
                 // Text with match highlights
                 let text_chars: Vec<char> = candidate.text.chars().collect();
-                let mut i = 0;
                 let mut chunk = String::new();
                 let mut in_match = false;
                 for (ci, &ch) in text_chars.iter().enumerate() {

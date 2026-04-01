@@ -31,7 +31,7 @@ impl FuzzyState {
             self.results = candidates
                 .iter()
                 .enumerate()
-                .map(|(i, _)| ScoredMatch { candidate_idx: i, score: 0, positions: vec![] })
+                .map(|(i, _)| ScoredMatch { index: i, score: 0, positions: vec![] })
                 .collect();
         } else {
             let mut scored: Vec<ScoredMatch> = candidates
@@ -39,7 +39,7 @@ impl FuzzyState {
                 .enumerate()
                 .filter_map(|(i, c)| {
                     fuzzy_score(&c.text, &self.query).map(|mut m| {
-                        m.candidate_idx = i;
+                        m.index = i;
                         m
                     })
                 })
@@ -64,8 +64,8 @@ impl FuzzyState {
     pub fn confirm(&mut self, source: &dyn FuzzySource) {
         if let Some(scored) = self.results.get(self.selected) {
             let candidates = source.candidates();
-            if scored.candidate_idx < candidates.len() {
-                self.result = Some(candidates[scored.candidate_idx].clone());
+            if scored.index < candidates.len() {
+                self.result = Some(candidates[scored.index].clone());
             }
         }
         self.open = false;

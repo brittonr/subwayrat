@@ -7,3 +7,4 @@ description = "Calendar grid, time input, and repeater input widgets for ratatui
 
 [dependencies]
 ratatui = { workspace = true }
+ratcore = { workspace = true }

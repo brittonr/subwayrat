@@ -1174,6 +1174,7 @@ name = "rat-datepicker"
 version = "0.1.0"
 dependencies = [
  "ratatui",
+ "ratcore",
 ]
 
 [[package]]
@@ -1199,6 +1200,7 @@ name = "rat-fuzzy"
 version = "0.1.0"
 dependencies = [
  "ratatui",
+ "ratcore",
 ]
 
 [[package]]
@@ -1312,6 +1314,7 @@ version = "0.1.0"
 dependencies = [
  "rat-keymap",
  "ratatui",
+ "ratcore",
  "unicode-width",
 ]
 
@@ -1408,6 +1411,10 @@ dependencies = [
  "unicode-segmentation",
  "unicode-width",
 ]
+
+[[package]]
+name = "ratcore"
+version = "0.1.0"
 
 [[package]]
 name = "redox_syscall"

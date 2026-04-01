@@ -9,3 +9,4 @@ description = "Interactive tree navigation widget for ratatui with keymap integr
 ratatui.workspace = true
 unicode-width.workspace = true
 rat-keymap = { path = "../rat-keymap" }
+ratcore = { workspace = true }

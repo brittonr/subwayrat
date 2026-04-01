@@ -7,3 +7,4 @@ description = "Incremental fuzzy finder widget for ratatui"
 
 [dependencies]
 ratatui = { workspace = true }
+ratcore = { workspace = true }
