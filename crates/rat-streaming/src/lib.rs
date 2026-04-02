@@ -5,6 +5,9 @@ pub mod streaming_render;
 pub mod output_search;
 pub mod search_render;
 
+#[cfg(feature = "inline")]
+mod inline_widget;
+
 pub use streaming_output::{StreamingConfig, StreamingOutput, StreamingOutputManager};
 pub use streaming_render::{render_streaming_lines, render_streaming_stats};
 pub use output_search::{OutputSearch, SearchMatch, SearchMode};

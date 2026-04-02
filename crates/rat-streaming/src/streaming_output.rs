@@ -141,6 +141,11 @@ impl StreamingOutput {
         self.omitted
     }
 
+    /// Number of visible lines for inline rendering.
+    pub fn visible_lines(&self) -> usize {
+        self.config.visible_lines
+    }
+
     /// Whether auto-follow is enabled.
     pub fn auto_follow(&self) -> bool {
         self.auto_follow

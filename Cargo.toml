@@ -6,6 +6,7 @@ members = [
     "crates/rat-diff",
     "crates/rat-editor",
     "crates/rat-image",
+    "crates/rat-inline",
     "crates/rat-keymap",
     "crates/rat-layers",
     "crates/rat-leaderkey",

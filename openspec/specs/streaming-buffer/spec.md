@@ -28,3 +28,18 @@ Free functions `render_streaming_lines()` and `render_streaming_stats()` SHALL a
 #### Scenario: Manager API stable
 - **WHEN** existing code calls `manager.add_line("call-1", "hello")`
 - **THEN** the call compiles and behaves identically to before the refactor
+
+### Requirement: InlineWidget trait implementation
+`StreamingOutput` SHALL implement the `InlineWidget` trait (from `rat-inline`) behind an `inline` feature flag so it can participate as a leaf node in inline view trees. The implementation SHALL compute height from the visible line count and render the tail of the output into the allocated buffer region.
+
+#### Scenario: StreamingOutput in inline tree
+- **WHEN** a `StreamingOutput` is used as a node in an inline view tree with the `inline` feature enabled
+- **THEN** it renders its visible lines into the allocated buffer region
+
+#### Scenario: Height measurement
+- **WHEN** `InlineWidget::height()` is called on a `StreamingOutput` with `visible_lines: 16`
+- **THEN** it returns `min(total_display_lines, 16)` as the measured height
+
+#### Scenario: State preserved across rebuilds
+- **WHEN** a keyed `StreamingOutput` node is matched by the reconciler across frames
+- **THEN** its scroll offset, auto-follow mode, and buffer contents are preserved

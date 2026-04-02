@@ -7,3 +7,10 @@ description = "Streaming output buffer with head/tail truncation and incremental
 
 [dependencies]
 ratatui = { workspace = true }
+
+# Optional inline rendering support
+rat-inline = { path = "../rat-inline", optional = true }
+
+[features]
+default = []
+inline = ["dep:rat-inline"]
