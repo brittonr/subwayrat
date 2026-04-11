@@ -93,7 +93,7 @@ impl<'a> SpinnerSpec<'a> {
     }
 
     pub fn label(&self) -> &'static str {
-        match self.frames {
+        match &self.frames {
             SpinnerFrames::Preset(preset) => preset.label(),
             SpinnerFrames::Custom(_) => "custom",
         }

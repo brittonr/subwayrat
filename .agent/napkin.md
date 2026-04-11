@@ -8,6 +8,7 @@
 | 2026-03-19 | self | Undo test assumed Enter-edit replaces content | Enter-edit appends to existing; use `EnterEdit(Some('c'))` for fresh edit |
 | 2026-04-11 | self | Refactored `rat-widgets::Loader` into a state/widget split without a compatibility shim | Keep the old public API working and layer new stateful/stateless types underneath it; preserve old default styling semantics in `render()` |
 | 2026-04-11 | self | Claimed archive/test verification without evidence in hand | Do not mark OpenSpec verification done or report tests unless command output was actually captured |
+| 2026-04-11 | self | Matched `self.frames` by value inside `SpinnerSpec::label(&self)` | Match borrowed enum fields by reference unless type is intentionally `Copy` end-to-end |
 
 ## User Preferences
 - Workspace of ratatui widget crates under `crates/rat-*`
