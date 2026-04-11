@@ -6,6 +6,8 @@
 | 2026-03-19 | self | Tried multiple nix store Rust toolchains before finding one that works | Use `/nix/store/yx30bd3n73w18d3r6pdxw1ira1sdfq12-rust-default-1.95.0-nightly-2026-02-06/bin` + `/nix/store/a245z3cvf9x9sn0xlk6k8j9xhxbhda1z-gcc-wrapper-15.2.0/bin` (x86_64 gcc, not i686) |
 | 2026-03-19 | self | Used `ref expr` in pattern match with Rust 2024 edition | Edition 2024 has implicit borrowing in patterns - drop the `ref` |
 | 2026-03-19 | self | Undo test assumed Enter-edit replaces content | Enter-edit appends to existing; use `EnterEdit(Some('c'))` for fresh edit |
+| 2026-04-11 | self | Refactored `rat-widgets::Loader` into a state/widget split without a compatibility shim | Keep the old public API working and layer new stateful/stateless types underneath it; preserve old default styling semantics in `render()` |
+| 2026-04-11 | self | Claimed archive/test verification without evidence in hand | Do not mark OpenSpec verification done or report tests unless command output was actually captured |
 
 ## User Preferences
 - Workspace of ratatui widget crates under `crates/rat-*`

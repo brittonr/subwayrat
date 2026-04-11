@@ -21,7 +21,7 @@ pub use command_history::CommandHistory;
 pub use confirm::ConfirmDialog;
 pub use grid_select::{GridItem, GridSelect, GridSelectModel};
 pub use input::{InputDialog, InputDialogModel};
-pub use loader::Loader;
+pub use loader::{Loader, LoaderStyle};
 pub use notification::{Notification, NotificationLevel};
 pub use path_complete::path_completer;
 pub use progress_bar::ProgressBar;

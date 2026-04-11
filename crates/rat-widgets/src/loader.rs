@@ -1,43 +1,204 @@
 //! Loading/spinner indicator
 
+use rat_spinner::{SpinnerSpec, SpinnerState};
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::text::Line;
-use ratatui::text::Span;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 
 use crate::theme::WidgetTheme;
 
-const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-pub struct Loader {
-    frame: usize,
-    pub message: String,
+#[derive(Debug, Clone)]
+pub struct Loader<'a> {
+    message: Option<Line<'a>>,
+    spinner: SpinnerSpec<'a>,
+    style: Option<LoaderStyle>,
 }
 
-impl Loader {
-    pub fn new(message: impl Into<String>) -> Self {
+#[derive(Debug, Clone)]
+pub struct LoaderStyle {
+    pub spinner_style: Style,
+    pub message_style: Style,
+    pub separator: &'static str,
+}
+
+impl<'a> Loader<'a> {
+    pub fn new(message: impl Into<Line<'a>>) -> Self {
         Self {
-            frame: 0,
-            message: message.into(),
+            message: Some(message.into()),
+            spinner: SpinnerSpec::dots(),
+            style: None,
         }
     }
 
-    pub fn tick(&mut self) {
-        self.frame = (self.frame + 1) % SPINNER_FRAMES.len();
+    pub fn empty() -> Self {
+        Self {
+            message: None,
+            spinner: SpinnerSpec::dots(),
+            style: None,
+        }
     }
 
-    pub fn render(&self, frame: &mut Frame, area: Rect) {
-        self.render_themed(frame, area, &WidgetTheme::default());
+    pub fn with_message(mut self, message: impl Into<Line<'a>>) -> Self {
+        self.message = Some(message.into());
+        self
     }
 
-    pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
-        let spinner = SPINNER_FRAMES[self.frame];
-        let line = Line::from(vec![
-            Span::styled(format!("{} ", spinner), Style::default().fg(theme.primary)),
-            Span::styled(&self.message, Style::default().fg(theme.text_muted)),
-        ]);
+    pub fn with_spinner(mut self, spinner: SpinnerSpec<'a>) -> Self {
+        self.spinner = spinner;
+        self
+    }
+
+    pub fn with_style(mut self, style: LoaderStyle) -> Self {
+        self.style = Some(style);
+        self
+    }
+
+    pub fn render(&self, frame: &mut Frame, area: Rect, state: &SpinnerState) {
+        let style = self
+            .style
+            .clone()
+            .unwrap_or_else(|| LoaderStyle::themed(&WidgetTheme::default()));
+        self.render_with_style(frame, area, state, style);
+    }
+
+    pub fn render_themed(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &SpinnerState,
+        theme: &WidgetTheme,
+    ) {
+        let style = self
+            .style
+            .clone()
+            .unwrap_or_else(|| LoaderStyle::themed(theme));
+        self.render_with_style(frame, area, state, style);
+    }
+
+    fn render_with_style(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        state: &SpinnerState,
+        style: LoaderStyle,
+    ) {
+        let spinner = state.current_frame(&self.spinner);
+        let line = self.render_line(spinner, style);
         frame.render_widget(Paragraph::new(line), area);
+    }
+
+    fn render_line(&self, spinner: &str, style: LoaderStyle) -> Line<'a> {
+        let spinner_span = Span::styled(spinner.to_string(), style.spinner_style);
+
+        match &self.message {
+            Some(message) => {
+                let mut spans = vec![
+                    spinner_span,
+                    Span::styled(style.separator, style.message_style),
+                ];
+                spans.extend(message.spans.clone());
+
+                let mut line = Line::from(spans);
+                line.style = style.message_style;
+                line.alignment = message.alignment;
+                line
+            }
+            None => Line::from(spinner_span),
+        }
+    }
+}
+
+impl Default for LoaderStyle {
+    fn default() -> Self {
+        Self {
+            spinner_style: Style::default(),
+            message_style: Style::default(),
+            separator: " ",
+        }
+    }
+}
+
+impl LoaderStyle {
+    pub fn themed(theme: &WidgetTheme) -> Self {
+        Self {
+            spinner_style: Style::default().fg(theme.primary),
+            message_style: Style::default().fg(theme.text_muted),
+            separator: " ",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rat_spinner::SpinnerState;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+    use ratatui::layout::Position;
+    use ratatui::style::Color;
+
+    #[test]
+    fn themed_style_uses_widget_theme() {
+        let style = LoaderStyle::themed(&WidgetTheme::default());
+        assert_eq!(style.spinner_style.fg, Some(WidgetTheme::default().primary));
+        assert_eq!(
+            style.message_style.fg,
+            Some(WidgetTheme::default().text_muted)
+        );
+    }
+
+    #[test]
+    fn loader_render_preserves_default_theme_colors() {
+        let backend = TestBackend::new(12, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let loader = Loader::new("Load");
+        let state = SpinnerState::new();
+
+        terminal
+            .draw(|frame| loader.render(frame, Rect::new(0, 0, 12, 1), &state))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let spinner = buffer.cell(Position::new(0, 0)).unwrap();
+        let message = buffer.cell(Position::new(2, 0)).unwrap();
+
+        assert_eq!(spinner.symbol(), "⠋");
+        assert_eq!(spinner.fg, Color::Blue);
+        assert_eq!(message.symbol(), "L");
+        assert_eq!(message.fg, Color::DarkGray);
+    }
+
+    #[test]
+    fn loader_renders_custom_spinner_frames() {
+        let backend = TestBackend::new(12, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let custom = SpinnerSpec::custom(&["[ ]", "[=]"]);
+        let loader = Loader::new("Load").with_spinner(custom.clone());
+        let mut state = SpinnerState::new();
+        state.tick(&custom);
+
+        terminal
+            .draw(|frame| loader.render(frame, Rect::new(0, 0, 12, 1), &state))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let spinner = buffer.cell(Position::new(0, 0)).unwrap();
+        assert_eq!(spinner.symbol(), "[");
+    }
+
+    #[test]
+    fn render_does_not_panic_on_tiny_area() {
+        let backend = TestBackend::new(1, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let loader = Loader::new("Loading").with_spinner(SpinnerSpec::bounce());
+        let state = SpinnerState::new();
+
+        terminal
+            .draw(|frame| {
+                loader.render(frame, Rect::new(0, 0, 1, 1), &state);
+            })
+            .unwrap();
     }
 }

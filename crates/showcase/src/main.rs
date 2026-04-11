@@ -22,6 +22,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::{Frame, Terminal};
 
+use rat_spinner::{SpinnerPreset, SpinnerSpec, SpinnerState};
 use rat_widgets::{
     ConfirmDialog, GridItem, GridSelect, Loader, Notification, ProgressBar, ScrollableList,
     SelectList, Slider, TabBar, TextInput, TreeNode, TreeView, WidgetTheme,
@@ -79,6 +80,16 @@ const TABS: &[&str] = &[
     "Misc",
 ];
 
+const LOADER_PRESETS: &[SpinnerPreset] = &[
+    SpinnerPreset::Dots,
+    SpinnerPreset::Line,
+    SpinnerPreset::Pulse,
+    SpinnerPreset::Arrow,
+    SpinnerPreset::Bounce,
+];
+
+const CUSTOM_LOADER_FRAMES: &[&str] = &["[   ]", "[=  ]", "[== ]", "[===]", "[ ==]", "[  =]"];
+
 // ── App state ────────────────────────────────────────────────────────────────
 
 struct App {
@@ -97,7 +108,11 @@ struct App {
     progress: f64,
     progress_dir: f64,
     slider_val: f64,
-    loader: Loader,
+    loader: SpinnerState,
+    custom_loader: SpinnerState,
+    loader_preset: SpinnerPreset,
+    loader_reversed: bool,
+    loader_interval: Duration,
     scrollable: ScrollableList,
     notifications: Vec<Notification>,
 
@@ -496,7 +511,11 @@ impl App {
             progress: 0.0,
             progress_dir: 0.004,
             slider_val: 0.35,
-            loader: Loader::new("Loading data..."),
+            loader: SpinnerState::new(),
+            custom_loader: SpinnerState::new(),
+            loader_preset: SpinnerPreset::Dots,
+            loader_reversed: false,
+            loader_interval: Duration::from_millis(80),
             scrollable,
             notifications: Vec::new(),
             text_input,
@@ -524,9 +543,47 @@ impl App {
         }
     }
 
+    fn loader_spinner(&self) -> SpinnerSpec<'static> {
+        SpinnerSpec::new(self.loader_preset)
+            .with_interval(self.loader_interval)
+            .with_reversed(self.loader_reversed)
+    }
+
+    fn custom_loader_spinner() -> SpinnerSpec<'static> {
+        SpinnerSpec::custom(CUSTOM_LOADER_FRAMES).with_interval(Duration::from_millis(120))
+    }
+
+    fn cycle_loader_preset(&mut self, forward: bool) {
+        let current = LOADER_PRESETS
+            .iter()
+            .position(|preset| *preset == self.loader_preset)
+            .unwrap_or(0);
+        let len = LOADER_PRESETS.len();
+        let next = if forward {
+            (current + 1) % len
+        } else {
+            (current + len - 1) % len
+        };
+        self.loader_preset = LOADER_PRESETS[next];
+        self.loader.reset();
+    }
+
+    fn adjust_loader_interval(&mut self, faster: bool) {
+        let current = self.loader_interval.as_millis() as u64;
+        let next = if faster {
+            current.saturating_sub(10).max(20)
+        } else {
+            (current + 10).min(240)
+        };
+        self.loader_interval = Duration::from_millis(next);
+    }
+
     fn tick(&mut self) {
         self.tick += 1;
-        self.loader.tick();
+        self.loader
+            .advance(&self.loader_spinner(), Duration::from_millis(50));
+        self.custom_loader
+            .advance(&Self::custom_loader_spinner(), Duration::from_millis(50));
 
         self.progress += self.progress_dir;
         if self.progress >= 1.0 {
@@ -542,7 +599,7 @@ impl App {
 
     fn focusable_count(&self) -> usize {
         match self.tab_bar.active_index() {
-            0 => 3,  // slider, scrollable list, grid
+            0 => 4,  // slider, loader, scrollable list, grid
             1 => 2,  // text input, select list
             2 => 1,  // data table
             3 => 1,  // spreadsheet
@@ -671,11 +728,22 @@ impl App {
                 _ => {}
             },
             1 => match code {
+                KeyCode::Left => self.cycle_loader_preset(false),
+                KeyCode::Right => self.cycle_loader_preset(true),
+                KeyCode::Up => self.adjust_loader_interval(true),
+                KeyCode::Down => self.adjust_loader_interval(false),
+                KeyCode::Char('r') => {
+                    self.loader_reversed = !self.loader_reversed;
+                    self.loader.reset();
+                }
+                _ => {}
+            },
+            2 => match code {
                 KeyCode::Up => self.scrollable.move_up(),
                 KeyCode::Down => self.scrollable.move_down(),
                 _ => {}
             },
-            2 => match code {
+            3 => match code {
                 KeyCode::Up => self.grid.move_up(),
                 KeyCode::Down => self.grid.move_down(),
                 KeyCode::Left => self.grid.move_left(),
@@ -1060,7 +1128,7 @@ impl App {
 
     fn handle_scroll(&mut self, down: bool) {
         match self.tab_bar.active_index() {
-            0 if self.focus == 1 => {
+            0 if self.focus == 2 => {
                 if down {
                     self.scrollable.move_down();
                 } else {
@@ -1190,7 +1258,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .constraints([
             Constraint::Length(3),
             Constraint::Length(3),
-            Constraint::Length(2),
+            Constraint::Length(5),
             Constraint::Min(6),
         ])
         .split(cols[0]);
@@ -1235,21 +1303,59 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
         .with_thumb_style(Style::default().fg(Color::White));
     sl.render(frame, sl_inner);
 
-    // Loader (auto-animated, not focusable)
+    // Loader — focus 1
     let ld_block = Block::default()
         .title(Span::styled(
-            " Loader ",
+            " Loader (←/→ preset, ↑/↓ speed, r reverse) ",
             Style::default()
                 .fg(Color::Rgb(100, 149, 237))
                 .add_modifier(Modifier::BOLD),
         ))
-        .borders(Borders::LEFT | Borders::RIGHT)
-        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+        .borders(Borders::ALL)
+        .border_style(border_style(app.focus == 1));
     let ld_inner = ld_block.inner(left[2]);
     frame.render_widget(ld_block, left[2]);
-    app.loader.render_themed(frame, ld_inner, &app.theme);
+    app.widget_areas.push(left[2]); // index 1
+    let loader_rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(1),
+        ])
+        .split(ld_inner);
+    let loader_spinner = app.loader_spinner();
+    Loader::new("Loading data...")
+        .with_spinner(loader_spinner.clone())
+        .render_themed(frame, loader_rows[0], &app.loader, &app.theme);
+    Loader::new("Custom frames")
+        .with_spinner(App::custom_loader_spinner())
+        .render_themed(frame, loader_rows[1], &app.custom_loader, &app.theme);
+    let loader_info = Line::from(vec![
+        Span::styled(
+            format!("preset: {}", loader_spinner.label()),
+            Style::default().fg(Color::Rgb(160, 160, 160)),
+        ),
+        Span::styled(
+            format!("  speed: {}ms", app.loader_interval.as_millis()),
+            Style::default().fg(Color::Rgb(120, 120, 120)),
+        ),
+        Span::styled(
+            if app.loader_reversed {
+                "  reverse"
+            } else {
+                "  forward"
+            },
+            Style::default().fg(Color::Rgb(120, 120, 120)),
+        ),
+        Span::styled(
+            "  custom: [===]",
+            Style::default().fg(Color::Rgb(100, 100, 100)),
+        ),
+    ]);
+    frame.render_widget(Paragraph::new(loader_info), loader_rows[2]);
 
-    // Scrollable list — focus 1
+    // Scrollable list — focus 2
     let list_block = Block::default()
         .title(Span::styled(
             " ScrollableList (↑/↓) ",
@@ -1258,8 +1364,8 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(border_style(app.focus == 1));
-    app.widget_areas.push(left[3]); // index 1
+        .border_style(border_style(app.focus == 2));
+    app.widget_areas.push(left[3]); // index 2
     app.scrollable.render(frame, left[3], Some(list_block));
 
     // Right column
@@ -1309,7 +1415,7 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
     ]);
     frame.render_widget(help, help_inner);
 
-    // Grid select — focus 2
+    // Grid select — focus 3
     let grid_block = Block::default()
         .title(Span::styled(
             " GridSelect (arrows) ",
@@ -1318,9 +1424,9 @@ fn draw_widgets_tab(frame: &mut Frame, area: Rect, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
-        .border_style(border_style(app.focus == 2));
+        .border_style(border_style(app.focus == 3));
     frame.render_widget(grid_block, right[1]);
-    app.widget_areas.push(right[1]); // index 2
+    app.widget_areas.push(right[1]); // index 3
     app.grid.render_themed(frame, right[1], &app.theme);
 }
 

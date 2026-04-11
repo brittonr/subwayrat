@@ -1299,6 +1299,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-spinner"
+version = "0.1.0"
+
+[[package]]
 name = "rat-spreadsheet"
 version = "0.1.0"
 dependencies = [
@@ -1342,6 +1346,7 @@ dependencies = [
 name = "rat-widgets"
 version = "0.1.0"
 dependencies = [
+ "rat-spinner",
  "ratatui",
  "serde_json",
  "tempfile",
@@ -1616,6 +1621,7 @@ dependencies = [
  "rat-markdown",
  "rat-outline",
  "rat-scrolltile",
+ "rat-spinner",
  "rat-spreadsheet",
  "rat-table",
  "rat-tags",
