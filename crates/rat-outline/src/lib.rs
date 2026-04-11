@@ -20,20 +20,20 @@
 //! handle_action(&mut state, Action::CycleVisibility);
 //! ```
 
-pub mod parse;
-pub mod index;
-pub mod state;
+pub mod action;
 pub mod fold;
+pub mod index;
+pub mod parse;
+pub mod render;
+pub mod state;
 pub mod structure;
 pub mod todo;
-pub mod action;
-pub mod render;
 
-pub use parse::{HeadingSyntax, HeadingParser, OrgParser, MarkdownParser, ParsedHeading};
-pub use index::{HeadingInfo, FoldState, build_heading_index};
-pub use state::OutlineState;
-pub use fold::{cycle_visibility, cycle_visibility_global, visible_lines};
-pub use structure::{promote, demote, move_subtree_up, move_subtree_down};
-pub use todo::cycle_todo;
 pub use action::{Action, ActionResult, handle_action};
+pub use fold::{cycle_visibility, cycle_visibility_global, visible_lines};
+pub use index::{FoldState, HeadingInfo, build_heading_index};
+pub use parse::{HeadingParser, HeadingSyntax, MarkdownParser, OrgParser, ParsedHeading};
 pub use render::{Outline, OutlineStyle};
+pub use state::OutlineState;
+pub use structure::{demote, move_subtree_down, move_subtree_up, promote};
+pub use todo::cycle_todo;

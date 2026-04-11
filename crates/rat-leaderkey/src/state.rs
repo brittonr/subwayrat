@@ -80,9 +80,7 @@ fn crossterm_key_to_input(key: &KeyEvent) -> MenuInput {
     }
 
     match key.code {
-        KeyCode::Char(c)
-            if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
-        {
+        KeyCode::Char(c) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
             MenuInput::Char(c)
         }
         _ => MenuInput::Other,
@@ -97,8 +95,8 @@ fn crossterm_key_to_input(key: &KeyEvent) -> MenuInput {
 mod tests {
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
-    use ratcore::leaderkey::{LeaderAction, LeaderMenuDef, LeaderMenuItem};
     use super::LeaderMenu;
+    use ratcore::leaderkey::{LeaderAction, LeaderMenuDef, LeaderMenuItem};
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     enum Act {

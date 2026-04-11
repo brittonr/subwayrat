@@ -204,16 +204,14 @@ mod tests {
 
     #[test]
     fn time_label_formatting() {
-        let bar = ProgressBar::new(0.5)
-            .with_time_labels(150, 300);
+        let bar = ProgressBar::new(0.5).with_time_labels(150, 300);
         assert_eq!(bar.left_label.as_deref(), Some("02:30"));
         assert_eq!(bar.right_label.as_deref(), Some("05:00"));
     }
 
     #[test]
     fn time_label_zero() {
-        let bar = ProgressBar::new(0.0)
-            .with_time_labels(0, 0);
+        let bar = ProgressBar::new(0.0).with_time_labels(0, 0);
         assert_eq!(bar.left_label.as_deref(), Some("00:00"));
         assert_eq!(bar.right_label.as_deref(), Some("00:00"));
     }
@@ -221,8 +219,7 @@ mod tests {
     #[test]
     fn time_label_large() {
         // 90 minutes 5 seconds = 5405s
-        let bar = ProgressBar::new(0.0)
-            .with_time_labels(5405, 5405);
+        let bar = ProgressBar::new(0.0).with_time_labels(5405, 5405);
         assert_eq!(bar.left_label.as_deref(), Some("90:05"));
     }
 
@@ -231,15 +228,19 @@ mod tests {
     fn render_in_area(bar: &ProgressBar, width: u16, height: u16) {
         let backend = TestBackend::new(width.max(1), height.max(1));
         let mut terminal = Terminal::new(backend).unwrap();
-        terminal.draw(|f| {
-            let area = Rect::new(0, 0, width, height);
-            bar.render(f, area);
-        }).unwrap();
+        terminal
+            .draw(|f| {
+                let area = Rect::new(0, 0, width, height);
+                bar.render(f, area);
+            })
+            .unwrap();
     }
 
     #[test]
     fn render_zero_width() {
-        let bar = ProgressBar::new(0.5).with_time_labels(60, 120).with_percentage(true);
+        let bar = ProgressBar::new(0.5)
+            .with_time_labels(60, 120)
+            .with_percentage(true);
         render_in_area(&bar, 0, 1);
     }
 

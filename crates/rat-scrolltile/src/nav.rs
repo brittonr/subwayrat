@@ -1,4 +1,4 @@
-use crate::layout::{compute_layout, LayoutResult};
+use crate::layout::{LayoutResult, compute_layout};
 use crate::strip::Strip;
 use crate::types::{Axis, WindowId};
 

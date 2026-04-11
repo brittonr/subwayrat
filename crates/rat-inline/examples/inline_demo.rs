@@ -22,10 +22,9 @@ fn main() -> io::Result<()> {
 
     for (i, _msg) in messages.iter().enumerate() {
         // Build view with all messages so far.
-        let view = InlineView::new()
-            .each(messages[..=i].iter().enumerate(), |v, (j, m)| {
-                v.keyed(format!("msg-{j}"), InlineMarkdown::new(*m))
-            });
+        let view = InlineView::new().each(messages[..=i].iter().enumerate(), |v, (j, m)| {
+            v.keyed(format!("msg-{j}"), InlineMarkdown::new(*m))
+        });
         renderer.rebuild(view);
         let output = renderer.render();
         stdout.write_all(&output)?;

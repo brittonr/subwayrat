@@ -9,14 +9,23 @@
 //! - Dependency graph with topological sort for recalculation
 //! - Circular reference detection
 
-use crate::cell::{CellAddr, CellValue, CellError};
+use crate::cell::{CellAddr, CellError, CellValue};
 use std::collections::{HashMap, HashSet};
 
 // AST types
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
-    Add, Sub, Mul, Div, Mod,
-    Gt, Lt, Gte, Lte, Eq, Neq,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Gt,
+    Lt,
+    Gte,
+    Lte,
+    Eq,
+    Neq,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,8 +33,15 @@ pub enum Expr {
     Number(f64),
     CellRef(CellAddr),
     Range(CellAddr, CellAddr),
-    BinaryOp { op: Op, left: Box<Expr>, right: Box<Expr> },
-    FunctionCall { name: String, args: Vec<Expr> },
+    BinaryOp {
+        op: Op,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    FunctionCall {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 // Tokenizer types
@@ -34,8 +50,10 @@ enum Token {
     Number(f64),
     CellRef(CellAddr),
     Operator(Op),
-    LeftParen, RightParen,
-    Comma, Colon,
+    LeftParen,
+    RightParen,
+    Comma,
+    Colon,
     Function(String),
     Eof,
 }
@@ -96,7 +114,7 @@ impl Tokenizer {
 
     fn read_identifier(&mut self) -> String {
         let start = self.pos;
-        
+
         while let Some(ch) = self.peek() {
             if ch.is_alphanumeric() {
                 self.advance();
@@ -112,25 +130,25 @@ impl Tokenizer {
         if s.is_empty() {
             return false;
         }
-        
+
         let chars: Vec<char> = s.chars().collect();
         let mut i = 0;
-        
+
         // Must start with letters (column)
         while i < chars.len() && chars[i].is_ascii_alphabetic() {
             i += 1;
         }
-        
+
         if i == 0 {
             return false;
         }
-        
+
         // Must have digits (row)
         let digit_start = i;
         while i < chars.len() && chars[i].is_ascii_digit() {
             i += 1;
         }
-        
+
         i == chars.len() && i > digit_start
     }
 
@@ -201,12 +219,10 @@ impl Tokenizer {
                     self.advance();
                     Token::Operator(Op::Eq)
                 }
-                _ if ch.is_ascii_digit() => {
-                    Token::Number(self.read_number())
-                }
+                _ if ch.is_ascii_digit() => Token::Number(self.read_number()),
                 _ if ch.is_ascii_alphabetic() => {
                     let identifier = self.read_identifier();
-                    
+
                     // Check if this is a function (followed by '(')
                     self.skip_whitespace();
                     if self.peek() == Some('(') {
@@ -228,7 +244,7 @@ impl Tokenizer {
                     self.advance();
                     self.next_token()
                 }
-            }
+            },
         }
     }
 }
@@ -243,7 +259,7 @@ impl Parser {
     fn new(input: &str) -> Self {
         let mut tokenizer = Tokenizer::new(input);
         let mut tokens = Vec::new();
-        
+
         loop {
             let token = tokenizer.next_token();
             let is_eof = matches!(token, Token::Eof);
@@ -356,7 +372,7 @@ impl Parser {
             Token::CellRef(addr) => {
                 let addr = *addr;
                 self.advance();
-                
+
                 // Check if this is a range (A1:B2)
                 if matches!(self.peek(), Token::Colon) {
                     self.advance(); // consume ':'
@@ -379,7 +395,7 @@ impl Parser {
                 let mut args = Vec::new();
                 if !matches!(self.peek(), Token::RightParen) {
                     args.push(self.parse_expression()?);
-                    
+
                     while matches!(self.peek(), Token::Comma) {
                         self.advance(); // consume ','
                         args.push(self.parse_expression()?);
@@ -403,12 +419,12 @@ impl Parser {
 pub fn parse(input: &str) -> Result<Expr, CellError> {
     let mut parser = Parser::new(input);
     let expr = parser.parse_expression()?;
-    
+
     // Ensure we consumed all tokens
     if !matches!(parser.peek(), Token::Eof) {
         return Err(CellError::ParseError);
     }
-    
+
     Ok(expr)
 }
 
@@ -429,7 +445,7 @@ impl Default for FunctionRegistry {
         let mut registry = Self {
             functions: HashMap::new(),
         };
-        
+
         // Register built-in functions
         registry.register("SUM", |args| {
             let mut sum = 0.0;
@@ -527,7 +543,7 @@ impl Default for FunctionRegistry {
             if args.len() != 3 {
                 return CellValue::Error(CellError::ValueError);
             }
-            
+
             let condition = match &args[0] {
                 CellValue::Number(n) => *n != 0.0,
                 CellValue::Boolean(b) => *b,
@@ -582,7 +598,7 @@ fn collect_range_values(start: CellAddr, end: CellAddr, grid: &dyn Grid) -> Vec<
             values.push(resolve_cell_value(value));
         }
     }
-    
+
     values
 }
 
@@ -604,61 +620,63 @@ pub fn evaluate(expr: &Expr, grid: &dyn Grid) -> CellValue {
     evaluate_with_registry(expr, grid, &FunctionRegistry::default())
 }
 
-pub fn evaluate_with_registry(expr: &Expr, grid: &dyn Grid, registry: &FunctionRegistry) -> CellValue {
+pub fn evaluate_with_registry(
+    expr: &Expr,
+    grid: &dyn Grid,
+    registry: &FunctionRegistry,
+) -> CellValue {
     match expr {
         Expr::Number(n) => CellValue::Number(*n),
-        
+
         Expr::CellRef(addr) => {
             let value = grid.get(*addr);
             resolve_cell_value(value)
         }
-        
+
         Expr::Range(_, _) => {
             // Range by itself is invalid
             CellValue::Error(CellError::ValueError)
         }
-        
+
         Expr::BinaryOp { op, left, right } => {
             let left_val = evaluate_with_registry(left, grid, registry);
             let right_val = evaluate_with_registry(right, grid, registry);
-            
+
             match (&left_val, &right_val) {
-                (CellValue::Number(l), CellValue::Number(r)) => {
-                    match op {
-                        Op::Add => CellValue::Number(l + r),
-                        Op::Sub => CellValue::Number(l - r),
-                        Op::Mul => CellValue::Number(l * r),
-                        Op::Div => {
-                            if *r == 0.0 {
-                                CellValue::Error(CellError::DivByZero)
-                            } else {
-                                CellValue::Number(l / r)
-                            }
+                (CellValue::Number(l), CellValue::Number(r)) => match op {
+                    Op::Add => CellValue::Number(l + r),
+                    Op::Sub => CellValue::Number(l - r),
+                    Op::Mul => CellValue::Number(l * r),
+                    Op::Div => {
+                        if *r == 0.0 {
+                            CellValue::Error(CellError::DivByZero)
+                        } else {
+                            CellValue::Number(l / r)
                         }
-                        Op::Mod => {
-                            if *r == 0.0 {
-                                CellValue::Error(CellError::DivByZero)
-                            } else {
-                                CellValue::Number(l % r)
-                            }
-                        }
-                        Op::Gt => CellValue::Boolean(l > r),
-                        Op::Lt => CellValue::Boolean(l < r),
-                        Op::Gte => CellValue::Boolean(l >= r),
-                        Op::Lte => CellValue::Boolean(l <= r),
-                        Op::Eq => CellValue::Boolean(l == r),
-                        Op::Neq => CellValue::Boolean(l != r),
                     }
-                }
+                    Op::Mod => {
+                        if *r == 0.0 {
+                            CellValue::Error(CellError::DivByZero)
+                        } else {
+                            CellValue::Number(l % r)
+                        }
+                    }
+                    Op::Gt => CellValue::Boolean(l > r),
+                    Op::Lt => CellValue::Boolean(l < r),
+                    Op::Gte => CellValue::Boolean(l >= r),
+                    Op::Lte => CellValue::Boolean(l <= r),
+                    Op::Eq => CellValue::Boolean(l == r),
+                    Op::Neq => CellValue::Boolean(l != r),
+                },
                 (CellValue::Error(e), _) => CellValue::Error(e.clone()),
                 (_, CellValue::Error(e)) => CellValue::Error(e.clone()),
                 _ => CellValue::Error(CellError::ValueError),
             }
         }
-        
+
         Expr::FunctionCall { name, args } => {
             let mut arg_values = Vec::new();
-            
+
             for arg in args {
                 match arg {
                     Expr::Range(start, end) => {
@@ -670,7 +688,7 @@ pub fn evaluate_with_registry(expr: &Expr, grid: &dyn Grid, registry: &FunctionR
                     }
                 }
             }
-            
+
             registry.call(name, &arg_values)
         }
     }
@@ -718,7 +736,7 @@ impl DependencyGraph {
         let mut result = Vec::new();
 
         self.dfs(changed, &mut visited, &mut temp_visited, &mut result)?;
-        
+
         Ok(result)
     }
 
@@ -745,8 +763,13 @@ impl DependencyGraph {
 
         temp_visited.remove(&cell);
         visited.insert(cell);
-        
-        if cell != result.first().copied().unwrap_or(CellAddr { col: usize::MAX, row: usize::MAX }) {
+
+        if cell
+            != result.first().copied().unwrap_or(CellAddr {
+                col: usize::MAX,
+                row: usize::MAX,
+            })
+        {
             result.push(cell);
         }
 
@@ -819,7 +842,7 @@ mod tests {
     #[test]
     fn test_parse_and_eval_simple() {
         let grid = MockGrid::new();
-        
+
         let expr = parse("1+2").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(3.0));
@@ -828,7 +851,7 @@ mod tests {
     #[test]
     fn test_precedence() {
         let grid = MockGrid::new();
-        
+
         let expr = parse("2+3*4").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(14.0));
@@ -841,7 +864,7 @@ mod tests {
     #[test]
     fn test_division_by_zero() {
         let grid = MockGrid::new();
-        
+
         let expr = parse("1/0").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Error(CellError::DivByZero));
@@ -852,7 +875,7 @@ mod tests {
         let mut grid = MockGrid::new();
         grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(5.0)); // A1
         grid.set(CellAddr { col: 1, row: 0 }, CellValue::Number(3.0)); // B1
-        
+
         let expr = parse("A1+B1").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(8.0));
@@ -864,7 +887,7 @@ mod tests {
         grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0)); // A1
         grid.set(CellAddr { col: 0, row: 1 }, CellValue::Number(2.0)); // A2
         grid.set(CellAddr { col: 0, row: 2 }, CellValue::Number(3.0)); // A3
-        
+
         let expr = parse("SUM(A1:A3)").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(6.0));
@@ -874,9 +897,12 @@ mod tests {
     fn test_count_function() {
         let mut grid = MockGrid::new();
         grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0)); // A1
-        grid.set(CellAddr { col: 0, row: 1 }, CellValue::Empty);       // A2 (empty)
-        grid.set(CellAddr { col: 0, row: 2 }, CellValue::Text("hello".to_string())); // A3
-        
+        grid.set(CellAddr { col: 0, row: 1 }, CellValue::Empty); // A2 (empty)
+        grid.set(
+            CellAddr { col: 0, row: 2 },
+            CellValue::Text("hello".to_string()),
+        ); // A3
+
         let expr = parse("COUNT(A1:A3)").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(2.0)); // Only A1 and A3 are non-empty
@@ -885,7 +911,7 @@ mod tests {
     #[test]
     fn test_if_function() {
         let grid = MockGrid::new();
-        
+
         let expr = parse("IF(1,5,10)").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Number(5.0));
@@ -898,15 +924,15 @@ mod tests {
     #[test]
     fn test_dependency_graph() {
         let mut graph = DependencyGraph::new();
-        
+
         // A1 depends on B1 and C1
         let expr = parse("B1+C1").unwrap();
         graph.update_deps(CellAddr { col: 0, row: 0 }, &expr);
-        
+
         // Check that B1 and C1 have A1 as dependent
         let deps_b1 = graph.get_dependents(CellAddr { col: 1, row: 0 });
         assert!(deps_b1.contains(&CellAddr { col: 0, row: 0 }));
-        
+
         let deps_c1 = graph.get_dependents(CellAddr { col: 2, row: 0 });
         assert!(deps_c1.contains(&CellAddr { col: 0, row: 0 }));
     }
@@ -914,17 +940,17 @@ mod tests {
     #[test]
     fn test_recalc_order() {
         let mut graph = DependencyGraph::new();
-        
+
         // A1 = B1 + C1
         let expr = parse("B1+C1").unwrap();
         graph.update_deps(CellAddr { col: 0, row: 0 }, &expr);
-        
+
         // D1 = A1 * 2
         let expr = parse("A1*2").unwrap();
         graph.update_deps(CellAddr { col: 3, row: 0 }, &expr);
-        
+
         let order = graph.get_recalc_order(CellAddr { col: 1, row: 0 }).unwrap(); // B1 changed
-        
+
         // Should include A1 and D1 in dependency order
         assert!(order.contains(&CellAddr { col: 0, row: 0 })); // A1
         assert!(order.contains(&CellAddr { col: 3, row: 0 })); // D1
@@ -933,15 +959,15 @@ mod tests {
     #[test]
     fn test_cycle_detection() {
         let mut graph = DependencyGraph::new();
-        
+
         // A1 = B1
         let expr = parse("B1").unwrap();
         graph.update_deps(CellAddr { col: 0, row: 0 }, &expr);
-        
+
         // B1 = A1 (creates cycle)
         let expr = parse("A1").unwrap();
         graph.update_deps(CellAddr { col: 1, row: 0 }, &expr);
-        
+
         let result = graph.get_recalc_order(CellAddr { col: 0, row: 0 });
         assert!(matches!(result, Err(CellError::CycleError)));
     }
@@ -949,7 +975,7 @@ mod tests {
     #[test]
     fn test_comparison_operators() {
         let grid = MockGrid::new();
-        
+
         let expr = parse("5>3").unwrap();
         let result = evaluate(&expr, &grid);
         assert_eq!(result, CellValue::Boolean(true));

@@ -31,10 +31,7 @@ fn resolve_all_proportional() {
 #[test]
 fn resolve_mixed_fixed_proportional() {
     let sizes = resolve_constraints(
-        &[
-            SizeConstraint::Fixed(20),
-            SizeConstraint::Proportion(1.0),
-        ],
+        &[SizeConstraint::Fixed(20), SizeConstraint::Proportion(1.0)],
         81,
         1, // 1 gap
     );
@@ -44,11 +41,7 @@ fn resolve_mixed_fixed_proportional() {
 
 #[test]
 fn resolve_minmax_clamps() {
-    let sizes = resolve_constraints(
-        &[SizeConstraint::MinMax(10, 30)],
-        100,
-        0,
-    );
+    let sizes = resolve_constraints(&[SizeConstraint::MinMax(10, 30)], 100, 0);
     // Proportional would give 100, clamped to 30.
     assert_eq!(sizes, vec![30]);
 }
@@ -344,7 +337,11 @@ fn resize_window_updates_constraints() {
     let mut strip = Strip::new(StripConfig::default());
     let a = strip.insert_window(0, 0, SizeConstraint::Fixed(10), SizeConstraint::Fixed(5));
 
-    strip.resize_window(a, SizeConstraint::Proportion(1.0), SizeConstraint::Proportion(1.0));
+    strip.resize_window(
+        a,
+        SizeConstraint::Proportion(1.0),
+        SizeConstraint::Proportion(1.0),
+    );
 
     let (col, idx) = strip.find_window(a).unwrap();
     let w = &strip.columns[col].windows[idx];
@@ -357,7 +354,11 @@ fn insert_column_shifts_right() {
     let a = strip.insert_window(0, 0, SizeConstraint::default(), SizeConstraint::default());
     let b = strip.insert_window(1, 0, SizeConstraint::default(), SizeConstraint::default());
 
-    let c = strip.insert_column(1, SizeConstraint::Fixed(10), Some((SizeConstraint::default(), SizeConstraint::default())));
+    let c = strip.insert_column(
+        1,
+        SizeConstraint::Fixed(10),
+        Some((SizeConstraint::default(), SizeConstraint::default())),
+    );
     assert!(c.is_some());
     assert_eq!(strip.column_count(), 3);
     // Original column 1 (with b) should now be at index 2.
@@ -407,9 +408,24 @@ fn focus_up_down() {
         window_gap: 0,
         ..Default::default()
     });
-    let a = strip.insert_window(0, 0, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
-    let b = strip.insert_window(0, 1, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
-    let c = strip.insert_window(0, 2, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
+    let a = strip.insert_window(
+        0,
+        0,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
+    let b = strip.insert_window(
+        0,
+        1,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
+    let c = strip.insert_window(
+        0,
+        2,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
 
     strip.focus_set(a);
     nav::focus_down(&mut strip);
@@ -460,8 +476,18 @@ fn focus_affinity_preserved() {
     strip.resize_column(1, SizeConstraint::Fixed(20));
 
     // Column 2: two windows, second one is lower.
-    let _c1 = strip.insert_window(2, 0, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
-    let c2 = strip.insert_window(2, 1, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
+    let _c1 = strip.insert_window(
+        2,
+        0,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
+    let c2 = strip.insert_window(
+        2,
+        1,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
     strip.resize_column(2, SizeConstraint::Fixed(20));
 
     // Focus on a (full height, center at row 12 in 24-tall viewport).
@@ -484,12 +510,32 @@ fn focus_affinity_reset_on_vertical_move() {
         window_gap: 0,
         ..Default::default()
     });
-    let a = strip.insert_window(0, 0, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
-    let a2 = strip.insert_window(0, 1, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
+    let a = strip.insert_window(
+        0,
+        0,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
+    let a2 = strip.insert_window(
+        0,
+        1,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
     strip.resize_column(0, SizeConstraint::Fixed(20));
 
-    let b1 = strip.insert_window(1, 0, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
-    let _b2 = strip.insert_window(1, 1, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
+    let b1 = strip.insert_window(
+        1,
+        0,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
+    let _b2 = strip.insert_window(
+        1,
+        1,
+        SizeConstraint::default(),
+        SizeConstraint::Proportion(1.0),
+    );
     strip.resize_column(1, SizeConstraint::Fixed(20));
 
     strip.focus_set(a);
@@ -551,7 +597,12 @@ fn rects_never_overlap() {
     });
     for col in 0..4 {
         for win in 0..3 {
-            strip.insert_window(col, win, SizeConstraint::default(), SizeConstraint::Proportion(1.0));
+            strip.insert_window(
+                col,
+                win,
+                SizeConstraint::default(),
+                SizeConstraint::Proportion(1.0),
+            );
         }
         strip.resize_column(col, SizeConstraint::Proportion(1.0));
     }

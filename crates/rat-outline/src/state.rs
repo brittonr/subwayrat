@@ -3,7 +3,7 @@
 use rat_editor::Editor;
 
 use crate::index::{HeadingInfo, build_heading_index, heading_at_or_before};
-use crate::parse::{HeadingSyntax, HeadingParser, OrgParser, MarkdownParser};
+use crate::parse::{HeadingParser, HeadingSyntax, MarkdownParser, OrgParser};
 
 /// Top-level state for the outline editor.
 pub struct OutlineState {
@@ -31,11 +31,7 @@ impl OutlineState {
             headings: Vec::new(),
             syntax: HeadingSyntax::Org,
             custom_parser: None,
-            todo_keywords: vec![
-                "TODO".into(),
-                "IN_PROGRESS".into(),
-                "DONE".into(),
-            ],
+            todo_keywords: vec!["TODO".into(), "IN_PROGRESS".into(), "DONE".into()],
             scroll_offset: 0,
             dirty: false,
         }

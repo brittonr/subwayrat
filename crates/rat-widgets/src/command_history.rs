@@ -195,12 +195,10 @@ impl CommandHistory {
     /// Creates the history with the specified max_entries limit.
     pub fn load_json(path: &Path, max_entries: usize) -> Self {
         match std::fs::read_to_string(path) {
-            Ok(content) => {
-                match serde_json::from_str::<Vec<String>>(&content) {
-                    Ok(entries) => Self::with_entries(entries, max_entries),
-                    Err(_) => Self::new(max_entries),
-                }
-            }
+            Ok(content) => match serde_json::from_str::<Vec<String>>(&content) {
+                Ok(entries) => Self::with_entries(entries, max_entries),
+                Err(_) => Self::new(max_entries),
+            },
             Err(_) => Self::new(max_entries),
         }
     }
@@ -212,7 +210,7 @@ impl CommandHistory {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        
+
         if let Ok(json) = serde_json::to_string_pretty(&self.entries) {
             let _ = std::fs::write(path, json);
         }
@@ -246,13 +244,13 @@ mod tests {
     #[test]
     fn test_skip_empty() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("".to_string());
         history.add("   ".to_string());
         history.add("\t\n".to_string());
-        
+
         assert_eq!(history.len(), 0);
-        
+
         history.add("real_command".to_string());
         assert_eq!(history.len(), 1);
     }
@@ -260,10 +258,10 @@ mod tests {
     #[test]
     fn test_skip_consecutive_dupes() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("command".to_string());
         history.add("command".to_string());
-        
+
         assert_eq!(history.len(), 1);
         assert_eq!(history.entries(), &["command"]);
     }
@@ -271,11 +269,11 @@ mod tests {
     #[test]
     fn test_non_consecutive_dupes_allowed() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("a".to_string());
         history.add("b".to_string());
         history.add("a".to_string());
-        
+
         assert_eq!(history.len(), 3);
         assert_eq!(history.entries(), &["a", "b", "a"]);
     }
@@ -283,15 +281,15 @@ mod tests {
     #[test]
     fn test_max_entries_eviction() {
         let mut history = CommandHistory::new(3);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
         history.add("cmd3".to_string());
         assert_eq!(history.entries(), &["cmd1", "cmd2", "cmd3"]);
-        
+
         history.add("cmd4".to_string());
         assert_eq!(history.entries(), &["cmd2", "cmd3", "cmd4"]);
-        
+
         history.add("cmd5".to_string());
         assert_eq!(history.entries(), &["cmd3", "cmd4", "cmd5"]);
     }
@@ -299,16 +297,16 @@ mod tests {
     #[test]
     fn test_prev_next_navigation() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
         history.add("cmd3".to_string());
-        
+
         // Navigate backward
         assert_eq!(history.prev(), Some("cmd3"));
         assert_eq!(history.prev(), Some("cmd2"));
         assert_eq!(history.prev(), Some("cmd1"));
-        
+
         // Navigate forward
         assert_eq!(history.next_entry(), Some("cmd2"));
         assert_eq!(history.next_entry(), Some("cmd3"));
@@ -318,10 +316,10 @@ mod tests {
     #[test]
     fn test_prev_at_start_stays() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
-        
+
         assert_eq!(history.prev(), Some("cmd2"));
         assert_eq!(history.prev(), Some("cmd1"));
         assert_eq!(history.prev(), Some("cmd1")); // Stay at first
@@ -331,12 +329,12 @@ mod tests {
     #[test]
     fn test_next_past_end_stops_browsing() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
-        
+
         assert_eq!(history.prev(), Some("cmd1"));
         assert!(history.is_browsing());
-        
+
         assert_eq!(history.next_entry(), None); // Past end
         assert!(!history.is_browsing());
     }
@@ -344,12 +342,12 @@ mod tests {
     #[test]
     fn test_add_resets_browsing() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
-        
+
         assert_eq!(history.prev(), Some("cmd1"));
         assert!(history.is_browsing());
-        
+
         history.add("cmd2".to_string());
         assert!(!history.is_browsing());
     }
@@ -357,31 +355,31 @@ mod tests {
     #[test]
     fn test_position_display() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
         history.add("cmd3".to_string());
-        
+
         // Not browsing
         assert_eq!(history.position(), (3, 3));
-        
+
         // Browse backward
         assert_eq!(history.prev(), Some("cmd3"));
         assert_eq!(history.position(), (3, 3));
-        
+
         assert_eq!(history.prev(), Some("cmd2"));
         assert_eq!(history.position(), (2, 3));
-        
+
         assert_eq!(history.prev(), Some("cmd1"));
         assert_eq!(history.position(), (1, 3));
-        
+
         // Browse forward
         assert_eq!(history.next_entry(), Some("cmd2"));
         assert_eq!(history.position(), (2, 3));
-        
+
         assert_eq!(history.next_entry(), Some("cmd3"));
         assert_eq!(history.position(), (3, 3));
-        
+
         assert_eq!(history.next_entry(), None); // Back to not browsing
         assert_eq!(history.position(), (3, 3));
     }
@@ -389,15 +387,15 @@ mod tests {
     #[test]
     fn test_clear() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
-        
+
         assert_eq!(history.prev(), Some("cmd2"));
         assert!(history.is_browsing());
-        
+
         history.clear();
-        
+
         assert_eq!(history.len(), 0);
         assert!(history.is_empty());
         assert!(!history.is_browsing());
@@ -408,18 +406,18 @@ mod tests {
     #[test]
     fn test_current() {
         let mut history = CommandHistory::new(5);
-        
+
         history.add("cmd1".to_string());
         history.add("cmd2".to_string());
-        
+
         assert_eq!(history.current(), None); // Not browsing
-        
+
         assert_eq!(history.prev(), Some("cmd2"));
         assert_eq!(history.current(), Some("cmd2"));
-        
+
         assert_eq!(history.prev(), Some("cmd1"));
         assert_eq!(history.current(), Some("cmd1"));
-        
+
         history.reset_browse();
         assert_eq!(history.current(), None); // Not browsing
     }
@@ -427,7 +425,7 @@ mod tests {
     #[test]
     fn test_empty_history_navigation() {
         let mut history = CommandHistory::new(5);
-        
+
         assert_eq!(history.prev(), None);
         assert_eq!(history.next_entry(), None);
         assert_eq!(history.current(), None);
@@ -438,7 +436,7 @@ mod tests {
     fn test_with_entries() {
         let entries = vec!["cmd1".to_string(), "cmd2".to_string()];
         let history = CommandHistory::with_entries(entries.clone(), 5);
-        
+
         assert_eq!(history.entries(), &entries);
         assert_eq!(history.len(), 2);
         assert!(!history.is_browsing());

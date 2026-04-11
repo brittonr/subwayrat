@@ -37,7 +37,14 @@ impl CalendarGridState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CalendarAction {
-    NextDay, PrevDay, NextWeek, PrevWeek, NextMonth, PrevMonth, Confirm, Cancel,
+    NextDay,
+    PrevDay,
+    NextWeek,
+    PrevWeek,
+    NextMonth,
+    PrevMonth,
+    Confirm,
+    Cancel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,23 +54,52 @@ pub enum CalendarResult {
     Cancelled,
 }
 
-pub fn handle_calendar_action(state: &mut CalendarGridState, action: CalendarAction) -> CalendarResult {
+pub fn handle_calendar_action(
+    state: &mut CalendarGridState,
+    action: CalendarAction,
+) -> CalendarResult {
     match action {
-        CalendarAction::NextDay => { state.selected = state.selected.next_day(); state.sync_display(); CalendarResult::Handled }
-        CalendarAction::PrevDay => { state.selected = state.selected.prev_day(); state.sync_display(); CalendarResult::Handled }
-        CalendarAction::NextWeek => { state.selected = state.selected.add_days(7); state.sync_display(); CalendarResult::Handled }
-        CalendarAction::PrevWeek => { state.selected = state.selected.add_days(-7); state.sync_display(); CalendarResult::Handled }
+        CalendarAction::NextDay => {
+            state.selected = state.selected.next_day();
+            state.sync_display();
+            CalendarResult::Handled
+        }
+        CalendarAction::PrevDay => {
+            state.selected = state.selected.prev_day();
+            state.sync_display();
+            CalendarResult::Handled
+        }
+        CalendarAction::NextWeek => {
+            state.selected = state.selected.add_days(7);
+            state.sync_display();
+            CalendarResult::Handled
+        }
+        CalendarAction::PrevWeek => {
+            state.selected = state.selected.add_days(-7);
+            state.sync_display();
+            CalendarResult::Handled
+        }
         CalendarAction::NextMonth => {
-            let (y, m) = if state.display_month == 12 { (state.display_year+1, 1) } else { (state.display_year, state.display_month+1) };
+            let (y, m) = if state.display_month == 12 {
+                (state.display_year + 1, 1)
+            } else {
+                (state.display_year, state.display_month + 1)
+            };
             let dim = CalDate::new(y, m, 1).days_in_month();
             state.selected = CalDate::new(y, m, state.selected.day.min(dim));
-            state.sync_display(); CalendarResult::Handled
+            state.sync_display();
+            CalendarResult::Handled
         }
         CalendarAction::PrevMonth => {
-            let (y, m) = if state.display_month == 1 { (state.display_year-1, 12) } else { (state.display_year, state.display_month-1) };
+            let (y, m) = if state.display_month == 1 {
+                (state.display_year - 1, 12)
+            } else {
+                (state.display_year, state.display_month - 1)
+            };
             let dim = CalDate::new(y, m, 1).days_in_month();
             state.selected = CalDate::new(y, m, state.selected.day.min(dim));
-            state.sync_display(); CalendarResult::Handled
+            state.sync_display();
+            CalendarResult::Handled
         }
         CalendarAction::Confirm => CalendarResult::Confirmed(state.selected),
         CalendarAction::Cancel => CalendarResult::Cancelled,
@@ -77,8 +113,13 @@ pub struct CalendarGrid<'a> {
 }
 
 impl<'a> CalendarGrid<'a> {
-    pub fn new(style: CalendarStyle) -> Self { Self { style, block: None } }
-    pub fn block(mut self, block: Block<'a>) -> Self { self.block = Some(block); self }
+    pub fn new(style: CalendarStyle) -> Self {
+        Self { style, block: None }
+    }
+    pub fn block(mut self, block: Block<'a>) -> Self {
+        self.block = Some(block);
+        self
+    }
 }
 
 impl StatefulWidget for CalendarGrid<'_> {
@@ -89,8 +130,12 @@ impl StatefulWidget for CalendarGrid<'_> {
             let inner = block.inner(area);
             block.clone().render(area, buf);
             inner
-        } else { area };
-        if inner.width < 21 || inner.height < 4 { return; }
+        } else {
+            area
+        };
+        if inner.width < 21 || inner.height < 4 {
+            return;
+        }
 
         let first = CalDate::new(state.display_year, state.display_month, 1);
         let dim = first.days_in_month();
@@ -98,13 +143,23 @@ impl StatefulWidget for CalendarGrid<'_> {
 
         // Title
         let title = format!("{} {}", first.month_name_short(), first.year);
-        buf.set_line(inner.x, inner.y, &Line::from(Span::styled(title, self.style.title)), inner.width);
+        buf.set_line(
+            inner.x,
+            inner.y,
+            &Line::from(Span::styled(title, self.style.title)),
+            inner.width,
+        );
 
         // Day headers
-        let names = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+        let names = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
         for (i, n) in names.iter().enumerate() {
             let x = inner.x + (i as u16) * col_w;
-            buf.set_line(x, inner.y + 1, &Line::from(Span::styled(*n, self.style.weekday_header)), col_w);
+            buf.set_line(
+                x,
+                inner.y + 1,
+                &Line::from(Span::styled(*n, self.style.weekday_header)),
+                col_w,
+            );
         }
 
         // Day cells
@@ -114,13 +169,25 @@ impl StatefulWidget for CalendarGrid<'_> {
             let week_row = (first.weekday() + d - 1) / 7;
             let x = inner.x + (wd as u16) * col_w;
             let y = inner.y + 2 + week_row as u16;
-            if y >= inner.y + inner.height { break; }
+            if y >= inner.y + inner.height {
+                break;
+            }
 
-            let sty = if date == state.selected { self.style.selected }
-                      else if date == state.today { self.style.today }
-                      else if wd >= 5 { self.style.weekend }
-                      else { self.style.body };
-            buf.set_line(x, y, &Line::from(Span::styled(format!("{:2}", d), sty)), col_w);
+            let sty = if date == state.selected {
+                self.style.selected
+            } else if date == state.today {
+                self.style.today
+            } else if wd >= 5 {
+                self.style.weekend
+            } else {
+                self.style.body
+            };
+            buf.set_line(
+                x,
+                y,
+                &Line::from(Span::styled(format!("{:2}", d), sty)),
+                col_w,
+            );
         }
     }
 }
@@ -149,7 +216,10 @@ mod tests {
     fn confirm_returns_date() {
         let state_date = CalDate::new(2026, 6, 15);
         let mut state = CalendarGridState::new(state_date);
-        assert_eq!(handle_calendar_action(&mut state, CalendarAction::Confirm), CalendarResult::Confirmed(state_date));
+        assert_eq!(
+            handle_calendar_action(&mut state, CalendarAction::Confirm),
+            CalendarResult::Confirmed(state_date)
+        );
     }
 
     #[test]

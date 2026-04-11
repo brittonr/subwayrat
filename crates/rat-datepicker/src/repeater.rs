@@ -7,26 +7,53 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, StatefulWidget, Widget};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepeaterMode { Plus, PlusPlus, DotPlus }
+pub enum RepeaterMode {
+    Plus,
+    PlusPlus,
+    DotPlus,
+}
 
 impl RepeaterMode {
     pub fn as_str(&self) -> &'static str {
-        match self { Self::Plus => "+", Self::PlusPlus => "++", Self::DotPlus => ".+" }
+        match self {
+            Self::Plus => "+",
+            Self::PlusPlus => "++",
+            Self::DotPlus => ".+",
+        }
     }
     pub fn cycle(self) -> Self {
-        match self { Self::Plus => Self::PlusPlus, Self::PlusPlus => Self::DotPlus, Self::DotPlus => Self::Plus }
+        match self {
+            Self::Plus => Self::PlusPlus,
+            Self::PlusPlus => Self::DotPlus,
+            Self::DotPlus => Self::Plus,
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepeaterUnit { Day, Week, Month, Year }
+pub enum RepeaterUnit {
+    Day,
+    Week,
+    Month,
+    Year,
+}
 
 impl RepeaterUnit {
     pub fn as_char(&self) -> char {
-        match self { Self::Day => 'd', Self::Week => 'w', Self::Month => 'm', Self::Year => 'y' }
+        match self {
+            Self::Day => 'd',
+            Self::Week => 'w',
+            Self::Month => 'm',
+            Self::Year => 'y',
+        }
     }
     pub fn cycle(self) -> Self {
-        match self { Self::Day => Self::Week, Self::Week => Self::Month, Self::Month => Self::Year, Self::Year => Self::Day }
+        match self {
+            Self::Day => Self::Week,
+            Self::Week => Self::Month,
+            Self::Month => Self::Year,
+            Self::Year => Self::Day,
+        }
     }
 }
 
@@ -39,7 +66,12 @@ pub struct Repeater {
 
 impl Repeater {
     pub fn to_string(&self) -> String {
-        format!("{}{}{}", self.mode.as_str(), self.count, self.unit.as_char())
+        format!(
+            "{}{}{}",
+            self.mode.as_str(),
+            self.count,
+            self.unit.as_char()
+        )
     }
 }
 
@@ -50,24 +82,38 @@ pub struct RepeaterInputState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepeaterField { Mode, Count, Unit }
+pub enum RepeaterField {
+    Mode,
+    Count,
+    Unit,
+}
 
 impl RepeaterInputState {
     pub fn new() -> Self {
         Self {
-            repeater: Repeater { mode: RepeaterMode::Plus, count: 1, unit: RepeaterUnit::Week },
+            repeater: Repeater {
+                mode: RepeaterMode::Plus,
+                count: 1,
+                unit: RepeaterUnit::Week,
+            },
             enabled: false,
             focused: RepeaterField::Count,
         }
     }
 
     pub fn value(&self) -> Option<Repeater> {
-        if self.enabled { Some(self.repeater) } else { None }
+        if self.enabled {
+            Some(self.repeater)
+        } else {
+            None
+        }
     }
 }
 
 impl Default for RepeaterInputState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,8 +132,12 @@ pub fn handle_repeater_action(state: &mut RepeaterInputState, action: RepeaterAc
         RepeaterAction::Toggle => state.enabled = !state.enabled,
         RepeaterAction::CycleMode => state.repeater.mode = state.repeater.mode.cycle(),
         RepeaterAction::CycleUnit => state.repeater.unit = state.repeater.unit.cycle(),
-        RepeaterAction::IncrementCount => state.repeater.count = state.repeater.count.saturating_add(1).min(99),
-        RepeaterAction::DecrementCount => state.repeater.count = state.repeater.count.saturating_sub(1).max(1),
+        RepeaterAction::IncrementCount => {
+            state.repeater.count = state.repeater.count.saturating_add(1).min(99)
+        }
+        RepeaterAction::DecrementCount => {
+            state.repeater.count = state.repeater.count.saturating_sub(1).max(1)
+        }
         RepeaterAction::NextField => {
             state.focused = match state.focused {
                 RepeaterField::Mode => RepeaterField::Count,
@@ -110,8 +160,13 @@ pub struct RepeaterInput<'a> {
 }
 
 impl<'a> RepeaterInput<'a> {
-    pub fn new() -> Self { Self { block: None } }
-    pub fn block(mut self, block: Block<'a>) -> Self { self.block = Some(block); self }
+    pub fn new() -> Self {
+        Self { block: None }
+    }
+    pub fn block(mut self, block: Block<'a>) -> Self {
+        self.block = Some(block);
+        self
+    }
 }
 
 impl StatefulWidget for RepeaterInput<'_> {
@@ -119,19 +174,42 @@ impl StatefulWidget for RepeaterInput<'_> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let inner = if let Some(block) = &self.block {
-            let inner = block.inner(area); block.clone().render(area, buf); inner
-        } else { area };
-        if inner.width < 6 || inner.height == 0 { return; }
+            let inner = block.inner(area);
+            block.clone().render(area, buf);
+            inner
+        } else {
+            area
+        };
+        if inner.width < 6 || inner.height == 0 {
+            return;
+        }
 
         if !state.enabled {
-            buf.set_line(inner.x, inner.y, &Line::from(Span::raw("(none)")), inner.width);
+            buf.set_line(
+                inner.x,
+                inner.y,
+                &Line::from(Span::raw("(none)")),
+                inner.width,
+            );
             return;
         }
 
         let r = &state.repeater;
-        let ms = if state.focused == RepeaterField::Mode { Style::default().add_modifier(Modifier::REVERSED) } else { Style::default() };
-        let cs = if state.focused == RepeaterField::Count { Style::default().add_modifier(Modifier::REVERSED) } else { Style::default() };
-        let us = if state.focused == RepeaterField::Unit { Style::default().add_modifier(Modifier::REVERSED) } else { Style::default() };
+        let ms = if state.focused == RepeaterField::Mode {
+            Style::default().add_modifier(Modifier::REVERSED)
+        } else {
+            Style::default()
+        };
+        let cs = if state.focused == RepeaterField::Count {
+            Style::default().add_modifier(Modifier::REVERSED)
+        } else {
+            Style::default()
+        };
+        let us = if state.focused == RepeaterField::Unit {
+            Style::default().add_modifier(Modifier::REVERSED)
+        } else {
+            Style::default()
+        };
 
         let line = Line::from(vec![
             Span::styled(r.mode.as_str().to_string(), ms),
@@ -156,7 +234,14 @@ mod tests {
     fn toggle_enables() {
         let mut s = RepeaterInputState::new();
         handle_repeater_action(&mut s, RepeaterAction::Toggle);
-        assert_eq!(s.value(), Some(Repeater { mode: RepeaterMode::Plus, count: 1, unit: RepeaterUnit::Week }));
+        assert_eq!(
+            s.value(),
+            Some(Repeater {
+                mode: RepeaterMode::Plus,
+                count: 1,
+                unit: RepeaterUnit::Week
+            })
+        );
     }
 
     #[test]
@@ -169,7 +254,11 @@ mod tests {
 
     #[test]
     fn format_repeater() {
-        let r = Repeater { mode: RepeaterMode::PlusPlus, count: 2, unit: RepeaterUnit::Month };
+        let r = Repeater {
+            mode: RepeaterMode::PlusPlus,
+            count: 2,
+            unit: RepeaterUnit::Month,
+        };
         assert_eq!(r.to_string(), "++2m");
     }
 }

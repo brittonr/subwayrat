@@ -14,7 +14,12 @@ pub struct KeyCombo {
 impl KeyCombo {
     /// Create a new KeyCombo.
     pub fn new(code: KeyCode, ctrl: bool, alt: bool, shift: bool) -> Self {
-        Self { code, ctrl, alt, shift }
+        Self {
+            code,
+            ctrl,
+            alt,
+            shift,
+        }
     }
 
     /// Create a KeyCombo from a crossterm KeyEvent.
@@ -94,7 +99,12 @@ pub fn parse_key_string(s: &str) -> Option<KeyCombo> {
             }
         })?;
 
-    Some(KeyCombo { code, ctrl, alt, shift })
+    Some(KeyCombo {
+        code,
+        ctrl,
+        alt,
+        shift,
+    })
 }
 
 /// Format a KeyCombo into a human-readable string.

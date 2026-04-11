@@ -16,7 +16,7 @@ use ratatui::widgets::Clear;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::Wrap;
 
-use crate::tree::{find_leaves, walk_to_root, TreeNode};
+use crate::tree::{TreeNode, find_leaves, walk_to_root};
 
 /// An item for the switcher overlay
 #[derive(Debug, Clone)]
@@ -78,15 +78,15 @@ impl NodeSwitcherModel {
     }
 
     /// Open the switcher with nodes from a tree
-    /// 
+    ///
     /// The `to_item` function converts each leaf node to a `SwitcherItem`
     pub fn open<N: TreeNode>(
-        &mut self, 
-        nodes: &[N], 
-        to_item: impl Fn(&N, Vec<usize>) -> SwitcherItem
+        &mut self,
+        nodes: &[N],
+        to_item: impl Fn(&N, Vec<usize>) -> SwitcherItem,
     ) {
         let leaves = find_leaves(nodes);
-        
+
         self.items = leaves
             .iter()
             .filter_map(|&leaf_id| {
@@ -98,7 +98,8 @@ impl NodeSwitcherModel {
 
         // Sort: active first, then by node ID descending (most recent first)
         self.items.sort_by(|a, b| {
-            b.is_active.cmp(&a.is_active)
+            b.is_active
+                .cmp(&a.is_active)
                 .then(b.node_id.cmp(&a.node_id))
         });
 
@@ -164,12 +165,12 @@ impl NodeSwitcher {
     }
 
     /// Open the switcher with nodes from a tree
-    /// 
+    ///
     /// The `to_item` function converts each leaf node to a `SwitcherItem`
     pub fn open<N: TreeNode>(
-        &mut self, 
-        nodes: &[N], 
-        to_item: impl Fn(&N, Vec<usize>) -> SwitcherItem
+        &mut self,
+        nodes: &[N],
+        to_item: impl Fn(&N, Vec<usize>) -> SwitcherItem,
     ) {
         self.model.open(nodes, to_item);
     }
@@ -226,7 +227,9 @@ impl NodeSwitcher {
         let block = Block::default()
             .title(Span::styled(
                 " Switch Node ",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan));
@@ -266,7 +269,11 @@ impl NodeSwitcher {
             } else {
                 Color::Reset
             };
-            let fg = if is_selected { Color::White } else { Color::Gray };
+            let fg = if is_selected {
+                Color::White
+            } else {
+                Color::Gray
+            };
 
             let marker = if item.is_active {
                 Span::styled("● ", Style::default().fg(Color::Green).bg(bg))
@@ -285,7 +292,8 @@ impl NodeSwitcher {
 
             // Metadata display
             let meta_text = if !item.metadata.is_empty() {
-                let parts: Vec<String> = item.metadata
+                let parts: Vec<String> = item
+                    .metadata
                     .iter()
                     .map(|(label, value)| format!("{} {}", value, label))
                     .collect();
@@ -306,10 +314,7 @@ impl NodeSwitcher {
             // Preview line
             lines.push(Line::from(vec![
                 Span::styled("   ", Style::default().bg(bg)),
-                Span::styled(
-                    &item.preview,
-                    Style::default().fg(Color::DarkGray).bg(bg),
-                ),
+                Span::styled(&item.preview, Style::default().fg(Color::DarkGray).bg(bg)),
             ]));
         }
 
@@ -330,7 +335,9 @@ impl NodeSwitcher {
         };
 
         frame.render_widget(
-            Paragraph::new(lines).scroll((scroll, 0)).wrap(Wrap { trim: false }),
+            Paragraph::new(lines)
+                .scroll((scroll, 0))
+                .wrap(Wrap { trim: false }),
             list_area,
         );
     }
@@ -375,7 +382,8 @@ mod tests {
             format!("branch-{}", node.id()),
             node.content.clone(),
             node.id() == 1, // make node 1 active for testing
-        ).add_metadata("msgs", path.len())
+        )
+        .add_metadata("msgs", path.len())
     }
 
     #[test]

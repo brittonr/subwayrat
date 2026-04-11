@@ -6,9 +6,9 @@
 
 use crate::builder::InlineView;
 use crate::widget::InlineWidget;
-use ratcore::inline::{self, NodeKey, ViewTree};
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::Rect;
+use ratcore::inline::{self, NodeKey, ViewTree};
 use std::io::Write;
 
 /// Inline renderer that writes styled content into terminal scrollback.
@@ -58,7 +58,9 @@ impl InlineRenderer {
         let old_nodes = std::mem::take(&mut self.tree).nodes;
         let result = inline::reconcile(old_nodes, new_tree.nodes);
 
-        self.tree = ViewTree { nodes: result.nodes };
+        self.tree = ViewTree {
+            nodes: result.nodes,
+        };
         self.widgets = new_widgets;
     }
 
@@ -76,10 +78,7 @@ impl InlineRenderer {
 
     /// Measure total content height.
     fn measure_height(&self) -> u16 {
-        self.widgets
-            .iter()
-            .map(|w| w.height(self.width))
-            .sum()
+        self.widgets.iter().map(|w| w.height(self.width)).sum()
     }
 
     /// Render the current frame into the buffer and return the ANSI
@@ -223,10 +222,7 @@ impl InlineRenderer {
             return;
         }
 
-        let heights: Vec<u16> = self.widgets
-            .iter()
-            .map(|w| w.height(self.width))
-            .collect();
+        let heights: Vec<u16> = self.widgets.iter().map(|w| w.height(self.width)).collect();
 
         let scroll_offset = self.claimed_rows.saturating_sub(viewport_height);
         let committed = inline::compute_commits(&heights, viewport_height, scroll_offset);

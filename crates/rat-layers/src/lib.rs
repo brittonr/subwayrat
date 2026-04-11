@@ -114,7 +114,7 @@ where
 
         if let Some(index) = self.layers.iter().position(|layer| layer.id == id) {
             self.layers.remove(index);
-            
+
             // Reassign items from the removed layer to the first layer
             let first_layer_id = self.layers[0].id;
             for (_, layer_id) in self.item_layers.iter_mut() {
@@ -246,7 +246,7 @@ mod tests {
         let id1 = LayerId(uuid);
         let id2 = LayerId(uuid);
         assert_eq!(id1, id2);
-        
+
         let mut set = HashSet::new();
         set.insert(id1);
         assert!(set.contains(&id2));
@@ -257,7 +257,7 @@ mod tests {
         let id = LayerId::new();
         let display_str = format!("{}", id);
         assert_eq!(display_str.len(), 36); // UUID string length
-        
+
         // Should be able to parse back to UUID
         let parsed = Uuid::parse_str(&display_str);
         assert!(parsed.is_ok());
@@ -294,7 +294,7 @@ mod tests {
     fn layer_stack_new_has_default_layer() {
         let stack: LayerStack<u32> = LayerStack::new();
         assert_eq!(stack.layer_count(), 1);
-        
+
         let layers: Vec<_> = stack.layers_bottom_to_top().collect();
         assert_eq!(layers.len(), 1);
         assert_eq!(layers[0].name, "Layer 1");
@@ -304,9 +304,9 @@ mod tests {
     fn layer_stack_add_layer() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let id = stack.add_layer("Layer 2");
-        
+
         assert_eq!(stack.layer_count(), 2);
-        
+
         let layer = stack.get_layer(id);
         assert!(layer.is_some());
         assert_eq!(layer.unwrap().name, "Layer 2");
@@ -316,7 +316,7 @@ mod tests {
     fn layer_stack_remove_layer_preserves_minimum() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let default_id = stack.default_layer();
-        
+
         let result = stack.remove_layer(default_id);
         assert!(result.is_err());
         assert_eq!(stack.layer_count(), 1);
@@ -327,15 +327,15 @@ mod tests {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer2_id = stack.add_layer("Layer 2");
         let default_id = stack.default_layer();
-        
+
         // Assign item to layer 2
         stack.set_item_layer(42, layer2_id);
         assert_eq!(stack.get_item_layer(&42), Some(layer2_id));
-        
+
         // Remove layer 2
         let result = stack.remove_layer(layer2_id);
         assert!(result.is_ok());
-        
+
         // Item should be reassigned to default layer
         assert_eq!(stack.get_item_layer(&42), Some(default_id));
     }
@@ -345,14 +345,14 @@ mod tests {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer2_id = stack.add_layer("Layer 2");
         let layer3_id = stack.add_layer("Layer 3");
-        
+
         // Initially: [Layer 1, Layer 2, Layer 3]
         assert_eq!(stack.z_index(layer2_id), Some(1));
         assert_eq!(stack.z_index(layer3_id), Some(2));
-        
+
         // Move Layer 3 to position 0
         stack.move_layer(layer3_id, 0);
-        
+
         // Now: [Layer 3, Layer 1, Layer 2]
         assert_eq!(stack.z_index(layer3_id), Some(0));
         assert_eq!(stack.z_index(layer2_id), Some(2));
@@ -362,10 +362,10 @@ mod tests {
     fn layer_stack_move_layer_clamps_index() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Layer 2");
-        
+
         // Move to index way beyond bounds
         stack.move_layer(layer_id, 100);
-        
+
         // Should be clamped to last position
         assert_eq!(stack.z_index(layer_id), Some(1));
     }
@@ -374,9 +374,9 @@ mod tests {
     fn layer_stack_rename_layer() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Original");
-        
+
         stack.rename_layer(layer_id, "Renamed");
-        
+
         let layer = stack.get_layer(layer_id);
         assert!(layer.is_some());
         assert_eq!(layer.unwrap().name, "Renamed");
@@ -386,14 +386,14 @@ mod tests {
     fn layer_stack_visibility_toggle() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Test Layer");
-        
+
         // Initially visible
         assert!(stack.is_visible(layer_id));
-        
+
         // Set invisible
         stack.set_visible(layer_id, false);
         assert!(!stack.is_visible(layer_id));
-        
+
         // Set visible again
         stack.set_visible(layer_id, true);
         assert!(stack.is_visible(layer_id));
@@ -403,14 +403,14 @@ mod tests {
     fn layer_stack_lock_toggle() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Test Layer");
-        
+
         // Initially unlocked
         assert!(!stack.is_locked(layer_id));
-        
+
         // Set locked
         stack.set_locked(layer_id, true);
         assert!(stack.is_locked(layer_id));
-        
+
         // Set unlocked again
         stack.set_locked(layer_id, false);
         assert!(!stack.is_locked(layer_id));
@@ -420,7 +420,7 @@ mod tests {
     fn layer_stack_safe_defaults() {
         let stack: LayerStack<u32> = LayerStack::new();
         let nonexistent_id = LayerId::new();
-        
+
         // Should return safe defaults for nonexistent layers
         assert!(stack.is_visible(nonexistent_id)); // true for safety
         assert!(!stack.is_locked(nonexistent_id)); // false for safety
@@ -432,14 +432,14 @@ mod tests {
     fn layer_stack_item_ownership() {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Test Layer");
-        
+
         // Initially unassigned
         assert_eq!(stack.get_item_layer(&42), None);
-        
+
         // Assign to layer
         stack.set_item_layer(42, layer_id);
         assert_eq!(stack.get_item_layer(&42), Some(layer_id));
-        
+
         // Remove item
         stack.remove_item(&42);
         assert_eq!(stack.get_item_layer(&42), None);
@@ -450,13 +450,13 @@ mod tests {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer2_id = stack.add_layer("Layer 2");
         let layer3_id = stack.add_layer("Layer 3");
-        
+
         let layers: Vec<_> = stack.layers_bottom_to_top().collect();
         assert_eq!(layers.len(), 3);
         assert_eq!(layers[0].name, "Layer 1");
         assert_eq!(layers[1].name, "Layer 2");
         assert_eq!(layers[2].name, "Layer 3");
-        
+
         // Verify z-index matches iteration order
         assert_eq!(stack.z_index(stack.default_layer()), Some(0));
         assert_eq!(stack.z_index(layer2_id), Some(1));
@@ -467,7 +467,7 @@ mod tests {
     fn layer_stack_default_layer() {
         let stack: LayerStack<u32> = LayerStack::new();
         let default_id = stack.default_layer();
-        
+
         let layer = stack.get_layer(default_id);
         assert!(layer.is_some());
         assert_eq!(layer.unwrap().name, "Layer 1");
@@ -478,10 +478,10 @@ mod tests {
         // Test with string item IDs
         let mut stack: LayerStack<&str> = LayerStack::new();
         let layer_id = stack.add_layer("Test");
-        
+
         stack.set_item_layer("item1", layer_id);
         assert_eq!(stack.get_item_layer(&"item1"), Some(layer_id));
-        
+
         stack.remove_item(&"item1");
         assert_eq!(stack.get_item_layer(&"item1"), None);
     }
@@ -513,10 +513,10 @@ mod tests {
         let mut stack: LayerStack<u32> = LayerStack::new();
         let layer_id = stack.add_layer("Test Layer");
         stack.set_item_layer(42, layer_id);
-        
+
         let json = serde_json::to_string(&stack).unwrap();
         let deserialized: LayerStack<u32> = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(stack.layer_count(), deserialized.layer_count());
         assert_eq!(stack.get_item_layer(&42), deserialized.get_item_layer(&42));
     }

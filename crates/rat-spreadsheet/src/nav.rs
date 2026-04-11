@@ -130,7 +130,7 @@ pub fn move_home_all(cursor: &mut CursorState, _grid: &Grid) {
 pub fn move_end_all(cursor: &mut CursorState, grid: &Grid) {
     let mut last_col = 0;
     let mut last_row = 0;
-    
+
     // Scan grid to find last cell with content
     for row in 0..grid.row_count() {
         for col in 0..grid.col_count() {
@@ -141,8 +141,11 @@ pub fn move_end_all(cursor: &mut CursorState, grid: &Grid) {
             }
         }
     }
-    
-    cursor.position = CellAddr { col: last_col, row: last_row };
+
+    cursor.position = CellAddr {
+        col: last_col,
+        row: last_row,
+    };
 }
 
 pub fn move_page_up(cursor: &mut CursorState, _grid: &Grid, visible_rows: usize) {
@@ -150,14 +153,26 @@ pub fn move_page_up(cursor: &mut CursorState, _grid: &Grid, visible_rows: usize)
 }
 
 pub fn move_page_down(cursor: &mut CursorState, grid: &Grid, visible_rows: usize) {
-    let max_row = if grid.row_count() > 0 { grid.row_count() - 1 } else { 0 };
+    let max_row = if grid.row_count() > 0 {
+        grid.row_count() - 1
+    } else {
+        0
+    };
     cursor.position.row = (cursor.position.row + visible_rows).min(max_row);
 }
 
 pub fn move_tab(cursor: &mut CursorState, grid: &Grid) {
-    let max_col = if grid.col_count() > 0 { grid.col_count() - 1 } else { 0 };
-    let max_row = if grid.row_count() > 0 { grid.row_count() - 1 } else { 0 };
-    
+    let max_col = if grid.col_count() > 0 {
+        grid.col_count() - 1
+    } else {
+        0
+    };
+    let max_row = if grid.row_count() > 0 {
+        grid.row_count() - 1
+    } else {
+        0
+    };
+
     if cursor.position.col < max_col {
         cursor.position.col += 1;
     } else if cursor.position.row < max_row {
@@ -168,8 +183,12 @@ pub fn move_tab(cursor: &mut CursorState, grid: &Grid) {
 }
 
 pub fn move_tab_back(cursor: &mut CursorState, grid: &Grid) {
-    let max_col = if grid.col_count() > 0 { grid.col_count() - 1 } else { 0 };
-    
+    let max_col = if grid.col_count() > 0 {
+        grid.col_count() - 1
+    } else {
+        0
+    };
+
     if cursor.position.col > 0 {
         cursor.position.col -= 1;
     } else if cursor.position.row > 0 {
@@ -208,31 +227,31 @@ pub fn cell_at_pixel(
     if x < header_width || y < header_height {
         return None;
     }
-    
+
     // Adjust coordinates for headers
     let grid_x = x - header_width;
     let grid_y = y - header_height;
-    
+
     // Calculate row
     let row = scroll.offset_row + (grid_y / row_height) as usize;
-    
+
     // Calculate column
     let mut col_offset = 0;
     let mut col = scroll.offset_col;
-    
+
     while col_offset < grid_x {
         if col >= col_widths.len() {
             return None;
         }
-        
+
         if col_offset + col_widths[col] > grid_x {
             break;
         }
-        
+
         col_offset += col_widths[col];
         col += 1;
     }
-    
+
     Some(CellAddr { col, row })
 }
 
@@ -251,7 +270,7 @@ mod tests {
     fn test_move_up_clamping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(5, 5);
-        
+
         // Start at A1 (0,0), moving up should stay at A1
         move_up(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 0, row: 0 });
@@ -261,7 +280,7 @@ mod tests {
     fn test_move_down_clamping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(5, 3);
-        
+
         cursor.position = CellAddr { col: 0, row: 2 }; // Last row
         move_down(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 0, row: 2 }); // Should stay
@@ -271,7 +290,7 @@ mod tests {
     fn test_move_left_clamping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(5, 5);
-        
+
         // Start at A1 (0,0), moving left should stay at A1
         move_left(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 0, row: 0 });
@@ -281,7 +300,7 @@ mod tests {
     fn test_move_right_clamping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(3, 5);
-        
+
         cursor.position = CellAddr { col: 2, row: 0 }; // Last column
         move_right(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 2, row: 0 }); // Should stay
@@ -291,7 +310,7 @@ mod tests {
     fn test_tab_wrapping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(3, 3);
-        
+
         // Move to end of first row
         cursor.position = CellAddr { col: 2, row: 0 };
         move_tab(&mut cursor, &grid);
@@ -302,7 +321,7 @@ mod tests {
     fn test_tab_back_wrapping() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(3, 3);
-        
+
         // Move to start of second row
         cursor.position = CellAddr { col: 0, row: 1 };
         move_tab_back(&mut cursor, &grid);
@@ -313,12 +332,12 @@ mod tests {
     fn test_home_end_navigation() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(5, 5);
-        
+
         cursor.position = CellAddr { col: 3, row: 2 };
-        
+
         move_home(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 0, row: 2 });
-        
+
         move_end(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 4, row: 2 });
     }
@@ -327,15 +346,15 @@ mod tests {
     fn test_page_up_down() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(5, 25);
-        
+
         cursor.position = CellAddr { col: 2, row: 10 };
-        
+
         move_page_up(&mut cursor, &grid, 5);
         assert_eq!(cursor.position, CellAddr { col: 2, row: 5 });
-        
+
         move_page_down(&mut cursor, &grid, 10);
         assert_eq!(cursor.position, CellAddr { col: 2, row: 15 });
-        
+
         // Test clamping at top
         cursor.position = CellAddr { col: 2, row: 2 };
         move_page_up(&mut cursor, &grid, 5);
@@ -347,19 +366,19 @@ mod tests {
         let mut scroll = ScrollState::new();
         scroll.visible_cols = 5;
         scroll.visible_rows = 10;
-        
+
         // Test scrolling right
         scroll.ensure_visible(CellAddr { col: 15, row: 5 });
         assert_eq!(scroll.offset_col, 11); // 15 - 5 + 1
-        
+
         // Test scrolling left
         scroll.ensure_visible(CellAddr { col: 5, row: 5 });
         assert_eq!(scroll.offset_col, 5);
-        
+
         // Test scrolling down
         scroll.ensure_visible(CellAddr { col: 5, row: 25 });
         assert_eq!(scroll.offset_row, 16); // 25 - 10 + 1
-        
+
         // Test scrolling up
         scroll.ensure_visible(CellAddr { col: 5, row: 5 });
         assert_eq!(scroll.offset_row, 5);
@@ -369,10 +388,10 @@ mod tests {
     fn test_selection_start_clear() {
         let mut cursor = CursorState::new();
         cursor.position = CellAddr { col: 2, row: 3 };
-        
+
         start_selection(&mut cursor);
         assert_eq!(cursor.anchor, Some(CellAddr { col: 2, row: 3 }));
-        
+
         clear_selection(&mut cursor);
         assert_eq!(cursor.anchor, None);
     }
@@ -382,7 +401,7 @@ mod tests {
         let mut cursor = CursorState::new();
         cursor.position = CellAddr { col: 2, row: 3 };
         cursor.anchor = Some(CellAddr { col: 0, row: 1 });
-        
+
         let selection = get_selection(&cursor);
         match selection {
             Selection::Range(range) => {
@@ -404,13 +423,13 @@ mod tests {
     fn test_mouse_hit_test_headers() {
         let scroll = ScrollState::new();
         let col_widths = vec![80, 80, 80];
-        
+
         // Click on row header
         assert_eq!(
             cell_at_pixel(10, 50, &scroll, &col_widths, 20, 50, 30),
             None
         );
-        
+
         // Click on column header
         assert_eq!(
             cell_at_pixel(100, 10, &scroll, &col_widths, 20, 50, 30),
@@ -422,13 +441,13 @@ mod tests {
     fn test_mouse_hit_test_grid() {
         let scroll = ScrollState::new();
         let col_widths = vec![80, 80, 80];
-        
+
         // Click on first cell (after headers)
         assert_eq!(
             cell_at_pixel(60, 40, &scroll, &col_widths, 20, 50, 30),
             Some(CellAddr { col: 0, row: 0 })
         );
-        
+
         // Click on second column, third row
         assert_eq!(
             cell_at_pixel(140, 90, &scroll, &col_widths, 20, 50, 30),
@@ -440,11 +459,14 @@ mod tests {
     fn test_move_end_all_with_content() {
         let mut cursor = CursorState::new();
         let mut grid = Grid::new(5, 5);
-        
+
         // Add content at various positions
         grid.set(CellAddr { col: 3, row: 2 }, CellValue::Number(42.0));
-        grid.set(CellAddr { col: 1, row: 4 }, CellValue::Text("test".to_string()));
-        
+        grid.set(
+            CellAddr { col: 1, row: 4 },
+            CellValue::Text("test".to_string()),
+        );
+
         move_end_all(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 3, row: 4 });
     }
@@ -453,7 +475,7 @@ mod tests {
     fn test_move_end_all_empty_grid() {
         let mut cursor = CursorState::new();
         let grid = Grid::new(0, 0);
-        
+
         move_end_all(&mut cursor, &grid);
         assert_eq!(cursor.position, CellAddr { col: 0, row: 0 });
     }

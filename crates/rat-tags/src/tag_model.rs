@@ -2,18 +2,27 @@
 
 /// Format tags as `:tag1:tag2:` string. Empty vec → empty string.
 pub fn format_tags(tags: &[String]) -> String {
-    if tags.is_empty() { String::new() }
-    else { format!(":{}:", tags.join(":")) }
+    if tags.is_empty() {
+        String::new()
+    } else {
+        format!(":{}:", tags.join(":"))
+    }
 }
 
 /// Parse `:tag1:tag2:` string into a Vec.
 pub fn parse_tags(s: &str) -> Vec<String> {
-    s.split(':').filter(|t| !t.is_empty()).map(|t| t.to_string()).collect()
+    s.split(':')
+        .filter(|t| !t.is_empty())
+        .map(|t| t.to_string())
+        .collect()
 }
 
 /// Check if a tag string is valid (alphanumeric + underscore + hyphen).
 pub fn is_valid_tag(tag: &str) -> bool {
-    !tag.is_empty() && tag.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    !tag.is_empty()
+        && tag
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
 #[cfg(test)]

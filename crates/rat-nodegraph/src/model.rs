@@ -300,10 +300,7 @@ impl Graph {
 
     /// Remove a node and all edges connected to its ports.
     pub fn remove_node(&mut self, id: NodeId) -> Result<(), GraphError> {
-        let node = self
-            .nodes
-            .remove(&id)
-            .ok_or(GraphError::NodeNotFound(id))?;
+        let node = self.nodes.remove(&id).ok_or(GraphError::NodeNotFound(id))?;
 
         // Collect all port IDs belonging to this node.
         let port_ids: Vec<PortId> = node
@@ -331,8 +328,12 @@ impl Graph {
     ///
     /// Validates direction, self-loop, type compatibility, and (if dag_mode) cycles.
     pub fn add_edge(&mut self, source: PortId, target: PortId) -> Result<(), GraphError> {
-        let source_port = self.find_port(source).ok_or(GraphError::PortNotFound(source))?;
-        let target_port = self.find_port(target).ok_or(GraphError::PortNotFound(target))?;
+        let source_port = self
+            .find_port(source)
+            .ok_or(GraphError::PortNotFound(source))?;
+        let target_port = self
+            .find_port(target)
+            .ok_or(GraphError::PortNotFound(target))?;
 
         // Direction check.
         if source_port.direction != PortDirection::Output
@@ -397,10 +398,11 @@ impl Graph {
 
             // Find all nodes reachable from `current` via outgoing edges.
             if let Some(node) = self.nodes.get(&current) {
-                let out_port_ids: Vec<PortId> =
-                    node.output_ports.iter().map(|p| p.id).collect();
+                let out_port_ids: Vec<PortId> = node.output_ports.iter().map(|p| p.id).collect();
                 for edge in &self.edges {
-                    if out_port_ids.contains(&edge.source) && let Some(&neighbor) = self.port_owner.get(&edge.target) {
+                    if out_port_ids.contains(&edge.source)
+                        && let Some(&neighbor) = self.port_owner.get(&edge.target)
+                    {
                         stack.push(neighbor);
                     }
                 }

@@ -3,11 +3,11 @@
 //! Separated from core search logic to allow UI-independent testing
 //! and different front-end implementations.
 
-use ratatui::{Frame, layout::Rect};
+use crate::output_search::{OutputSearch, SearchMode};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use crate::output_search::{OutputSearch, SearchMode};
+use ratatui::{Frame, layout::Rect};
 
 /// Render the search overlay bar at the top-right of the messages area
 pub fn render_search_overlay(search: &OutputSearch, frame: &mut Frame, area: Rect) {
@@ -43,16 +43,26 @@ pub fn render_search_overlay(search: &OutputSearch, frame: &mut Frame, area: Rec
     };
 
     let search_line = Line::from(vec![
-        Span::styled(format!(" {} ", mode_label), Style::default().fg(Color::Black).bg(Color::Yellow)),
+        Span::styled(
+            format!(" {} ", mode_label),
+            Style::default().fg(Color::Black).bg(Color::Yellow),
+        ),
         Span::styled(" ", Style::default()),
         Span::styled(&search.query, Style::default().fg(Color::White)),
-        Span::styled("\u{2588}", Style::default().fg(Color::Gray).add_modifier(Modifier::SLOW_BLINK)),
+        Span::styled(
+            "\u{2588}",
+            Style::default()
+                .fg(Color::Gray)
+                .add_modifier(Modifier::SLOW_BLINK),
+        ),
         Span::styled(match_info, Style::default().fg(match_color)),
     ]);
 
     let title = " Search (Ctrl+R: mode) ";
-    let block =
-        Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(title);
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Yellow))
+        .title(title);
     let paragraph = Paragraph::new(search_line).block(block);
     frame.render_widget(paragraph, popup);
 }
@@ -91,7 +101,11 @@ pub fn apply_search_highlights<'a>(
             _ => continue,
         };
 
-        let base_style = lines[row].spans.first().map(|s| s.style).unwrap_or_default();
+        let base_style = lines[row]
+            .spans
+            .first()
+            .map(|s| s.style)
+            .unwrap_or_default();
         original_styles[row] = Some(base_style);
 
         let mut spans = Vec::new();

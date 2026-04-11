@@ -1,6 +1,6 @@
 //! Fuzzy finder state.
 
-use crate::score::{fuzzy_score, ScoredMatch};
+use crate::score::{ScoredMatch, fuzzy_score};
 use crate::types::{FuzzyCandidate, FuzzySource};
 
 pub struct FuzzyState {
@@ -31,7 +31,11 @@ impl FuzzyState {
             self.results = candidates
                 .iter()
                 .enumerate()
-                .map(|(i, _)| ScoredMatch { index: i, score: 0, positions: vec![] })
+                .map(|(i, _)| ScoredMatch {
+                    index: i,
+                    score: 0,
+                    positions: vec![],
+                })
                 .collect();
         } else {
             let mut scored: Vec<ScoredMatch> = candidates
@@ -73,5 +77,7 @@ impl FuzzyState {
 }
 
 impl Default for FuzzyState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

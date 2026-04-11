@@ -122,7 +122,9 @@ impl TreeView {
             .map(|(i, (label, _, depth))| {
                 let indent = "  ".repeat(*depth);
                 let style = if i == self.model.selected {
-                    Style::default().bg(ratatui::style::Color::DarkGray).add_modifier(ratatui::style::Modifier::BOLD)
+                    Style::default()
+                        .bg(ratatui::style::Color::DarkGray)
+                        .add_modifier(ratatui::style::Modifier::BOLD)
                 } else {
                     Style::default()
                 };

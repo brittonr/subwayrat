@@ -109,7 +109,11 @@ impl TextSelection {
                 break;
             }
             let line = &rendered_lines[row];
-            let col_start = if row == start.row { start.col.min(line.len()) } else { 0 };
+            let col_start = if row == start.row {
+                start.col.min(line.len())
+            } else {
+                0
+            };
             let col_end = if row == end.row {
                 end.col.min(line.len())
             } else {
@@ -151,7 +155,11 @@ impl TextSelection {
 ///
 /// Returns `(logical_line, col_offset)` where `col_offset` accounts for
 /// wrapped continuation lines within a single logical line.
-pub fn visual_to_logical(visual_pos: usize, rendered_lines: &[String], inner_width: usize) -> Option<(usize, usize)> {
+pub fn visual_to_logical(
+    visual_pos: usize,
+    rendered_lines: &[String],
+    inner_width: usize,
+) -> Option<(usize, usize)> {
     use unicode_width::UnicodeWidthStr;
 
     if rendered_lines.is_empty() {

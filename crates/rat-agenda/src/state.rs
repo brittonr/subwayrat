@@ -51,9 +51,7 @@ impl AgendaState {
     /// Get the date range for the current view.
     pub fn visible_range(&self) -> DateRange {
         match self.view_mode {
-            ViewMode::Day => {
-                DateRange::new(self.selected_date, self.selected_date.next_day())
-            }
+            ViewMode::Day => DateRange::new(self.selected_date, self.selected_date.next_day()),
             ViewMode::Week => {
                 let start = self.selected_date.week_start();
                 DateRange::new(start, start.add_days(7))
@@ -110,9 +108,17 @@ mod tests {
 
     fn make_item(id: &str, date: Date, time: Option<Time>, priority: Option<char>) -> AgendaItem {
         AgendaItem {
-            id: id.into(), title: id.into(), status: None, priority,
-            tags: vec![], scheduled: Some(date), deadline: None,
-            time_start: time, time_end: None, source_file: None, source_line: None,
+            id: id.into(),
+            title: id.into(),
+            status: None,
+            priority,
+            tags: vec![],
+            scheduled: Some(date),
+            deadline: None,
+            time_start: time,
+            time_end: None,
+            source_file: None,
+            source_line: None,
         }
     }
 

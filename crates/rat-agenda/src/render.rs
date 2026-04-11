@@ -29,7 +29,9 @@ pub struct AgendaStyle {
 impl Default for AgendaStyle {
     fn default() -> Self {
         Self {
-            day_header: Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            day_header: Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
             time_slot: Style::default().fg(Color::DarkGray),
             priority_a: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
             priority_b: Style::default().fg(Color::Yellow),
@@ -37,7 +39,9 @@ impl Default for AgendaStyle {
             todo_style: Style::default().fg(Color::Red),
             done_style: Style::default().fg(Color::Green),
             tags: Style::default().fg(Color::DarkGray),
-            today: Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            today: Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
             selected: Style::default().bg(Color::Rgb(40, 40, 60)),
             dimmed: Style::default().fg(Color::DarkGray),
             body: Style::default(),
@@ -91,8 +95,18 @@ fn render_day_view(area: Rect, buf: &mut Buffer, state: &AgendaState, style: &Ag
     let is_today = date == state.today;
 
     // Header
-    let header_style = if is_today { style.today } else { style.day_header };
-    let header = format!("{} {} {} {}", date.weekday_name(), date.day, date.month_name(), date.year);
+    let header_style = if is_today {
+        style.today
+    } else {
+        style.day_header
+    };
+    let header = format!(
+        "{} {} {} {}",
+        date.weekday_name(),
+        date.day,
+        date.month_name(),
+        date.year
+    );
     let header_line = Line::from(Span::styled(header, header_style));
     buf.set_line(area.x, area.y, &header_line, area.width);
 
@@ -147,7 +161,12 @@ fn render_week_view(area: Rect, buf: &mut Buffer, state: &AgendaState, style: &A
             style.day_header
         };
         let header = format!("{} {}", date.weekday_name(), date.day);
-        buf.set_line(col_area.x, col_area.y, &Line::from(Span::styled(header, header_style)), col_width);
+        buf.set_line(
+            col_area.x,
+            col_area.y,
+            &Line::from(Span::styled(header, header_style)),
+            col_width,
+        );
 
         // Items for this day
         let items = state.items_for_date(date);
@@ -181,13 +200,23 @@ fn render_month_view(area: Rect, buf: &mut Buffer, state: &AgendaState, style: &
 
     // Month/year header
     let header = format!("{} {}", first.month_name(), first.year);
-    buf.set_line(area.x, area.y, &Line::from(Span::styled(header, style.day_header)), area.width);
+    buf.set_line(
+        area.x,
+        area.y,
+        &Line::from(Span::styled(header, style.day_header)),
+        area.width,
+    );
 
     // Day name headers
     let day_names = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
     for (i, name) in day_names.iter().enumerate() {
         let x = area.x + (i as u16) * col_width;
-        buf.set_line(x, area.y + 1, &Line::from(Span::styled(*name, style.day_header)), col_width);
+        buf.set_line(
+            x,
+            area.y + 1,
+            &Line::from(Span::styled(*name, style.day_header)),
+            col_width,
+        );
     }
 
     // Day cells
@@ -220,7 +249,12 @@ fn render_month_view(area: Rect, buf: &mut Buffer, state: &AgendaState, style: &
         } else {
             format!("{:2}    ", day)
         };
-        buf.set_line(x, y, &Line::from(Span::styled(label, cell_style)), col_width);
+        buf.set_line(
+            x,
+            y,
+            &Line::from(Span::styled(label, cell_style)),
+            col_width,
+        );
     }
 }
 

@@ -4,8 +4,6 @@
 //! navigation between matches. Supports both exact substring
 //! (case-insensitive, smart-case) and fuzzy (subsequence) matching.
 
-
-
 /// A single match location in the output
 #[derive(Debug, Clone)]
 pub struct SearchMatch {
@@ -214,8 +212,6 @@ impl OutputSearch {
             }
         }
     }
-
-
 }
 
 /// Find the byte range of a fuzzy (subsequence) match.
@@ -245,8 +241,6 @@ fn fuzzy_match_range(haystack: &str, needle_chars: &[char]) -> Option<(usize, us
 
     None
 }
-
-
 
 // ---------------------------------------------------------------------------
 // Tests

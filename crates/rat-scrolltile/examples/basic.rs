@@ -1,4 +1,4 @@
-use rat_scrolltile::{compute_layout, nav, SizeConstraint, Strip, StripConfig};
+use rat_scrolltile::{SizeConstraint, Strip, StripConfig, compute_layout, nav};
 
 fn main() {
     let mut strip = Strip::new(StripConfig::default());

@@ -69,10 +69,8 @@ pub fn build_heading_index(
     let mut index = Vec::new();
     // Build a quick lookup: (line, level) → FoldState from the previous index
     // so that editing doesn't reset all folds.
-    let prev_folds: std::collections::HashMap<(usize, usize), FoldState> = prev
-        .iter()
-        .map(|h| ((h.line, h.level), h.fold))
-        .collect();
+    let prev_folds: std::collections::HashMap<(usize, usize), FoldState> =
+        prev.iter().map(|h| ((h.line, h.level), h.fold)).collect();
 
     for (line_num, line_text) in lines.iter().enumerate() {
         if let Some(parsed) = parser.parse_line(line_text) {
@@ -101,7 +99,11 @@ pub fn heading_at_or_before(headings: &[HeadingInfo], line: usize) -> Option<usi
 /// Return the line range (start..end exclusive) of the subtree rooted at
 /// heading index `idx`. The subtree extends until the next heading at the
 /// same or higher level, or end of document.
-pub fn subtree_range(headings: &[HeadingInfo], idx: usize, total_lines: usize) -> std::ops::Range<usize> {
+pub fn subtree_range(
+    headings: &[HeadingInfo],
+    idx: usize,
+    total_lines: usize,
+) -> std::ops::Range<usize> {
     let start = headings[idx].line;
     let level = headings[idx].level;
     let end = headings[idx + 1..]

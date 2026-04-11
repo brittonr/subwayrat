@@ -140,7 +140,14 @@ pub fn to_org_table(grid: &Grid) -> String {
         // Insert separator after header row
         if r == 0 {
             let sep_parts: Vec<String> = col_widths.iter().map(|&w| "-".repeat(w)).collect();
-            lines.push(format!("|{}|", sep_parts.iter().map(|s| format!("-{}-", s)).collect::<Vec<_>>().join("+")));
+            lines.push(format!(
+                "|{}|",
+                sep_parts
+                    .iter()
+                    .map(|s| format!("-{}-", s))
+                    .collect::<Vec<_>>()
+                    .join("+")
+            ));
         }
     }
 
@@ -224,7 +231,9 @@ pub fn translate_formula(org_formula: &str, current_row: usize) -> String {
 
 /// Convert 1-indexed column number to letter(s): 1→A, 2→B, 26→Z, 27→AA.
 fn col_letter(n: usize) -> String {
-    if n == 0 { return "A".into(); }
+    if n == 0 {
+        return "A".into();
+    }
     let idx = n - 1;
     if idx < 26 {
         ((idx as u8 + b'A') as char).to_string()
@@ -253,8 +262,12 @@ mod tests {
     fn parse_numeric_detection() {
         let input = "| x |\n| 42 |\n| 3.14 |";
         let grid = from_org_table(input).unwrap();
-        assert!(matches!(grid.get(CellAddr { col: 0, row: 1 }), CellValue::Number(n) if *n == 42.0));
-        assert!(matches!(grid.get(CellAddr { col: 0, row: 2 }), CellValue::Number(n) if (*n - 3.14).abs() < 0.001));
+        assert!(
+            matches!(grid.get(CellAddr { col: 0, row: 1 }), CellValue::Number(n) if *n == 42.0)
+        );
+        assert!(
+            matches!(grid.get(CellAddr { col: 0, row: 2 }), CellValue::Number(n) if (*n - 3.14).abs() < 0.001)
+        );
     }
 
     #[test]
@@ -262,7 +275,10 @@ mod tests {
         let input = "| a |  | c |";
         let grid = from_org_table(input).unwrap();
         assert_eq!(grid.col_count(), 3);
-        assert!(matches!(grid.get(CellAddr { col: 1, row: 0 }), CellValue::Empty));
+        assert!(matches!(
+            grid.get(CellAddr { col: 1, row: 0 }),
+            CellValue::Empty
+        ));
     }
 
     #[test]

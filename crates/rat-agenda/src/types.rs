@@ -21,7 +21,8 @@ impl Date {
         if self.month < 3 {
             y -= 1;
         }
-        let dow = (y + y / 4 - y / 100 + y / 400 + t[(self.month - 1) as usize] + self.day as i32) % 7;
+        let dow =
+            (y + y / 4 - y / 100 + y / 400 + t[(self.month - 1) as usize] + self.day as i32) % 7;
         // Convert from Sunday=0 to Monday=0
         ((dow + 6) % 7) as u32
     }
@@ -46,24 +47,52 @@ impl Date {
     pub fn next_day(self) -> Self {
         let dim = self.days_in_month();
         if self.day < dim {
-            Self { day: self.day + 1, ..self }
+            Self {
+                day: self.day + 1,
+                ..self
+            }
         } else if self.month < 12 {
-            Self { month: self.month + 1, day: 1, ..self }
+            Self {
+                month: self.month + 1,
+                day: 1,
+                ..self
+            }
         } else {
-            Self { year: self.year + 1, month: 1, day: 1 }
+            Self {
+                year: self.year + 1,
+                month: 1,
+                day: 1,
+            }
         }
     }
 
     /// Go back by one day.
     pub fn prev_day(self) -> Self {
         if self.day > 1 {
-            Self { day: self.day - 1, ..self }
+            Self {
+                day: self.day - 1,
+                ..self
+            }
         } else if self.month > 1 {
-            let prev_month = Self { month: self.month - 1, day: 1, ..self };
-            Self { day: prev_month.days_in_month(), ..prev_month }
+            let prev_month = Self {
+                month: self.month - 1,
+                day: 1,
+                ..self
+            };
+            Self {
+                day: prev_month.days_in_month(),
+                ..prev_month
+            }
         } else {
-            let prev_year = Self { year: self.year - 1, month: 12, day: 1 };
-            Self { day: prev_year.days_in_month(), ..prev_year }
+            let prev_year = Self {
+                year: self.year - 1,
+                month: 12,
+                day: 1,
+            };
+            Self {
+                day: prev_year.days_in_month(),
+                ..prev_year
+            }
         }
     }
 
@@ -71,9 +100,13 @@ impl Date {
     pub fn add_days(self, n: i32) -> Self {
         let mut d = self;
         if n >= 0 {
-            for _ in 0..n { d = d.next_day(); }
+            for _ in 0..n {
+                d = d.next_day();
+            }
         } else {
-            for _ in 0..(-n) { d = d.prev_day(); }
+            for _ in 0..(-n) {
+                d = d.prev_day();
+            }
         }
         d
     }
@@ -85,14 +118,22 @@ impl Date {
 
     /// Next month, same day (clamped).
     pub fn next_month(self) -> Self {
-        let (y, m) = if self.month == 12 { (self.year + 1, 1) } else { (self.year, self.month + 1) };
+        let (y, m) = if self.month == 12 {
+            (self.year + 1, 1)
+        } else {
+            (self.year, self.month + 1)
+        };
         let dim = Date::new(y, m, 1).days_in_month();
         Date::new(y, m, self.day.min(dim))
     }
 
     /// Previous month, same day (clamped).
     pub fn prev_month(self) -> Self {
-        let (y, m) = if self.month == 1 { (self.year - 1, 12) } else { (self.year, self.month - 1) };
+        let (y, m) = if self.month == 1 {
+            (self.year - 1, 12)
+        } else {
+            (self.year, self.month - 1)
+        };
         let dim = Date::new(y, m, 1).days_in_month();
         Date::new(y, m, self.day.min(dim))
     }
@@ -111,9 +152,18 @@ impl Date {
     /// Short month name.
     pub fn month_name(&self) -> &'static str {
         match self.month {
-            1 => "Jan", 2 => "Feb", 3 => "Mar", 4 => "Apr",
-            5 => "May", 6 => "Jun", 7 => "Jul", 8 => "Aug",
-            9 => "Sep", 10 => "Oct", 11 => "Nov", 12 => "Dec",
+            1 => "Jan",
+            2 => "Feb",
+            3 => "Mar",
+            4 => "Apr",
+            5 => "May",
+            6 => "Jun",
+            7 => "Jul",
+            8 => "Aug",
+            9 => "Sep",
+            10 => "Oct",
+            11 => "Nov",
+            12 => "Dec",
             _ => "???",
         }
     }
@@ -121,8 +171,14 @@ impl Date {
     /// Short day-of-week name.
     pub fn weekday_name(&self) -> &'static str {
         match self.weekday() {
-            0 => "Mon", 1 => "Tue", 2 => "Wed", 3 => "Thu",
-            4 => "Fri", 5 => "Sat", 6 => "Sun", _ => "???",
+            0 => "Mon",
+            1 => "Tue",
+            2 => "Wed",
+            3 => "Thu",
+            4 => "Fri",
+            5 => "Sat",
+            6 => "Sun",
+            _ => "???",
         }
     }
 }
@@ -136,7 +192,10 @@ pub struct Time {
 
 impl Time {
     pub fn new(hour: u8, minute: u8) -> Self {
-        Self { hour: hour.min(23), minute: minute.min(59) }
+        Self {
+            hour: hour.min(23),
+            minute: minute.min(59),
+        }
     }
 
     pub fn to_string(&self) -> String {
@@ -245,14 +304,30 @@ mod tests {
     fn vec_data_source() {
         let items = vec![
             AgendaItem {
-                id: "1".into(), title: "A".into(), status: None, priority: None,
-                tags: vec![], scheduled: Some(Date::new(2026, 3, 15)), deadline: None,
-                time_start: None, time_end: None, source_file: None, source_line: None,
+                id: "1".into(),
+                title: "A".into(),
+                status: None,
+                priority: None,
+                tags: vec![],
+                scheduled: Some(Date::new(2026, 3, 15)),
+                deadline: None,
+                time_start: None,
+                time_end: None,
+                source_file: None,
+                source_line: None,
             },
             AgendaItem {
-                id: "2".into(), title: "B".into(), status: None, priority: None,
-                tags: vec![], scheduled: Some(Date::new(2026, 4, 15)), deadline: None,
-                time_start: None, time_end: None, source_file: None, source_line: None,
+                id: "2".into(),
+                title: "B".into(),
+                status: None,
+                priority: None,
+                tags: vec![],
+                scheduled: Some(Date::new(2026, 4, 15)),
+                deadline: None,
+                time_start: None,
+                time_end: None,
+                source_file: None,
+                source_line: None,
             },
         ];
         let range = DateRange::new(Date::new(2026, 3, 1), Date::new(2026, 4, 1));

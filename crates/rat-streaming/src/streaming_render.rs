@@ -3,9 +3,9 @@
 //! Separated from core buffer logic to allow UI-independent testing
 //! and different front-end implementations.
 
+use crate::streaming_output::{DisplayLine, StreamingOutput};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use crate::streaming_output::{StreamingOutput, DisplayLine};
 
 /// Render lines for the inline chat view.
 ///
@@ -15,9 +15,15 @@ use crate::streaming_output::{StreamingOutput, DisplayLine};
 ///
 /// `visible_height` is how many lines of output to show (not counting
 /// the stats footer).
-pub fn render_streaming_lines<'a>(output: &mut StreamingOutput, visible_height: usize, border_style: Style) -> Vec<Line<'a>> {
+pub fn render_streaming_lines<'a>(
+    output: &mut StreamingOutput,
+    visible_height: usize,
+    border_style: Style,
+) -> Vec<Line<'a>> {
     let output_style = Style::default().fg(Color::DarkGray);
-    let omit_style = Style::default().fg(Color::DarkGray).add_modifier(Modifier::DIM);
+    let omit_style = Style::default()
+        .fg(Color::DarkGray)
+        .add_modifier(Modifier::DIM);
 
     // Build the full logical line list.
     let display_count = output.display_line_count();
@@ -56,9 +62,15 @@ pub fn render_streaming_lines<'a>(output: &mut StreamingOutput, visible_height: 
 
 /// Render a compact stats footer line.
 pub fn render_streaming_stats<'a>(output: &StreamingOutput, border_style: Style) -> Line<'a> {
-    let stats_style = Style::default().fg(Color::DarkGray).add_modifier(Modifier::DIM);
+    let stats_style = Style::default()
+        .fg(Color::DarkGray)
+        .add_modifier(Modifier::DIM);
 
-    let follow_indicator = if output.auto_follow() { "↓follow" } else { "scroll" };
+    let follow_indicator = if output.auto_follow() {
+        "↓follow"
+    } else {
+        "scroll"
+    };
     let truncated = if output.omitted() > 0 {
         format!(" ({} omitted)", output.omitted())
     } else {

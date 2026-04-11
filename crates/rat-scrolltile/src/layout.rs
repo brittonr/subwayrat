@@ -33,7 +33,11 @@ pub struct LayoutResult {
 ///
 /// `total` is the available space. `gap` is the space between items.
 /// Returns a vec of resolved sizes, one per constraint.
-pub(crate) fn resolve_constraints(constraints: &[SizeConstraint], total: u16, gap: u16) -> Vec<u16> {
+pub(crate) fn resolve_constraints(
+    constraints: &[SizeConstraint],
+    total: u16,
+    gap: u16,
+) -> Vec<u16> {
     let n = constraints.len();
     if n == 0 {
         return Vec::new();

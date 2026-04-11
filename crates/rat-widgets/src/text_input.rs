@@ -104,7 +104,7 @@ impl TextInputModel {
         };
 
         let matches = completer(&self.value);
-        
+
         match matches.len() {
             0 => Vec::new(),
             1 => {
@@ -350,17 +350,15 @@ fn longest_common_prefix(strings: &[String]) -> String {
 
     let mut prefix = String::new();
     let first_chars: Vec<char> = strings[0].chars().collect();
-    
+
     for (i, &ch) in first_chars.iter().enumerate() {
-        if strings.iter().skip(1).all(|s| {
-            s.chars().nth(i) == Some(ch)
-        }) {
+        if strings.iter().skip(1).all(|s| s.chars().nth(i) == Some(ch)) {
             prefix.push(ch);
         } else {
             break;
         }
     }
-    
+
     prefix
 }
 
@@ -560,7 +558,11 @@ mod tests {
         let mut input = TextInput::new()
             .with_value("he")
             .with_completer(Box::new(|s| {
-                if s.starts_with("he") { vec!["hello".to_string()] } else { vec![] }
+                if s.starts_with("he") {
+                    vec!["hello".to_string()]
+                } else {
+                    vec![]
+                }
             }));
         let matches = input.complete();
         assert_eq!(matches, vec!["hello"]);
@@ -573,10 +575,14 @@ mod tests {
         let mut input = TextInput::new()
             .with_value("te")
             .with_completer(Box::new(|s| {
-                if s.starts_with("te") { 
-                    vec!["test".to_string(), "testing".to_string(), "temp".to_string()] 
-                } else { 
-                    vec![] 
+                if s.starts_with("te") {
+                    vec![
+                        "test".to_string(),
+                        "testing".to_string(),
+                        "temp".to_string(),
+                    ]
+                } else {
+                    vec![]
                 }
             }));
         let matches = input.complete();
@@ -589,10 +595,10 @@ mod tests {
         let mut input = TextInput::new()
             .with_value("test")
             .with_completer(Box::new(|s| {
-                if s.starts_with("test") { 
-                    vec!["testing".to_string(), "tester".to_string()] 
-                } else { 
-                    vec![] 
+                if s.starts_with("test") {
+                    vec!["testing".to_string(), "tester".to_string()]
+                } else {
+                    vec![]
                 }
             }));
         let matches = input.complete();
@@ -613,7 +619,11 @@ mod tests {
     #[test]
     fn longest_common_prefix_multiple() {
         assert_eq!(
-            longest_common_prefix(&["test".to_string(), "testing".to_string(), "tester".to_string()]),
+            longest_common_prefix(&[
+                "test".to_string(),
+                "testing".to_string(),
+                "tester".to_string()
+            ]),
             "test"
         );
     }

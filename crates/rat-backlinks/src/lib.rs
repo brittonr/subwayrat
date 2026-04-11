@@ -55,9 +55,13 @@ pub struct BacklinksState {
 impl BacklinksState {
     pub fn new() -> Self {
         Self {
-            target_id: String::new(), target_label: String::new(),
-            backlinks: Vec::new(), groups: Vec::new(),
-            selected: 0, scroll_offset: 0, context_lines: 1,
+            target_id: String::new(),
+            target_label: String::new(),
+            backlinks: Vec::new(),
+            groups: Vec::new(),
+            selected: 0,
+            scroll_offset: 0,
+            context_lines: 1,
             jump_result: None,
         }
     }
@@ -75,7 +79,9 @@ impl BacklinksState {
         self.jump_result.take()
     }
 
-    pub fn total_count(&self) -> usize { self.backlinks.len() }
+    pub fn total_count(&self) -> usize {
+        self.backlinks.len()
+    }
 
     fn rebuild_groups(&mut self) {
         let mut file_map: HashMap<String, Vec<usize>> = HashMap::new();
@@ -86,7 +92,9 @@ impl BacklinksState {
             .into_iter()
             .map(|(file, indices)| FileGroup {
                 count: indices.len(),
-                file, collapsed: false, entry_indices: indices,
+                file,
+                collapsed: false,
+                entry_indices: indices,
             })
             .collect();
         self.groups.sort_by(|a, b| a.file.cmp(&b.file));
@@ -109,7 +117,9 @@ impl BacklinksState {
 }
 
 impl Default for BacklinksState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -117,7 +127,12 @@ impl Default for BacklinksState {
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    SelectNext, SelectPrev, ToggleGroup, Jump, ScrollUp, ScrollDown,
+    SelectNext,
+    SelectPrev,
+    ToggleGroup,
+    Jump,
+    ScrollUp,
+    ScrollDown,
 }
 
 pub fn handle_action(state: &mut BacklinksState, action: Action) {
@@ -143,8 +158,12 @@ pub fn handle_action(state: &mut BacklinksState, action: Action) {
                 }
             }
         }
-        Action::ScrollUp => { state.scroll_offset = state.scroll_offset.saturating_sub(1); }
-        Action::ScrollDown => { state.scroll_offset += 1; }
+        Action::ScrollUp => {
+            state.scroll_offset = state.scroll_offset.saturating_sub(1);
+        }
+        Action::ScrollDown => {
+            state.scroll_offset += 1;
+        }
     }
 }
 
@@ -165,13 +184,19 @@ pub struct BacklinksStyle {
 impl Default for BacklinksStyle {
     fn default() -> Self {
         Self {
-            file_header: Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            file_header: Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
             line_number: Style::default().fg(Color::DarkGray),
             context_dimmed: Style::default().fg(Color::Rgb(100, 100, 100)),
-            link_highlight: Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED),
+            link_highlight: Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::UNDERLINED),
             selected: Style::default().bg(Color::Rgb(40, 40, 60)),
             collapse_indicator: Style::default().fg(Color::DarkGray),
-            title: Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            title: Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
             body: Style::default(),
         }
     }
@@ -185,21 +210,31 @@ pub struct BacklinksPanel<'a> {
 }
 
 impl<'a> BacklinksPanel<'a> {
-    pub fn new(style: BacklinksStyle) -> Self { Self { style, block: None } }
-    pub fn block(mut self, block: Block<'a>) -> Self { self.block = Some(block); self }
+    pub fn new(style: BacklinksStyle) -> Self {
+        Self { style, block: None }
+    }
+    pub fn block(mut self, block: Block<'a>) -> Self {
+        self.block = Some(block);
+        self
+    }
 }
 
 impl StatefulWidget for BacklinksPanel<'_> {
     type State = BacklinksState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let title = format!("Backlinks: {} ({})", state.target_label, state.total_count());
-        let block = self.block.unwrap_or_else(|| Block::default())
-            .title(title);
+        let title = format!(
+            "Backlinks: {} ({})",
+            state.target_label,
+            state.total_count()
+        );
+        let block = self.block.unwrap_or_else(|| Block::default()).title(title);
         let inner = block.inner(area);
         block.render(area, buf);
 
-        if inner.width == 0 || inner.height == 0 { return; }
+        if inner.width == 0 || inner.height == 0 {
+            return;
+        }
 
         let rows = state.visible_rows();
         let visible_height = inner.height as usize;
@@ -212,7 +247,8 @@ impl StatefulWidget for BacklinksPanel<'_> {
             state.scroll_offset = state.selected.saturating_sub(visible_height - 1);
         }
 
-        let display = &rows[state.scroll_offset..rows.len().min(state.scroll_offset + visible_height)];
+        let display =
+            &rows[state.scroll_offset..rows.len().min(state.scroll_offset + visible_height)];
 
         for (row_i, &(gi, entry)) in display.iter().enumerate() {
             let y = inner.y + row_i as u16;
@@ -231,14 +267,18 @@ impl StatefulWidget for BacklinksPanel<'_> {
                     let indicator = if group.collapsed { "▶" } else { "▼" };
                     let line = Line::from(vec![
                         Span::styled(format!("{} ", indicator), self.style.collapse_indicator),
-                        Span::styled(format!("{} ({})", group.file, group.count), self.style.file_header),
+                        Span::styled(
+                            format!("{} ({})", group.file, group.count),
+                            self.style.file_header,
+                        ),
                     ]);
                     buf.set_line(inner.x, y, &line, inner.width);
                 }
                 Some(ei) => {
                     if let Some(bl) = state.backlinks.get(ei) {
                         // Context line with link highlighted
-                        let line_num = Span::styled(format!("{:4} ", bl.source_line), self.style.line_number);
+                        let line_num =
+                            Span::styled(format!("{:4} ", bl.source_line), self.style.line_number);
                         let context = highlight_link(&bl.context_line, &bl.link_text, &self.style);
                         let mut spans = vec![Span::raw("  "), line_num];
                         spans.extend(context);
@@ -269,22 +309,31 @@ mod tests {
     fn sample_backlinks() -> Vec<Backlink> {
         vec![
             Backlink {
-                source_file: "notes.org".into(), source_heading: Some("Meeting".into()),
-                source_line: 42, context_before: "previous".into(),
+                source_file: "notes.org".into(),
+                source_heading: Some("Meeting".into()),
+                source_line: 42,
+                context_before: "previous".into(),
                 context_line: "see [[Ship docs]] for details".into(),
-                context_after: "next line".into(), link_text: "Ship docs".into(),
+                context_after: "next line".into(),
+                link_text: "Ship docs".into(),
             },
             Backlink {
-                source_file: "notes.org".into(), source_heading: None,
-                source_line: 88, context_before: "".into(),
+                source_file: "notes.org".into(),
+                source_heading: None,
+                source_line: 88,
+                context_before: "".into(),
                 context_line: "related to [[Ship docs]]".into(),
-                context_after: "".into(), link_text: "Ship docs".into(),
+                context_after: "".into(),
+                link_text: "Ship docs".into(),
             },
             Backlink {
-                source_file: "projects.org".into(), source_heading: None,
-                source_line: 10, context_before: "".into(),
+                source_file: "projects.org".into(),
+                source_heading: None,
+                source_line: 10,
+                context_before: "".into(),
                 context_line: "depends on [[Ship docs]]".into(),
-                context_after: "".into(), link_text: "Ship docs".into(),
+                context_after: "".into(),
+                link_text: "Ship docs".into(),
             },
         ]
     }
@@ -308,7 +357,10 @@ mod tests {
         state.selected = 0;
         handle_action(&mut state, Action::ToggleGroup);
         let rows_after = state.visible_rows().len();
-        assert!(rows_after < rows_before, "collapsing should reduce visible rows");
+        assert!(
+            rows_after < rows_before,
+            "collapsing should reduce visible rows"
+        );
     }
 
     #[test]

@@ -30,15 +30,15 @@
 //! // }
 //! ```
 
-pub mod model;
-pub mod state;
-pub mod navigation;
 pub mod keymap;
+pub mod model;
+pub mod navigation;
 pub mod render;
+pub mod state;
 pub mod style;
 
-pub use model::{TreeData, SimpleTree, VisibleRow, compute_visible_rows};
-pub use state::TreeState;
 pub use keymap::{TreeAction, default_keymap, parse_tree_action};
+pub use model::{SimpleTree, TreeData, VisibleRow, compute_visible_rows};
 pub use render::{Tree, TreeInfo};
+pub use state::TreeState;
 pub use style::TreeStyle;

@@ -68,7 +68,9 @@ where
         for (mode, mode_overrides) in overrides {
             let mode_map = keymap.modes.entry(mode.clone()).or_default();
             for (key_str, action_str) in mode_overrides {
-                if let (Some(combo), Some(action)) = (parse_key_string(key_str), parse_action(action_str)) {
+                if let (Some(combo), Some(action)) =
+                    (parse_key_string(key_str), parse_action(action_str))
+                {
                     mode_map.insert(combo, action);
                 }
             }
@@ -166,7 +168,10 @@ mod tests {
         );
 
         let event = KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE);
-        assert_eq!(keymap.resolve(&TestMode::Normal, &event), Some(TestAction::MoveUp));
+        assert_eq!(
+            keymap.resolve(&TestMode::Normal, &event),
+            Some(TestAction::MoveUp)
+        );
 
         // Different mode should return None
         assert_eq!(keymap.resolve(&TestMode::Insert, &event), None);
@@ -201,27 +206,34 @@ mod tests {
             }),
         ];
 
-        let overrides = vec![
-            (TestMode::Normal, {
-                let mut map = HashMap::new();
-                map.insert("q".to_string(), "quit".to_string());
-                map
-            }),
-        ];
+        let overrides = vec![(TestMode::Normal, {
+            let mut map = HashMap::new();
+            map.insert("q".to_string(), "quit".to_string());
+            map
+        })];
 
         let keymap = Keymap::build(mode_bindings, &overrides, test_parse_action);
 
         // Test original binding
         let k_event = KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE);
-        assert_eq!(keymap.resolve(&TestMode::Normal, &k_event), Some(TestAction::MoveUp));
+        assert_eq!(
+            keymap.resolve(&TestMode::Normal, &k_event),
+            Some(TestAction::MoveUp)
+        );
 
         // Test override
         let q_event = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
-        assert_eq!(keymap.resolve(&TestMode::Normal, &q_event), Some(TestAction::Quit));
+        assert_eq!(
+            keymap.resolve(&TestMode::Normal, &q_event),
+            Some(TestAction::Quit)
+        );
 
         // Test insert mode binding
         let enter_event = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
-        assert_eq!(keymap.resolve(&TestMode::Insert, &enter_event), Some(TestAction::Submit));
+        assert_eq!(
+            keymap.resolve(&TestMode::Insert, &enter_event),
+            Some(TestAction::Submit)
+        );
     }
 
     #[test]
@@ -254,7 +266,7 @@ mod tests {
     #[test]
     fn mode_management() {
         let mut keymap = Keymap::new();
-        
+
         // Initially no modes
         assert_eq!(keymap.modes().count(), 0);
         assert!(!keymap.has_mode(&TestMode::Normal));
@@ -287,7 +299,10 @@ mod tests {
         );
 
         let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
-        assert_eq!(keymap.resolve(&TestMode::Normal, &ctrl_c), Some(TestAction::Quit));
+        assert_eq!(
+            keymap.resolve(&TestMode::Normal, &ctrl_c),
+            Some(TestAction::Quit)
+        );
 
         let plain_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE);
         assert_eq!(keymap.resolve(&TestMode::Normal, &plain_c), None);

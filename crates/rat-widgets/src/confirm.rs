@@ -53,7 +53,9 @@ impl ConfirmDialog {
             .border_style(Style::default().fg(Color::Yellow));
 
         let yes_style = if self.selected {
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::DarkGray)
         };
@@ -66,10 +68,15 @@ impl ConfirmDialog {
         let content = vec![
             Line::from(self.message.clone()),
             Line::from(""),
-            Line::from(vec![Span::styled("  [Yes] ", yes_style), Span::styled("  [No] ", no_style)]),
+            Line::from(vec![
+                Span::styled("  [Yes] ", yes_style),
+                Span::styled("  [No] ", no_style),
+            ]),
         ];
 
-        let paragraph = Paragraph::new(content).block(block).wrap(Wrap { trim: true });
+        let paragraph = Paragraph::new(content)
+            .block(block)
+            .wrap(Wrap { trim: true });
         frame.render_widget(paragraph, popup);
     }
 

@@ -13,12 +13,15 @@ pub trait TreeNode {
 pub fn walk_to_root<N: TreeNode>(leaf_id: usize, nodes: &[N]) -> Vec<usize> {
     let mut path = Vec::new();
     let mut current = Some(leaf_id);
-    
+
     while let Some(id) = current {
         path.push(id);
-        current = nodes.iter().find(|n| n.id() == id).and_then(|n| n.parent_id());
+        current = nodes
+            .iter()
+            .find(|n| n.id() == id)
+            .and_then(|n| n.parent_id());
     }
-    
+
     path.reverse();
     path
 }
@@ -27,7 +30,7 @@ pub fn walk_to_root<N: TreeNode>(leaf_id: usize, nodes: &[N]) -> Vec<usize> {
 /// Returns the parent node ID that has multiple children.
 pub fn find_divergence<N: TreeNode>(leaf_id: usize, nodes: &[N]) -> Option<usize> {
     let mut current = Some(leaf_id);
-    
+
     while let Some(id) = current {
         let node = nodes.iter().find(|n| n.id() == id)?;
         if let Some(parent_id) = node.parent_id() {
@@ -39,16 +42,17 @@ pub fn find_divergence<N: TreeNode>(leaf_id: usize, nodes: &[N]) -> Option<usize
         }
         current = node.parent_id();
     }
-    
+
     None
 }
 
 /// Find all leaf node IDs (nodes with no children)
 pub fn find_leaves<N: TreeNode>(nodes: &[N]) -> Vec<usize> {
-    let has_children: std::collections::HashSet<usize> = 
+    let has_children: std::collections::HashSet<usize> =
         nodes.iter().filter_map(|n| n.parent_id()).collect();
-    
-    nodes.iter()
+
+    nodes
+        .iter()
         .map(|n| n.id())
         .filter(|&id| !has_children.contains(&id))
         .collect()
@@ -56,7 +60,8 @@ pub fn find_leaves<N: TreeNode>(nodes: &[N]) -> Vec<usize> {
 
 /// Count direct children of a parent node
 pub fn count_children<N: TreeNode>(parent_id: usize, nodes: &[N]) -> usize {
-    nodes.iter()
+    nodes
+        .iter()
         .filter(|n| n.parent_id() == Some(parent_id))
         .count()
 }
@@ -92,9 +97,9 @@ mod tests {
     #[test]
     fn walk_to_root_linear() {
         let nodes = vec![
-            TestNode::new(0, None),           // root
-            TestNode::new(1, Some(0)),        // child
-            TestNode::new(2, Some(1)),        // grandchild
+            TestNode::new(0, None),    // root
+            TestNode::new(1, Some(0)), // child
+            TestNode::new(2, Some(1)), // grandchild
         ];
         let path = walk_to_root(2, &nodes);
         assert_eq!(path, vec![0, 1, 2]);
@@ -109,19 +114,16 @@ mod tests {
 
     #[test]
     fn find_divergence_no_branches() {
-        let nodes = vec![
-            TestNode::new(0, None),
-            TestNode::new(1, Some(0)),
-        ];
+        let nodes = vec![TestNode::new(0, None), TestNode::new(1, Some(0))];
         assert_eq!(find_divergence(1, &nodes), None);
     }
 
     #[test]
     fn find_divergence_with_fork() {
         let nodes = vec![
-            TestNode::new(0, None),           // root
-            TestNode::new(1, Some(0)),        // branch-a
-            TestNode::new(2, Some(0)),        // branch-b
+            TestNode::new(0, None),    // root
+            TestNode::new(1, Some(0)), // branch-a
+            TestNode::new(2, Some(0)), // branch-b
         ];
         // Both branches diverge at node 0
         assert_eq!(find_divergence(1, &nodes), Some(0));
@@ -131,10 +133,10 @@ mod tests {
     #[test]
     fn find_divergence_deep_fork() {
         let nodes = vec![
-            TestNode::new(0, None),           // root
-            TestNode::new(1, Some(0)),        // mid
-            TestNode::new(2, Some(1)),        // deep-a
-            TestNode::new(3, Some(1)),        // deep-b
+            TestNode::new(0, None),    // root
+            TestNode::new(1, Some(0)), // mid
+            TestNode::new(2, Some(1)), // deep-a
+            TestNode::new(3, Some(1)), // deep-b
         ];
         // deep-a and deep-b diverge at node 1
         assert_eq!(find_divergence(2, &nodes), Some(1));
@@ -144,9 +146,9 @@ mod tests {
     #[test]
     fn find_leaves_simple() {
         let nodes = vec![
-            TestNode::new(0, None),           // root (has children)
-            TestNode::new(1, Some(0)),        // leaf
-            TestNode::new(2, Some(0)),        // leaf
+            TestNode::new(0, None),    // root (has children)
+            TestNode::new(1, Some(0)), // leaf
+            TestNode::new(2, Some(0)), // leaf
         ];
         let mut leaves = find_leaves(&nodes);
         leaves.sort();
@@ -156,9 +158,9 @@ mod tests {
     #[test]
     fn find_leaves_linear() {
         let nodes = vec![
-            TestNode::new(0, None),           // root (has child)
-            TestNode::new(1, Some(0)),        // intermediate (has child)
-            TestNode::new(2, Some(1)),        // leaf
+            TestNode::new(0, None),    // root (has child)
+            TestNode::new(1, Some(0)), // intermediate (has child)
+            TestNode::new(2, Some(1)), // leaf
         ];
         let leaves = find_leaves(&nodes);
         assert_eq!(leaves, vec![2]);
@@ -166,20 +168,17 @@ mod tests {
 
     #[test]
     fn count_children_none() {
-        let nodes = vec![
-            TestNode::new(0, None),
-            TestNode::new(1, Some(0)),
-        ];
-        assert_eq!(count_children(1, &nodes), 0);  // leaf has no children
+        let nodes = vec![TestNode::new(0, None), TestNode::new(1, Some(0))];
+        assert_eq!(count_children(1, &nodes), 0); // leaf has no children
     }
 
     #[test]
     fn count_children_multiple() {
         let nodes = vec![
-            TestNode::new(0, None),           // root
-            TestNode::new(1, Some(0)),        // child 1
-            TestNode::new(2, Some(0)),        // child 2
-            TestNode::new(3, Some(0)),        // child 3
+            TestNode::new(0, None),    // root
+            TestNode::new(1, Some(0)), // child 1
+            TestNode::new(2, Some(0)), // child 2
+            TestNode::new(3, Some(0)), // child 3
         ];
         assert_eq!(count_children(0, &nodes), 3);
     }

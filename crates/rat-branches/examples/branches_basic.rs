@@ -1,7 +1,7 @@
 //! Basic example demonstrating the rat-branches API
 
-use rat_branches::tree::{find_leaves, walk_to_root, TreeNode};
-use rat_branches::compare::{compare_branches, CompareBlock, truncate_first_line};
+use rat_branches::compare::{CompareBlock, compare_branches, truncate_first_line};
+use rat_branches::tree::{TreeNode, find_leaves, walk_to_root};
 
 #[derive(Debug, Clone)]
 struct ExampleNode {
@@ -63,6 +63,9 @@ fn main() {
         println!("  Divergence at: {:?}", comparison.divergence_id);
         println!("  Branch A has {} unique nodes", comparison.branch_a.len());
         println!("  Branch B has {} unique nodes", comparison.branch_b.len());
-        println!("  Tokens: A={}, B={}", comparison.tokens_a, comparison.tokens_b);
+        println!(
+            "  Tokens: A={}, B={}",
+            comparison.tokens_a, comparison.tokens_b
+        );
     }
 }

@@ -131,7 +131,10 @@ impl StatefulWidget for Tree<'_> {
 
             // Icon (if present)
             if let Some(icon) = self.data.node_icon(vis_row.node_id) {
-                spans.push(Span::styled(format!("{icon} "), s.icon_style.patch(row_style)));
+                spans.push(Span::styled(
+                    format!("{icon} "),
+                    s.icon_style.patch(row_style),
+                ));
             }
 
             // Label

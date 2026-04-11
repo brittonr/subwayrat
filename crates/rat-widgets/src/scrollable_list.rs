@@ -4,10 +4,10 @@
 //! renders within its given [`Rect`] — suitable for main content panels like track lists,
 //! queues, and search results.
 
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, HighlightSpacing, List, ListItem, ListState};
-use ratatui::Frame;
 
 use crate::theme::WidgetTheme;
 

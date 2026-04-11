@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 ratatui = { workspace = true }
 crossterm = "0.28"
+rat-chrome = { version = "0.1.0", path = "../rat-chrome" }
 rat-widgets = { version = "0.1.0", path = "../rat-widgets" }
 rat-editor = { version = "0.1.0", path = "../rat-editor" }
 rat-diff = { version = "0.1.0", path = "../rat-diff" }

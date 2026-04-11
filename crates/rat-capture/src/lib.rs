@@ -22,8 +22,12 @@ pub struct CaptureTemplate {
 impl CaptureTemplate {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
-            name: name.into(), icon: None, target_file: None,
-            target_heading: None, initial_content: None, include_body: true,
+            name: name.into(),
+            icon: None,
+            target_file: None,
+            target_heading: None,
+            initial_content: None,
+            include_body: true,
         }
     }
 }
@@ -39,10 +43,17 @@ pub struct CaptureResult {
 // ── State ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Phase { Closed, TemplateSelect, Editing }
+pub enum Phase {
+    Closed,
+    TemplateSelect,
+    Editing,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EditFocus { Title, Body }
+pub enum EditFocus {
+    Title,
+    Body,
+}
 
 pub struct CaptureState {
     pub phase: Phase,
@@ -57,8 +68,12 @@ pub struct CaptureState {
 impl CaptureState {
     pub fn new() -> Self {
         Self {
-            phase: Phase::Closed, templates: Vec::new(), template_idx: 0,
-            title: String::new(), body_editor: Editor::new(), edit_focus: EditFocus::Title,
+            phase: Phase::Closed,
+            templates: Vec::new(),
+            template_idx: 0,
+            title: String::new(),
+            body_editor: Editor::new(),
+            edit_focus: EditFocus::Title,
             result: None,
         }
     }
@@ -77,9 +92,13 @@ impl CaptureState {
         }
     }
 
-    pub fn is_open(&self) -> bool { self.phase != Phase::Closed }
+    pub fn is_open(&self) -> bool {
+        self.phase != Phase::Closed
+    }
 
-    pub fn take_result(&mut self) -> Option<CaptureResult> { self.result.take() }
+    pub fn take_result(&mut self) -> Option<CaptureResult> {
+        self.result.take()
+    }
 
     fn selected_template(&self) -> Option<&CaptureTemplate> {
         self.templates.get(self.template_idx)
@@ -87,7 +106,9 @@ impl CaptureState {
 }
 
 impl Default for CaptureState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -95,9 +116,16 @@ impl Default for CaptureState {
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    SelectNext, SelectPrev, ConfirmTemplate, Cancel,
-    TitleChar(char), TitleBackspace, BodyChar(char), BodyBackspace,
-    FocusNext, Confirm,
+    SelectNext,
+    SelectPrev,
+    ConfirmTemplate,
+    Cancel,
+    TitleChar(char),
+    TitleBackspace,
+    BodyChar(char),
+    BodyBackspace,
+    FocusNext,
+    Confirm,
 }
 
 pub fn handle_action(state: &mut CaptureState, action: Action) {
@@ -105,7 +133,8 @@ pub fn handle_action(state: &mut CaptureState, action: Action) {
         Phase::Closed => {}
         Phase::TemplateSelect => match action {
             Action::SelectNext => {
-                state.template_idx = (state.template_idx + 1).min(state.templates.len().saturating_sub(1));
+                state.template_idx =
+                    (state.template_idx + 1).min(state.templates.len().saturating_sub(1));
             }
             Action::SelectPrev => {
                 state.template_idx = state.template_idx.saturating_sub(1);
@@ -128,18 +157,33 @@ pub fn handle_action(state: &mut CaptureState, action: Action) {
                     EditFocus::Body => EditFocus::Title,
                 };
             }
-            Action::TitleChar(c) => { state.title.push(c); }
-            Action::TitleBackspace => { state.title.pop(); }
-            Action::BodyChar(c) => { state.body_editor.insert_char(c); }
-            Action::BodyBackspace => { state.body_editor.delete_back(); }
+            Action::TitleChar(c) => {
+                state.title.push(c);
+            }
+            Action::TitleBackspace => {
+                state.title.pop();
+            }
+            Action::BodyChar(c) => {
+                state.body_editor.insert_char(c);
+            }
+            Action::BodyBackspace => {
+                state.body_editor.delete_back();
+            }
             Action::Confirm => {
                 if !state.title.trim().is_empty() {
-                    let tmpl = state.selected_template().cloned().unwrap_or_else(|| CaptureTemplate::new(""));
+                    let tmpl = state
+                        .selected_template()
+                        .cloned()
+                        .unwrap_or_else(|| CaptureTemplate::new(""));
                     let body_text = state.body_editor.content().join("\n");
                     state.result = Some(CaptureResult {
                         template: tmpl,
                         title: state.title.clone(),
-                        body: if body_text.trim().is_empty() { None } else { Some(body_text) },
+                        body: if body_text.trim().is_empty() {
+                            None
+                        } else {
+                            Some(body_text)
+                        },
                         timestamp_epoch_secs: 0, // caller sets real timestamp
                     });
                     state.phase = Phase::Closed;
@@ -167,7 +211,9 @@ impl Default for CaptureStyle {
     fn default() -> Self {
         Self {
             border: Style::default().fg(Color::Cyan),
-            title_bar: Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            title_bar: Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
             input: Style::default(),
             input_focused: Style::default().add_modifier(Modifier::REVERSED),
             template_normal: Style::default(),
@@ -188,7 +234,11 @@ pub struct CaptureOverlay {
 
 impl CaptureOverlay {
     pub fn new(style: CaptureStyle) -> Self {
-        Self { style, width_pct: 0.6, height_pct: 0.5 }
+        Self {
+            style,
+            width_pct: 0.6,
+            height_pct: 0.5,
+        }
     }
 }
 
@@ -196,7 +246,9 @@ impl StatefulWidget for CaptureOverlay {
     type State = CaptureState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        if state.phase == Phase::Closed { return; }
+        if state.phase == Phase::Closed {
+            return;
+        }
 
         let w = (area.width as f32 * self.width_pct) as u16;
         let h = (area.height as f32 * self.height_pct) as u16;
@@ -209,7 +261,11 @@ impl StatefulWidget for CaptureOverlay {
         let title = match state.phase {
             Phase::TemplateSelect => " Select Template ",
             Phase::Editing => {
-                if let Some(t) = state.selected_template() { " Capture " } else { " Capture " }
+                if let Some(t) = state.selected_template() {
+                    " Capture "
+                } else {
+                    " Capture "
+                }
             }
             Phase::Closed => "",
         };
@@ -225,9 +281,15 @@ impl StatefulWidget for CaptureOverlay {
             Phase::TemplateSelect => {
                 for (i, tmpl) in state.templates.iter().enumerate() {
                     let row = inner.y + i as u16;
-                    if row >= inner.y + inner.height { break; }
+                    if row >= inner.y + inner.height {
+                        break;
+                    }
                     let is_sel = i == state.template_idx;
-                    let sty = if is_sel { self.style.template_selected } else { self.style.template_normal };
+                    let sty = if is_sel {
+                        self.style.template_selected
+                    } else {
+                        self.style.template_normal
+                    };
                     if is_sel {
                         for cx in inner.x..inner.x + inner.width {
                             buf[(cx, row)].set_style(sty);
@@ -243,20 +305,39 @@ impl StatefulWidget for CaptureOverlay {
                 let label = Line::from(Span::styled("Title:", self.style.label));
                 buf.set_line(inner.x, inner.y, &label, inner.width);
 
-                let title_sty = if state.edit_focus == EditFocus::Title { self.style.input_focused } else { self.style.input };
+                let title_sty = if state.edit_focus == EditFocus::Title {
+                    self.style.input_focused
+                } else {
+                    self.style.input
+                };
                 let title_line = Line::from(Span::styled(format!(" {}", state.title), title_sty));
                 buf.set_line(inner.x, inner.y + 1, &title_line, inner.width);
 
                 // Body
-                if state.selected_template().map(|t| t.include_body).unwrap_or(true) {
+                if state
+                    .selected_template()
+                    .map(|t| t.include_body)
+                    .unwrap_or(true)
+                {
                     let body_label = Line::from(Span::styled("Body:", self.style.label));
                     buf.set_line(inner.x, inner.y + 3, &body_label, inner.width);
 
-                    let body_sty = if state.edit_focus == EditFocus::Body { self.style.input_focused } else { self.style.input };
+                    let body_sty = if state.edit_focus == EditFocus::Body {
+                        self.style.input_focused
+                    } else {
+                        self.style.input
+                    };
                     for (i, line) in state.body_editor.content().iter().enumerate() {
                         let row = inner.y + 4 + i as u16;
-                        if row >= inner.y + inner.height { break; }
-                        buf.set_line(inner.x, row, &Line::from(Span::styled(format!(" {}", line), body_sty)), inner.width);
+                        if row >= inner.y + inner.height {
+                            break;
+                        }
+                        buf.set_line(
+                            inner.x,
+                            row,
+                            &Line::from(Span::styled(format!(" {}", line), body_sty)),
+                            inner.width,
+                        );
                     }
                 }
             }
@@ -279,7 +360,10 @@ mod tests {
     #[test]
     fn multiple_templates_shows_select() {
         let mut state = CaptureState::new();
-        state.open(vec![CaptureTemplate::new("Note"), CaptureTemplate::new("TODO")]);
+        state.open(vec![
+            CaptureTemplate::new("Note"),
+            CaptureTemplate::new("TODO"),
+        ]);
         assert_eq!(state.phase, Phase::TemplateSelect);
     }
 

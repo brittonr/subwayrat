@@ -99,7 +99,9 @@ pub fn render_image_to_terminal(
     let result = match protocol {
         ImageProtocol::Kitty => render_kitty(data, max_width, max_height),
         ImageProtocol::ITerm2 => render_iterm2(data, max_width, max_height),
-        ImageProtocol::Sixel => render_sixel(data, max_width, max_height).or_else(|_| render_placeholder(data)),
+        ImageProtocol::Sixel => {
+            render_sixel(data, max_width, max_height).or_else(|_| render_placeholder(data))
+        }
         ImageProtocol::None => render_placeholder(data),
     };
 
@@ -140,7 +142,12 @@ fn render_kitty(data: &[u8], max_width: u16, max_height: u16) -> io::Result<usiz
             // First chunk: include format/action/size params
             // f=100 = auto-detect format, a=T = transmit and display
             // c/r = columns/rows to occupy
-            write!(tty, "\x1b_Ga=T,f=100,m={more},c={c},r={r};{chunk}\x1b\\", c = max_width, r = max_height,)?;
+            write!(
+                tty,
+                "\x1b_Ga=T,f=100,m={more},c={c},r={r};{chunk}\x1b\\",
+                c = max_width,
+                r = max_height,
+            )?;
         } else {
             // Continuation chunk
             write!(tty, "\x1b_Gm={more};{chunk}\x1b\\")?;
@@ -189,7 +196,8 @@ fn render_iterm2(data: &[u8], max_width: u16, _max_height: u16) -> io::Result<us
 /// Reference: <https://en.wikipedia.org/wiki/Sixel>
 fn render_sixel(data: &[u8], max_width: u16, max_height: u16) -> io::Result<usize> {
     // Decode the image
-    let img = image::load_from_memory(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let img =
+        image::load_from_memory(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     // Resize to fit within max cell dimensions.
     // Assume ~8px per cell width, ~16px per cell height (common terminal font metrics).

@@ -35,10 +35,7 @@ impl Loader {
     pub fn render_themed(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         let spinner = SPINNER_FRAMES[self.frame];
         let line = Line::from(vec![
-            Span::styled(
-                format!("{} ", spinner),
-                Style::default().fg(theme.primary),
-            ),
+            Span::styled(format!("{} ", spinner), Style::default().fg(theme.primary)),
             Span::styled(&self.message, Style::default().fg(theme.text_muted)),
         ]);
         frame.render_widget(Paragraph::new(line), area);

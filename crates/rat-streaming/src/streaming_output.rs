@@ -189,10 +189,6 @@ impl StreamingOutput {
         self.auto_follow = true;
     }
 
-
-
-
-
     /// Get a logical display line by index.
     pub fn get_display_line(&self, index: usize) -> DisplayLine {
         let head_len = self.head.len();
@@ -222,8 +218,6 @@ impl Default for StreamingOutput {
         Self::new()
     }
 }
-
-
 
 /// Manages streaming output buffers for all active tool executions.
 #[derive(Debug)]
@@ -281,7 +275,10 @@ impl StreamingOutputManager {
 
     /// Get the call_id of the currently focused tool output, if any.
     pub fn focused_call_id(&self) -> Option<&str> {
-        self.outputs.iter().find(|(_, out)| out.focused).map(|(id, _)| id.as_str())
+        self.outputs
+            .iter()
+            .find(|(_, out)| out.focused)
+            .map(|(id, _)| id.as_str())
     }
 
     /// Focus a specific tool's output.
@@ -313,8 +310,6 @@ impl Default for StreamingOutputManager {
         Self::new()
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -443,12 +438,6 @@ mod tests {
         assert!(out.auto_follow());
     }
 
-
-
-
-
-
-
     #[test]
     fn manager_add_and_get() {
         let mut mgr = StreamingOutputManager::new();
@@ -496,10 +485,6 @@ mod tests {
         mgr.unfocus_all();
         assert!(mgr.focused_call_id().is_none());
     }
-
-
-
-
 
     #[test]
     fn scroll_down_clamps() {

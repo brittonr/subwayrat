@@ -57,10 +57,7 @@ fn replace_todo_in_line(
     remove_old: bool,
 ) -> String {
     // Find the heading marker (stars or hashes)
-    let marker_end = line
-        .bytes()
-        .take_while(|&b| b == b'*' || b == b'#')
-        .count();
+    let marker_end = line.bytes().take_while(|&b| b == b'*' || b == b'#').count();
     let after_marker = &line[marker_end..];
 
     // After marker there should be a space

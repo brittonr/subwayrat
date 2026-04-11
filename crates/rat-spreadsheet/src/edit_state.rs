@@ -118,22 +118,22 @@ mod tests {
     #[test]
     fn test_edit_state() {
         let mut edit = EditState::new();
-        
+
         assert!(!edit.editing);
-        
+
         edit.start_edit("hello".to_string());
         assert!(edit.editing);
         assert_eq!(edit.buffer, "hello");
         assert_eq!(edit.cursor_pos, 5);
-        
+
         edit.insert_char('!');
         assert_eq!(edit.buffer, "hello!");
         assert_eq!(edit.cursor_pos, 6);
-        
+
         edit.backspace();
         assert_eq!(edit.buffer, "hello");
         assert_eq!(edit.cursor_pos, 5);
-        
+
         let result = edit.commit_buffer();
         assert_eq!(result, "hello");
         assert!(!edit.editing);

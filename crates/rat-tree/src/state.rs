@@ -70,8 +70,7 @@ impl TreeState {
             if row.is_expanded {
                 // Find descendants that will be removed, check if cursor is among them
                 let collapsed_id = row.node_id;
-                let cursor_node_id = self.visible_rows.get(self.cursor)
-                    .map(|r| r.node_id);
+                let cursor_node_id = self.visible_rows.get(self.cursor).map(|r| r.node_id);
                 self.expanded.remove(&collapsed_id);
                 self.recompute(data);
 
@@ -79,7 +78,11 @@ impl TreeState {
                 if let Some(cid) = cursor_node_id {
                     if cid != collapsed_id {
                         // Cursor was on the node itself, find it
-                        if let Some(pos) = self.visible_rows.iter().position(|r| r.node_id == collapsed_id) {
+                        if let Some(pos) = self
+                            .visible_rows
+                            .iter()
+                            .position(|r| r.node_id == collapsed_id)
+                        {
                             self.cursor = pos;
                         }
                     }
@@ -122,7 +125,11 @@ impl TreeState {
     pub fn navigate_parent(&mut self, data: &dyn TreeData) {
         if let Some(row) = self.visible_rows.get(self.cursor) {
             if let Some(parent_id) = data.parent(row.node_id) {
-                if let Some(pos) = self.visible_rows.iter().position(|r| r.node_id == parent_id) {
+                if let Some(pos) = self
+                    .visible_rows
+                    .iter()
+                    .position(|r| r.node_id == parent_id)
+                {
                     self.cursor = pos;
                 }
             }
@@ -143,7 +150,11 @@ impl TreeState {
             }
             // First child is the next row after the current cursor
             let first_child_id = data.child(row.node_id, 0);
-            if let Some(pos) = self.visible_rows.iter().position(|r| r.node_id == first_child_id) {
+            if let Some(pos) = self
+                .visible_rows
+                .iter()
+                .position(|r| r.node_id == first_child_id)
+            {
                 self.cursor = pos;
             }
         }
@@ -478,9 +489,7 @@ mod tests {
 
     #[test]
     fn page_up_down() {
-        let tree = SimpleTree::new(
-            (0..20).map(|i| (i, None, format!("n{i}"))).collect()
-        );
+        let tree = SimpleTree::new((0..20).map(|i| (i, None, format!("n{i}"))).collect());
         let mut state = TreeState::new(&tree);
         assert_eq!(state.visible_rows.len(), 20);
 
@@ -502,9 +511,7 @@ mod tests {
 
     #[test]
     fn scroll_follows_cursor() {
-        let tree = SimpleTree::new(
-            (0..20).map(|i| (i, None, format!("n{i}"))).collect()
-        );
+        let tree = SimpleTree::new((0..20).map(|i| (i, None, format!("n{i}"))).collect());
         let mut state = TreeState::new(&tree);
 
         state.cursor = 15;

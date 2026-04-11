@@ -48,7 +48,7 @@ pub mod nav;
 mod strip;
 mod types;
 
-pub use layout::{compute_layout, LayoutResult, VisibleWindow};
+pub use layout::{LayoutResult, VisibleWindow, compute_layout};
 pub use strip::{Column, Strip, Window};
 pub use types::{Axis, SizeConstraint, StripConfig, WindowId};
 

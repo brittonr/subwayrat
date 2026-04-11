@@ -8,20 +8,19 @@ use std::sync::{Arc, Mutex};
 fn identical_frames_produce_empty_diff() {
     let mut renderer = InlineRenderer::new(40);
 
-    let view1 = InlineView::new()
-        .text("Hello, world!")
-        .text("Second line.");
+    let view1 = InlineView::new().text("Hello, world!").text("Second line.");
     renderer.rebuild(view1);
     let output1 = renderer.render();
     assert!(!output1.is_empty(), "first render should produce output");
 
     // Rebuild with identical content.
-    let view2 = InlineView::new()
-        .text("Hello, world!")
-        .text("Second line.");
+    let view2 = InlineView::new().text("Hello, world!").text("Second line.");
     renderer.rebuild(view2);
     let output2 = renderer.render();
-    assert!(output2.is_empty(), "identical frame should produce no diff output");
+    assert!(
+        output2.is_empty(),
+        "identical frame should produce no diff output"
+    );
 }
 
 /// Test: markdown + text in a view tree, render produces output.
@@ -37,10 +36,19 @@ fn markdown_and_text_render() {
     assert!(!output.is_empty());
 
     // Verify DEC sync wrapping.
-    assert!(output.starts_with(b"\n"), "should start with newlines for growth");
+    assert!(
+        output.starts_with(b"\n"),
+        "should start with newlines for growth"
+    );
     let output_str = String::from_utf8_lossy(&output);
-    assert!(output_str.contains("\x1b[?2026h"), "should contain DEC sync start");
-    assert!(output_str.contains("\x1b[?2026l"), "should contain DEC sync end");
+    assert!(
+        output_str.contains("\x1b[?2026h"),
+        "should contain DEC sync start"
+    );
+    assert!(
+        output_str.contains("\x1b[?2026l"),
+        "should contain DEC sync end"
+    );
 }
 
 /// Test: keyed nodes preserve identity across rebuilds.
@@ -77,10 +85,9 @@ fn commit_callback_fires_on_overflow() {
     });
 
     // Build a view with many keyed nodes (each 1 line).
-    let view = InlineView::new()
-        .each(0..20, |v, i| {
-            v.keyed(format!("line-{i}"), InlineText::new(format!("Line {i}")))
-        });
+    let view = InlineView::new().each(0..20, |v, i| {
+        v.keyed(format!("line-{i}"), InlineText::new(format!("Line {i}")))
+    });
     renderer.rebuild(view);
     let _output = renderer.render();
 

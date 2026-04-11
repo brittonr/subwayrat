@@ -245,7 +245,9 @@ mod tests {
     #[test]
     fn org_full() {
         let p = OrgParser;
-        let h = p.parse_line("** IN_PROGRESS [#B] Implement parser :code:rust:").unwrap();
+        let h = p
+            .parse_line("** IN_PROGRESS [#B] Implement parser :code:rust:")
+            .unwrap();
         assert_eq!(h.level, 2);
         assert_eq!(h.todo, Some("IN_PROGRESS".into()));
         assert_eq!(h.priority, Some('B'));

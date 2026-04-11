@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use proptest::prelude::*;
 use ratatui::layout::Rect;
 
-use rat_scrolltile::{compute_layout, nav, SizeConstraint, Strip, StripConfig, WindowId, Axis};
+use rat_scrolltile::{Axis, SizeConstraint, Strip, StripConfig, WindowId, compute_layout, nav};
 
 // --- Generators ---
 
@@ -23,9 +23,8 @@ fn arb_size_constraint() -> impl Strategy<Value = SizeConstraint> {
         (1u16..=200).prop_map(SizeConstraint::Fixed),
         (1u16..=200).prop_map(|n| SizeConstraint::Min(n)),
         prop::num::f32::POSITIVE.prop_map(|f| SizeConstraint::Proportion(f.clamp(0.1, 10.0))),
-        (1u16..=100, 1u16..=200).prop_map(|(lo, spread)| {
-            SizeConstraint::MinMax(lo, lo.saturating_add(spread))
-        }),
+        (1u16..=100, 1u16..=200)
+            .prop_map(|(lo, spread)| { SizeConstraint::MinMax(lo, lo.saturating_add(spread)) }),
     ]
 }
 
@@ -41,17 +40,13 @@ fn arb_strip_config() -> impl Strategy<Value = StripConfig> {
 #[derive(Debug, Clone)]
 struct StripWithIds {
     strip: Strip,
-    ids: Vec<WindowId>,           // all window IDs in insertion order
+    ids: Vec<WindowId>,             // all window IDs in insertion order
     ids_by_col: Vec<Vec<WindowId>>, // IDs grouped by column
 }
 
 /// Build a strip with random columns and windows, tracking IDs.
 fn arb_strip() -> impl Strategy<Value = StripWithIds> {
-    (
-        arb_strip_config(),
-        1usize..=6,
-        1usize..=4,
-    )
+    (arb_strip_config(), 1usize..=6, 1usize..=4)
         .prop_flat_map(|(config, num_cols, max_wins)| {
             let col_constraints = proptest::collection::vec(arb_size_constraint(), num_cols);
             let win_counts = proptest::collection::vec(1usize..=max_wins, num_cols);
@@ -80,7 +75,11 @@ fn arb_strip() -> impl Strategy<Value = StripWithIds> {
                 strip.resize_column(col_idx, *col_c);
                 ids_by_col.push(col_ids);
             }
-            StripWithIds { strip, ids, ids_by_col }
+            StripWithIds {
+                strip,
+                ids,
+                ids_by_col,
+            }
         })
 }
 
@@ -94,8 +93,7 @@ fn rects_overlap(a: &Rect, b: &Rect) -> bool {
     if a.width == 0 || a.height == 0 || b.width == 0 || b.height == 0 {
         return false;
     }
-    a.x < b.x + b.width && b.x < a.x + a.width
-        && a.y < b.y + b.height && b.y < a.y + a.height
+    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 }
 
 // --- Properties ---

@@ -1,11 +1,11 @@
 //! Minimal example: build a graph, auto-layout, and render one frame to stdout.
 
-use rat_nodegraph::layout::{auto_layout, LayoutConfig};
+use rat_nodegraph::layout::{LayoutConfig, auto_layout};
 use rat_nodegraph::model::{Graph, PortSpec};
 use rat_nodegraph::view::{NodeGraphState, NodeGraphWidget};
 
-use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
 use std::io;
 
 fn main() -> io::Result<()> {

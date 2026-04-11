@@ -4,8 +4,8 @@
 //! Call [`handle_action`] to process an action and update the [`SpreadsheetState`].
 //! The [`Clipboard`] holds copied cell data for paste operations.
 
-use crate::cell::{CellAddr, CellValue, CellError};
-use crate::formula::{parse, evaluate_with_registry};
+use crate::cell::{CellAddr, CellError, CellValue};
+use crate::formula::{evaluate_with_registry, parse};
 use crate::nav::{self, Selection, get_selection};
 use crate::render::SpreadsheetState;
 
@@ -67,73 +67,97 @@ pub struct Clipboard {
 }
 
 /// Handle an action on the spreadsheet state. Returns true if the state changed.
-pub fn handle_action(state: &mut SpreadsheetState, action: Action, clipboard: &mut Clipboard) -> bool {
+pub fn handle_action(
+    state: &mut SpreadsheetState,
+    action: Action,
+    clipboard: &mut Clipboard,
+) -> bool {
     match action {
         Action::MoveUp => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_up(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveDown => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_down(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveLeft => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_left(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveRight => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_right(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveHome => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_home(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveEnd => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_end(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveHomeAll => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_home_all(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::MoveEndAll => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_end_all(&mut state.cursor, &state.grid);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::PageUp => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_page_up(&mut state.cursor, &state.grid, state.scroll.visible_rows);
             state.scroll.ensure_visible(state.cursor.position);
             true
         }
         Action::PageDown => {
-            if state.edit.editing { return false; }
+            if state.edit.editing {
+                return false;
+            }
             nav::clear_selection(&mut state.cursor);
             nav::move_page_down(&mut state.cursor, &state.grid, state.scroll.visible_rows);
             state.scroll.ensure_visible(state.cursor.position);
@@ -184,13 +208,17 @@ pub fn handle_action(state: &mut SpreadsheetState, action: Action, clipboard: &m
             true
         }
         Action::CancelEdit => {
-            if state.edit.editing && let Some(prev) = state.edit.cancel() {
+            if state.edit.editing
+                && let Some(prev) = state.edit.cancel()
+            {
                 state.grid.set(state.cursor.position, prev);
             }
             true
         }
         Action::Undo => {
-            if !state.edit.editing && let Some((addr, prev_value)) = state.last_undo.take() {
+            if !state.edit.editing
+                && let Some((addr, prev_value)) = state.last_undo.take()
+            {
                 state.grid.set(addr, prev_value);
                 recalc_dependents(state, addr);
             }
@@ -332,13 +360,18 @@ fn recalc_dependents(state: &mut SpreadsheetState, changed: CellAddr) {
             match parse(expr) {
                 Ok(parsed) => {
                     let cached = evaluate_with_registry(&parsed, &state.grid, &state.fn_registry);
-                    state.grid.set(dep_addr, CellValue::Formula {
-                        expr: expr.clone(),
-                        cached: Box::new(cached),
-                    });
+                    state.grid.set(
+                        dep_addr,
+                        CellValue::Formula {
+                            expr: expr.clone(),
+                            cached: Box::new(cached),
+                        },
+                    );
                 }
                 Err(_) => {
-                    state.grid.set(dep_addr, CellValue::Error(CellError::ParseError));
+                    state
+                        .grid
+                        .set(dep_addr, CellValue::Error(CellError::ParseError));
                 }
             }
         }
@@ -355,7 +388,16 @@ fn copy_selection(state: &SpreadsheetState, clipboard: &mut Clipboard) {
             let max_col = range.start.col.max(range.end.col);
             let min_row = range.start.row.min(range.end.row);
             let max_row = range.start.row.max(range.end.row);
-            (CellAddr { col: min_col, row: min_row }, CellAddr { col: max_col, row: max_row })
+            (
+                CellAddr {
+                    col: min_col,
+                    row: min_row,
+                },
+                CellAddr {
+                    col: max_col,
+                    row: max_row,
+                },
+            )
         }
         Selection::None => {
             // Copy single cell
@@ -371,7 +413,9 @@ fn copy_selection(state: &SpreadsheetState, clipboard: &mut Clipboard) {
         for col in start.col..=end.col {
             let addr = CellAddr { col, row };
             let value = state.grid.get(addr).clone();
-            clipboard.cells.push((col - start.col, row - start.row, value));
+            clipboard
+                .cells
+                .push((col - start.col, row - start.row, value));
         }
     }
 }
@@ -392,13 +436,18 @@ fn paste_clipboard(state: &mut SpreadsheetState, clipboard: &Clipboard) {
         state.grid.set(target, value.clone());
 
         // Re-evaluate if it's a formula
-        if let CellValue::Formula { expr, .. } = value && let Ok(parsed) = parse(expr) {
+        if let CellValue::Formula { expr, .. } = value
+            && let Ok(parsed) = parse(expr)
+        {
             state.dep_graph.update_deps(target, &parsed);
             let cached = evaluate_with_registry(&parsed, &state.grid, &state.fn_registry);
-            state.grid.set(target, CellValue::Formula {
-                expr: expr.clone(),
-                cached: Box::new(cached),
-            });
+            state.grid.set(
+                target,
+                CellValue::Formula {
+                    expr: expr.clone(),
+                    cached: Box::new(cached),
+                },
+            );
         }
     }
 
@@ -448,7 +497,10 @@ mod tests {
 
         handle_action(&mut state, Action::CommitEdit, &mut clip);
         assert!(!state.edit.editing);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Number(42.5));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Number(42.5)
+        );
     }
 
     #[test]
@@ -462,7 +514,10 @@ mod tests {
         }
         handle_action(&mut state, Action::CommitEdit, &mut clip);
 
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Text("hello".to_string()));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Text("hello".to_string())
+        );
     }
 
     #[test]
@@ -471,7 +526,9 @@ mod tests {
         let mut clip = Clipboard::default();
 
         // Set A1 = 10
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(10.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 0 }, CellValue::Number(10.0));
 
         // Move to B1 and enter formula
         handle_action(&mut state, Action::MoveRight, &mut clip);
@@ -495,7 +552,10 @@ mod tests {
         let mut state = SpreadsheetState::new(5, 5);
         let mut clip = Clipboard::default();
 
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Text("old".to_string()));
+        state.grid.set(
+            CellAddr { col: 0, row: 0 },
+            CellValue::Text("old".to_string()),
+        );
 
         handle_action(&mut state, Action::EnterEdit(None), &mut clip);
         for ch in "new".chars() {
@@ -503,7 +563,10 @@ mod tests {
         }
         handle_action(&mut state, Action::CancelEdit, &mut clip);
 
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Text("old".to_string()));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Text("old".to_string())
+        );
     }
 
     #[test]
@@ -511,7 +574,10 @@ mod tests {
         let mut state = SpreadsheetState::new(5, 5);
         let mut clip = Clipboard::default();
 
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Text("old".to_string()));
+        state.grid.set(
+            CellAddr { col: 0, row: 0 },
+            CellValue::Text("old".to_string()),
+        );
 
         // Type 'n' to start fresh edit (replaces existing content)
         handle_action(&mut state, Action::EnterEdit(Some('n')), &mut clip);
@@ -519,14 +585,23 @@ mod tests {
             handle_action(&mut state, Action::TypeChar(ch), &mut clip);
         }
         handle_action(&mut state, Action::CommitEdit, &mut clip);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Text("new".to_string()));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Text("new".to_string())
+        );
 
         handle_action(&mut state, Action::Undo, &mut clip);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Text("old".to_string()));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Text("old".to_string())
+        );
 
         // Second undo does nothing (single-level)
         handle_action(&mut state, Action::Undo, &mut clip);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Text("old".to_string()));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Text("old".to_string())
+        );
     }
 
     #[test]
@@ -534,7 +609,9 @@ mod tests {
         let mut state = SpreadsheetState::new(5, 5);
         let mut clip = Clipboard::default();
 
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(42.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 0 }, CellValue::Number(42.0));
 
         // Copy A1
         handle_action(&mut state, Action::Copy, &mut clip);
@@ -544,7 +621,10 @@ mod tests {
         state.cursor.position = CellAddr { col: 1, row: 1 };
         handle_action(&mut state, Action::Paste, &mut clip);
 
-        assert_eq!(*state.grid.get(CellAddr { col: 1, row: 1 }), CellValue::Number(42.0));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 1, row: 1 }),
+            CellValue::Number(42.0)
+        );
     }
 
     #[test]
@@ -552,10 +632,18 @@ mod tests {
         let mut state = SpreadsheetState::new(5, 5);
         let mut clip = Clipboard::default();
 
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0));
-        state.grid.set(CellAddr { col: 1, row: 0 }, CellValue::Number(2.0));
-        state.grid.set(CellAddr { col: 0, row: 1 }, CellValue::Number(3.0));
-        state.grid.set(CellAddr { col: 1, row: 1 }, CellValue::Number(4.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0));
+        state
+            .grid
+            .set(CellAddr { col: 1, row: 0 }, CellValue::Number(2.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 1 }, CellValue::Number(3.0));
+        state
+            .grid
+            .set(CellAddr { col: 1, row: 1 }, CellValue::Number(4.0));
 
         // Select A1:B2
         state.cursor.position = CellAddr { col: 0, row: 0 };
@@ -570,10 +658,22 @@ mod tests {
         state.cursor.position = CellAddr { col: 2, row: 2 };
         handle_action(&mut state, Action::Paste, &mut clip);
 
-        assert_eq!(*state.grid.get(CellAddr { col: 2, row: 2 }), CellValue::Number(1.0));
-        assert_eq!(*state.grid.get(CellAddr { col: 3, row: 2 }), CellValue::Number(2.0));
-        assert_eq!(*state.grid.get(CellAddr { col: 2, row: 3 }), CellValue::Number(3.0));
-        assert_eq!(*state.grid.get(CellAddr { col: 3, row: 3 }), CellValue::Number(4.0));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 2, row: 2 }),
+            CellValue::Number(1.0)
+        );
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 3, row: 2 }),
+            CellValue::Number(2.0)
+        );
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 2, row: 3 }),
+            CellValue::Number(3.0)
+        );
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 3, row: 3 }),
+            CellValue::Number(4.0)
+        );
     }
 
     #[test]
@@ -591,9 +691,14 @@ mod tests {
         let mut state = SpreadsheetState::new(5, 5);
         let mut clip = Clipboard::default();
 
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(42.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 0 }, CellValue::Number(42.0));
         handle_action(&mut state, Action::DeleteContent, &mut clip);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Empty);
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Empty
+        );
     }
 
     #[test]
@@ -602,7 +707,9 @@ mod tests {
         let mut clip = Clipboard::default();
 
         // Set A1 = 1
-        state.grid.set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0));
+        state
+            .grid
+            .set(CellAddr { col: 0, row: 0 }, CellValue::Number(1.0));
 
         // Set B1 = =A1+1 via edit
         state.cursor.position = CellAddr { col: 1, row: 0 };
@@ -673,6 +780,9 @@ mod tests {
 
         // Should commit successfully
         assert!(!state.edit.editing);
-        assert_eq!(*state.grid.get(CellAddr { col: 0, row: 0 }), CellValue::Number(42.0));
+        assert_eq!(
+            *state.grid.get(CellAddr { col: 0, row: 0 }),
+            CellValue::Number(42.0)
+        );
     }
 }

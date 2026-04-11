@@ -173,8 +173,10 @@ pub fn auto_layout(graph: &mut Graph, config: &LayoutConfig) {
                 for edge in graph.edges() {
                     let tgt_node = graph.port_owner(edge.target);
                     let src_node = graph.port_owner(edge.source);
-                    if tgt_node == Some(id) && let Some(sn) = src_node
-                        && let Some(&pos) = prev_order.get(&sn) {
+                    if tgt_node == Some(id)
+                        && let Some(sn) = src_node
+                        && let Some(&pos) = prev_order.get(&sn)
+                    {
                         pred_positions.push(pos as f64);
                     }
                 }
@@ -225,16 +227,21 @@ pub fn auto_layout(graph: &mut Graph, config: &LayoutConfig) {
                 .unwrap_or(0);
 
             let (x, y) = match config.direction {
-                LayoutDirection::LeftToRight => {
-                    (rank as i32 * rank_step, order_in_rank as i32 * cross_step + component_offset)
-                }
-                LayoutDirection::TopToBottom => {
-                    (order_in_rank as i32 * cross_step + component_offset, rank as i32 * rank_step)
-                }
+                LayoutDirection::LeftToRight => (
+                    rank as i32 * rank_step,
+                    order_in_rank as i32 * cross_step + component_offset,
+                ),
+                LayoutDirection::TopToBottom => (
+                    order_in_rank as i32 * cross_step + component_offset,
+                    rank as i32 * rank_step,
+                ),
             };
 
             let (x, y) = if config.grid_size > 0 {
-                (snap_to_grid(x, config.grid_size), snap_to_grid(y, config.grid_size))
+                (
+                    snap_to_grid(x, config.grid_size),
+                    snap_to_grid(y, config.grid_size),
+                )
             } else {
                 (x, y)
             };

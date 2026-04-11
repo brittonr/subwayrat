@@ -26,6 +26,7 @@ members = [
     "crates/rat-capture",
     "crates/rat-backlinks",
     "crates/rat-tags",
+    "crates/rat-chrome",
     "crates/showcase",
 ]
 

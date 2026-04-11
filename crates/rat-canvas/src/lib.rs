@@ -15,7 +15,7 @@
 //! use rat_canvas::{Position, Viewport};
 //!
 //! let mut viewport = Viewport::new(80, 24);
-//! 
+//!
 //! // Convert screen click to canvas position
 //! let canvas_pos = viewport.screen_to_canvas(10, 5);
 //! assert_eq!(canvas_pos, Position::new(10, 5));
@@ -52,13 +52,16 @@ pub const ZOOM_STEP: f32 = 0.25;
 
 // Compile-time assertions for zoom constants
 const _: () = assert!(MIN_ZOOM > 0.0, "MIN_ZOOM must be positive");
-const _: () = assert!(MAX_ZOOM > MIN_ZOOM, "MAX_ZOOM must be greater than MIN_ZOOM");
+const _: () = assert!(
+    MAX_ZOOM > MIN_ZOOM,
+    "MAX_ZOOM must be greater than MIN_ZOOM"
+);
 const _: () = assert!(ZOOM_STEP > 0.0, "ZOOM_STEP must be positive");
 
 /// Viewport - what part of the canvas is visible.
 ///
-/// Maps between screen coordinates (u16, visible terminal area) and canvas 
-/// coordinates (i32, infinite space). Tracks pan position (offset), dimensions 
+/// Maps between screen coordinates (u16, visible terminal area) and canvas
+/// coordinates (i32, infinite space). Tracks pan position (offset), dimensions
 /// (terminal size), and zoom level.
 #[derive(Debug, Clone)]
 pub struct Viewport {
@@ -76,7 +79,7 @@ pub struct Viewport {
 
 impl Viewport {
     /// Create a new viewport with the given dimensions.
-    /// 
+    ///
     /// The viewport starts at offset (0, 0) with zoom 1.0.
     pub fn new(width: u16, height: u16) -> Self {
         Self {
@@ -96,14 +99,14 @@ impl Viewport {
         debug_assert!(self.zoom > 0.0, "zoom must be positive");
         debug_assert!(self.width > 0, "width must be positive");
         debug_assert!(self.height > 0, "height must be positive");
-        
+
         let canvas_x = (f32::from(screen_x) / self.zoom)
             .round()
             .clamp(i32::MIN as f32, i32::MAX as f32) as i32;
         let canvas_y = (f32::from(screen_y) / self.zoom)
             .round()
             .clamp(i32::MIN as f32, i32::MAX as f32) as i32;
-        
+
         Position::new(
             canvas_x.saturating_add(self.offset_x),
             canvas_y.saturating_add(self.offset_y),
@@ -118,10 +121,10 @@ impl Viewport {
         debug_assert!(self.zoom > 0.0, "zoom must be positive");
         debug_assert!(self.width > 0, "width must be positive");
         debug_assert!(self.height > 0, "height must be positive");
-        
+
         let canvas_x_offset = pos.x.saturating_sub(self.offset_x);
         let canvas_y_offset = pos.y.saturating_sub(self.offset_y);
-        
+
         let screen_x = (canvas_x_offset as f32 * self.zoom)
             .round()
             .clamp(i32::MIN as f32, i32::MAX as f32) as i32;
@@ -167,7 +170,7 @@ impl Viewport {
     }
 
     /// Resize the viewport when terminal dimensions change.
-    /// 
+    ///
     /// Preserves offset and zoom level.
     pub fn resize(&mut self, width: u16, height: u16) {
         self.width = width;
@@ -182,14 +185,14 @@ impl Viewport {
         debug_assert!(self.zoom > 0.0, "zoom must be positive");
         debug_assert!(self.width > 0, "width must be positive");
         debug_assert!(self.height > 0, "height must be positive");
-        
+
         let visible_width = (f32::from(self.width) / self.zoom)
             .round()
             .clamp(0.0, u16::MAX as f32) as u16;
         let visible_height = (f32::from(self.height) / self.zoom)
             .round()
             .clamp(0.0, u16::MAX as f32) as u16;
-        
+
         (visible_width, visible_height)
     }
 }
@@ -210,7 +213,7 @@ mod tests {
         let pos1 = Position::new(5, 10);
         let pos2 = Position::new(5, 10);
         let pos3 = Position::new(6, 10);
-        
+
         assert_eq!(pos1, pos2);
         assert_ne!(pos1, pos3);
     }
@@ -237,7 +240,7 @@ mod tests {
         let mut viewport = Viewport::new(80, 24);
         viewport.offset_x = 100;
         viewport.offset_y = 50;
-        
+
         let pos = viewport.screen_to_canvas(10, 5);
         assert_eq!(pos, Position::new(110, 55));
     }
@@ -246,7 +249,7 @@ mod tests {
     fn screen_to_canvas_with_zoom() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 2.0;
-        
+
         let pos = viewport.screen_to_canvas(10, 5);
         assert_eq!(pos, Position::new(5, 3)); // rounded from 5.0, 2.5
     }
@@ -263,7 +266,7 @@ mod tests {
         let viewport = Viewport::new(80, 24);
         let result = viewport.canvas_to_screen(Position::new(100, 3));
         assert_eq!(result, None);
-        
+
         let result = viewport.canvas_to_screen(Position::new(5, 30));
         assert_eq!(result, None);
     }
@@ -273,7 +276,7 @@ mod tests {
         let mut viewport = Viewport::new(80, 24);
         viewport.offset_x = -20;
         viewport.offset_y = 0;
-        
+
         let result = viewport.canvas_to_screen(Position::new(-10, 0));
         assert_eq!(result, Some((10, 0)));
     }
@@ -283,7 +286,7 @@ mod tests {
         let mut viewport = Viewport::new(80, 24);
         viewport.offset_x = 10;
         viewport.offset_y = 20;
-        
+
         viewport.pan(5, -3);
         assert_eq!(viewport.offset_x, 15);
         assert_eq!(viewport.offset_y, 17);
@@ -293,7 +296,7 @@ mod tests {
     fn zoom_in() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 1.0;
-        
+
         viewport.zoom_in();
         assert_eq!(viewport.zoom, 1.25);
     }
@@ -302,7 +305,7 @@ mod tests {
     fn zoom_clamped_to_max() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = MAX_ZOOM;
-        
+
         viewport.zoom_in();
         assert_eq!(viewport.zoom, MAX_ZOOM);
     }
@@ -311,7 +314,7 @@ mod tests {
     fn zoom_out() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 1.25;
-        
+
         viewport.zoom_out();
         assert_eq!(viewport.zoom, 1.0);
     }
@@ -320,7 +323,7 @@ mod tests {
     fn zoom_clamped_to_min() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = MIN_ZOOM;
-        
+
         viewport.zoom_out();
         assert_eq!(viewport.zoom, MIN_ZOOM);
     }
@@ -329,7 +332,7 @@ mod tests {
     fn reset_zoom() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 2.5;
-        
+
         viewport.reset_zoom();
         assert_eq!(viewport.zoom, 1.0);
     }
@@ -340,7 +343,7 @@ mod tests {
         viewport.offset_x = 10;
         viewport.offset_y = 20;
         viewport.zoom = 1.5;
-        
+
         viewport.resize(120, 40);
         assert_eq!(viewport.width, 120);
         assert_eq!(viewport.height, 40);
@@ -362,7 +365,7 @@ mod tests {
     fn visible_canvas_size_at_zoom_2() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 2.0;
-        
+
         let (width, height) = viewport.visible_canvas_size();
         assert_eq!(width, 40);
         assert_eq!(height, 12);
@@ -372,7 +375,7 @@ mod tests {
     fn visible_canvas_size_at_zoom_half() {
         let mut viewport = Viewport::new(80, 24);
         viewport.zoom = 0.5;
-        
+
         let (width, height) = viewport.visible_canvas_size();
         assert_eq!(width, 160);
         assert_eq!(height, 48);
@@ -384,7 +387,7 @@ mod tests {
         viewport.offset_x = 100;
         viewport.offset_y = 50;
         viewport.zoom = 2.0;
-        
+
         let pos = viewport.screen_to_canvas(10, 8);
         // 10 / 2.0 = 5, 8 / 2.0 = 4, then add offset
         assert_eq!(pos, Position::new(105, 54));
@@ -396,7 +399,7 @@ mod tests {
         viewport.offset_x = 10;
         viewport.offset_y = 5;
         viewport.zoom = 2.0;
-        
+
         let result = viewport.canvas_to_screen(Position::new(15, 8));
         // (15-10)*2 = 10, (8-5)*2 = 6
         assert_eq!(result, Some((10, 6)));
@@ -406,7 +409,7 @@ mod tests {
     fn pan_saturating() {
         let mut viewport = Viewport::new(80, 24);
         viewport.offset_x = i32::MAX - 5;
-        
+
         viewport.pan(10, 0); // Would overflow
         assert_eq!(viewport.offset_x, i32::MAX);
     }

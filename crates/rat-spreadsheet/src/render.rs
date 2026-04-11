@@ -7,14 +7,14 @@
 //! - [`EditState`] - inline cell editing state
 
 use crate::cell::{CellAddr, CellRange, CellValue, Grid};
+use crate::edit_state::EditState;
 use crate::formula::{DependencyGraph, FunctionRegistry};
 use crate::nav::{CursorState, ScrollState, Selection, get_selection};
-use crate::edit_state::EditState;
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style, Modifier};
-use ratatui::widgets::{StatefulWidget, Widget, Block};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, StatefulWidget, Widget};
 
 /// Styling configuration for the spreadsheet widget
 #[derive(Debug, Clone)]
@@ -38,23 +38,13 @@ impl Default for SpreadsheetStyle {
                 .bg(Color::DarkGray)
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
-            cursor_style: Style::default()
-                .bg(Color::Blue)
-                .fg(Color::White),
-            selection_style: Style::default()
-                .bg(Color::Cyan)
-                .fg(Color::Black),
-            cell_style: Style::default()
-                .fg(Color::White)
-                .bg(Color::Black),
-            edit_style: Style::default()
-                .bg(Color::Yellow)
-                .fg(Color::Black),
+            cursor_style: Style::default().bg(Color::Blue).fg(Color::White),
+            selection_style: Style::default().bg(Color::Cyan).fg(Color::Black),
+            cell_style: Style::default().fg(Color::White).bg(Color::Black),
+            edit_style: Style::default().bg(Color::Yellow).fg(Color::Black),
         }
     }
 }
-
-
 
 /// Type aliases for complex callback types
 type StyleCallback = Box<dyn Fn(CellAddr, &CellValue) -> Option<Style>>;
@@ -149,13 +139,20 @@ impl SpreadsheetState {
     }
 
     /// Set a styling callback for per-cell styling
-    pub fn set_style_callback(&mut self, f: impl Fn(CellAddr, &CellValue) -> Option<Style> + 'static) {
+    pub fn set_style_callback(
+        &mut self,
+        f: impl Fn(CellAddr, &CellValue) -> Option<Style> + 'static,
+    ) {
         self.style_callback = Some(Box::new(f));
     }
 
     /// Register a validation callback for a column.
     /// The callback receives the raw input string and returns Ok(()) or Err(message).
-    pub fn set_column_validator(&mut self, col: usize, f: impl Fn(&str) -> Result<(), String> + 'static) {
+    pub fn set_column_validator(
+        &mut self,
+        col: usize,
+        f: impl Fn(&str) -> Result<(), String> + 'static,
+    ) {
         self.validators.insert(col, Box::new(f));
     }
 
@@ -247,24 +244,30 @@ impl<'a> StatefulWidget for Spreadsheet<'a> {
 }
 
 impl<'a> Spreadsheet<'a> {
-    fn render_column_headers(&self, area: Rect, buf: &mut Buffer, state: &SpreadsheetState, row_number_width: u16) {
+    fn render_column_headers(
+        &self,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &SpreadsheetState,
+        row_number_width: u16,
+    ) {
         let header_y = area.y;
         let mut x = area.x + row_number_width;
         let max_x = area.x + area.width;
 
         for col in state.scroll.offset_col..state.grid.col_count() {
             let col_width = state.col_width(col);
-            
+
             if x >= max_x {
                 break;
             }
 
             let header_text = col_name(col);
             let available_width = (max_x - x).min(col_width);
-            
+
             if available_width > 0 {
                 let truncated = truncate_text(&header_text, available_width as usize);
-                
+
                 for (i, ch) in truncated.chars().enumerate() {
                     if x + (i as u16) < max_x {
                         buf[(x + (i as u16), header_y)]
@@ -295,37 +298,39 @@ impl<'a> Spreadsheet<'a> {
         }
     }
 
-    fn render_row_numbers(&self, area: Rect, buf: &mut Buffer, state: &SpreadsheetState, header_height: u16) {
+    fn render_row_numbers(
+        &self,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &SpreadsheetState,
+        header_height: u16,
+    ) {
         let max_y = area.y + area.height;
         let row_number_width = calculate_row_number_width(state.grid.row_count());
 
         for row in state.scroll.offset_row..state.grid.row_count() {
             let y = area.y + header_height + (row - state.scroll.offset_row) as u16;
-            
+
             if y >= max_y {
                 break;
             }
 
             let row_text = (row + 1).to_string();
             let truncated = truncate_text(&row_text, row_number_width as usize);
-            
+
             // Right-align the row number
             let start_x = area.x + row_number_width - truncated.len() as u16;
-            
+
             for (i, ch) in truncated.chars().enumerate() {
                 let x = start_x + i as u16;
                 if x < area.x + row_number_width {
-                    buf[(x, y)]
-                        .set_char(ch)
-                        .set_style(self.style.header_style);
+                    buf[(x, y)].set_char(ch).set_style(self.style.header_style);
                 }
             }
 
             // Fill remaining space in row number area
             for x in area.x..start_x {
-                buf[(x, y)]
-                    .set_char(' ')
-                    .set_style(self.style.header_style);
+                buf[(x, y)].set_char(' ').set_style(self.style.header_style);
             }
         }
 
@@ -343,7 +348,7 @@ impl<'a> Spreadsheet<'a> {
 
         for row in state.scroll.offset_row..state.grid.row_count() {
             let y = area.y + (row - state.scroll.offset_row) as u16;
-            
+
             if y >= max_y {
                 break;
             }
@@ -352,7 +357,7 @@ impl<'a> Spreadsheet<'a> {
 
             for col in state.scroll.offset_col..state.grid.col_count() {
                 let col_width = state.col_width(col);
-                
+
                 if x >= max_x {
                     break;
                 }
@@ -360,14 +365,18 @@ impl<'a> Spreadsheet<'a> {
                 let cell_addr = CellAddr { col, row };
                 let cell_value = state.grid.get(cell_addr);
                 let available_width = (max_x - x).min(col_width);
-                
+
                 if available_width > 0 {
                     self.render_cell(
-                        buf, 
-                        CellRenderParams { x, y, width: available_width }, 
-                        cell_addr, 
-                        cell_value, 
-                        state
+                        buf,
+                        CellRenderParams {
+                            x,
+                            y,
+                            width: available_width,
+                        },
+                        cell_addr,
+                        cell_value,
+                        state,
                     );
                 }
 
@@ -376,9 +385,7 @@ impl<'a> Spreadsheet<'a> {
 
             // Fill remaining space in row
             while x < max_x {
-                buf[(x, y)]
-                    .set_char(' ')
-                    .set_style(self.style.cell_style);
+                buf[(x, y)].set_char(' ').set_style(self.style.cell_style);
                 x += 1;
             }
         }
@@ -406,7 +413,7 @@ impl<'a> Spreadsheet<'a> {
 
         // Determine style
         let mut style = self.style.cell_style;
-        
+
         // Apply cursor highlighting
         if addr == state.cursor.position {
             if state.edit.editing {
@@ -415,20 +422,24 @@ impl<'a> Spreadsheet<'a> {
                 style = self.style.cursor_style;
             }
         }
-        
+
         // Apply selection highlighting
-        if let Selection::Range(range) = get_selection(&state.cursor) && is_in_range(addr, range) {
+        if let Selection::Range(range) = get_selection(&state.cursor)
+            && is_in_range(addr, range)
+        {
             style = self.style.selection_style;
         }
-        
+
         // Apply custom styling callback if set
-        if let Some(ref callback) = state.style_callback && let Some(custom_style) = callback(addr, value) {
+        if let Some(ref callback) = state.style_callback
+            && let Some(custom_style) = callback(addr, value)
+        {
             style = custom_style;
         }
 
         // Truncate content to fit
         let truncated = truncate_text(&content, params.width as usize);
-        
+
         // Render the content with proper alignment
         let start_pos = if right_align && truncated.len() < params.width as usize {
             params.width as usize - truncated.len()
@@ -445,9 +456,7 @@ impl<'a> Spreadsheet<'a> {
                 ' '
             };
 
-            buf[(cell_x, params.y)]
-                .set_char(ch)
-                .set_style(style);
+            buf[(cell_x, params.y)].set_char(ch).set_style(style);
         }
     }
 }
@@ -489,7 +498,7 @@ fn truncate_text(text: &str, max_width: usize) -> String {
     if max_width == 0 {
         return String::new();
     }
-    
+
     if text.len() <= max_width {
         text.to_string()
     } else {
@@ -503,9 +512,8 @@ fn is_in_range(addr: CellAddr, range: CellRange) -> bool {
     let max_col = range.start.col.max(range.end.col);
     let min_row = range.start.row.min(range.end.row);
     let max_row = range.start.row.max(range.end.row);
-    
-    addr.col >= min_col && addr.col <= max_col &&
-    addr.row >= min_row && addr.row <= max_row
+
+    addr.col >= min_col && addr.col <= max_col && addr.row >= min_row && addr.row <= max_row
 }
 
 #[cfg(test)]
@@ -522,8 +530,6 @@ mod tests {
         assert_eq!(col_name(51), "AZ");
         assert_eq!(col_name(52), "BA");
     }
-
-
 
     #[test]
     fn test_format_cell_value() {

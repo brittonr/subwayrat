@@ -49,7 +49,7 @@ mod render;
 mod state;
 mod types;
 
-pub use builder::{build, build_from_items, BuildResult};
+pub use builder::{BuildResult, build, build_from_items};
 pub use registry::*;
 pub use state::LeaderMenu;
 pub use types::*;

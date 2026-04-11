@@ -59,7 +59,11 @@ impl Editor {
         }
 
         // Now compute position within the cursor line
-        let prefix_len = if self.cursor_line == 0 { indicator_len } else { 2 };
+        let prefix_len = if self.cursor_line == 0 {
+            indicator_len
+        } else {
+            2
+        };
         let offset_in_line = prefix_len + self.cursor_col;
         visual_row += offset_in_line / width;
         let visual_col = offset_in_line % width;
@@ -95,7 +99,9 @@ pub fn render_editor(
         .border_style(Style::default().fg(border_color))
         .title(title.to_string());
 
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
 
     frame.render_widget(paragraph, area);
 

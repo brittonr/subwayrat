@@ -56,9 +56,7 @@ impl Default for OutlineStyle {
             heading3: Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
-            todo_keyword: Style::default()
-                .fg(Color::Red)
-                .add_modifier(Modifier::BOLD),
+            todo_keyword: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
             done_keyword: Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
@@ -128,7 +126,8 @@ impl StatefulWidget for Outline<'_> {
         }
 
         // Render visible lines
-        let display_lines = &vis[state.scroll_offset..vis.len().min(state.scroll_offset + visible_height)];
+        let display_lines =
+            &vis[state.scroll_offset..vis.len().min(state.scroll_offset + visible_height)];
 
         for (row, &line_idx) in display_lines.iter().enumerate() {
             let y = inner.y + row as u16;
@@ -136,10 +135,7 @@ impl StatefulWidget for Outline<'_> {
             let is_cursor_line = line_idx == state.editor.cursor_line();
 
             // Find if this line is a heading
-            let heading_info = state
-                .headings
-                .iter()
-                .find(|h| h.line == line_idx);
+            let heading_info = state.headings.iter().find(|h| h.line == line_idx);
 
             // ── Gutter ──
             let gutter_area = Rect::new(inner.x, y, gw, 1);
@@ -153,10 +149,7 @@ impl StatefulWidget for Outline<'_> {
                         FoldState::Folded => self.style.fold_char,
                         _ => self.style.expand_char,
                     };
-                    let span = Span::styled(
-                        format!("{} ", ch),
-                        self.style.fold_indicator,
-                    );
+                    let span = Span::styled(format!("{} ", ch), self.style.fold_indicator);
                     buf.set_line(gutter_area.x, y, &Line::from(span), gw);
                 }
             }
@@ -193,15 +186,9 @@ fn render_heading_line(text: &str, heading: &HeadingInfo, style: &OutlineStyle) 
     let mut spans: Vec<Span<'static>> = Vec::new();
 
     // Heading marker (stars/hashes)
-    let marker_end = text
-        .bytes()
-        .take_while(|&b| b == b'*' || b == b'#')
-        .count();
+    let marker_end = text.bytes().take_while(|&b| b == b'*' || b == b'#').count();
     let marker = &text[..marker_end];
-    spans.push(Span::styled(
-        format!("{} ", marker),
-        heading_style,
-    ));
+    spans.push(Span::styled(format!("{} ", marker), heading_style));
 
     // TODO keyword
     if let Some(ref kw) = heading.todo {

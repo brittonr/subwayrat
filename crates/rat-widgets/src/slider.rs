@@ -140,27 +140,21 @@ impl Slider {
             let thumb_pos = if track_width == 1 {
                 0
             } else {
-                ((self.value * (track_width - 1) as f64).round() as usize)
-                    .min(track_width - 1)
+                ((self.value * (track_width - 1) as f64).round() as usize).min(track_width - 1)
             };
 
             let filled_count = thumb_pos;
             let empty_count = track_width - 1 - thumb_pos;
 
             if filled_count > 0 {
-                let filled: String =
-                    std::iter::repeat_n(self.filled_char, filled_count).collect();
+                let filled: String = std::iter::repeat_n(self.filled_char, filled_count).collect();
                 spans.push(Span::styled(filled, self.filled_style));
             }
 
-            spans.push(Span::styled(
-                self.thumb_char.to_string(),
-                self.thumb_style,
-            ));
+            spans.push(Span::styled(self.thumb_char.to_string(), self.thumb_style));
 
             if empty_count > 0 {
-                let empty: String =
-                    std::iter::repeat_n(self.empty_char, empty_count).collect();
+                let empty: String = std::iter::repeat_n(self.empty_char, empty_count).collect();
                 spans.push(Span::styled(empty, self.empty_style));
             }
         }
@@ -227,31 +221,28 @@ mod tests {
     #[test]
     fn thumb_at_zero() {
         // value=0 → thumb at leftmost position, all empty after
-        let rendered = render_to_string(
-            &Slider::new(0.0).with_chars('=', '-', 'O'),
-            10,
-        );
+        let rendered = render_to_string(&Slider::new(0.0).with_chars('=', '-', 'O'), 10);
         assert!(rendered.starts_with('O'), "got: {rendered}");
-        assert!(!rendered[1..].contains('='), "no filled chars expected: {rendered}");
+        assert!(
+            !rendered[1..].contains('='),
+            "no filled chars expected: {rendered}"
+        );
     }
 
     #[test]
     fn thumb_at_one() {
         // value=1 → thumb at rightmost position, all filled before
-        let rendered = render_to_string(
-            &Slider::new(1.0).with_chars('=', '-', 'O'),
-            10,
-        );
+        let rendered = render_to_string(&Slider::new(1.0).with_chars('=', '-', 'O'), 10);
         assert!(rendered.ends_with('O'), "got: {rendered}");
-        assert!(!rendered[..rendered.len() - 1].contains('-'), "no empty chars expected: {rendered}");
+        assert!(
+            !rendered[..rendered.len() - 1].contains('-'),
+            "no empty chars expected: {rendered}"
+        );
     }
 
     #[test]
     fn thumb_at_half() {
-        let rendered = render_to_string(
-            &Slider::new(0.5).with_chars('=', '-', 'O'),
-            11,
-        );
+        let rendered = render_to_string(&Slider::new(0.5).with_chars('=', '-', 'O'), 11);
         // 11 chars, thumb at position 5 → "=====O-----"
         assert!(rendered.contains('O'), "got: {rendered}");
         let thumb_idx = rendered.find('O').unwrap();
@@ -288,10 +279,7 @@ mod tests {
     #[test]
     fn render_width_one() {
         // Only room for the thumb
-        let rendered = render_to_string(
-            &Slider::new(0.5).with_chars('=', '-', 'O'),
-            1,
-        );
+        let rendered = render_to_string(&Slider::new(0.5).with_chars('=', '-', 'O'), 1);
         assert_eq!(rendered, "O");
     }
 

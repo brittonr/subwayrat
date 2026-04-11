@@ -11,17 +11,17 @@
 //!   Click port  — start/complete wiring
 //!   q           — quit
 
-use rat_nodegraph::layout::{auto_layout, LayoutConfig};
+use rat_nodegraph::layout::{LayoutConfig, auto_layout};
 use rat_nodegraph::model::{Graph, PortSpec};
 use rat_nodegraph::view::{NodeGraphState, NodeGraphWidget};
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
-use crossterm::{execute, event::EnableMouseCapture, event::DisableMouseCapture};
-use ratatui::backend::CrosstermBackend;
+use crossterm::{event::DisableMouseCapture, event::EnableMouseCapture, execute};
 use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
 use std::io;
 
 fn main() -> io::Result<()> {
@@ -85,12 +85,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
             Event::Mouse(mouse) => match mouse.kind {
                 MouseEventKind::Down(MouseButton::Left) => {
                     let shift = mouse.modifiers.contains(KeyModifiers::SHIFT);
-                    let _actions =
-                        state.handle_mouse_click(mouse.column, mouse.row, shift);
+                    let _actions = state.handle_mouse_click(mouse.column, mouse.row, shift);
                 }
                 MouseEventKind::Drag(MouseButton::Left) => {
-                    let _actions =
-                        state.handle_mouse_drag(mouse.column, mouse.row, 1, 0);
+                    let _actions = state.handle_mouse_drag(mouse.column, mouse.row, 1, 0);
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
                     let _actions = state.finish_box_select();
@@ -110,11 +108,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
 fn build_demo_graph() -> Graph {
     let mut g = Graph::new();
 
-    let trigger = g.add_node(
-        "Cron Trigger",
-        &[],
-        &[PortSpec::new("tick", "any")],
-    );
+    let trigger = g.add_node("Cron Trigger", &[], &[PortSpec::new("tick", "any")]);
 
     let http = g.add_node(
         "HTTP Request",
@@ -146,24 +140,18 @@ fn build_demo_graph() -> Graph {
         ],
     );
 
-    let slack = g.add_node(
-        "Slack Notify",
-        &[PortSpec::new("message", "object")],
-        &[],
-    );
+    let slack = g.add_node("Slack Notify", &[PortSpec::new("message", "object")], &[]);
 
-    let log = g.add_node(
-        "Error Log",
-        &[PortSpec::new("error", "error")],
-        &[],
-    );
+    let log = g.add_node("Error Log", &[PortSpec::new("error", "error")], &[]);
 
     // trigger → http
     let t_out = g.node(trigger).unwrap().output_ports[0].id;
     let h_in = g.node(http).unwrap().input_ports[0].id;
 
     // Use custom compat to allow "any" → anything.
-    g.set_compatibility(Box::new(|src, tgt| src == tgt || src == "any" || tgt == "any"));
+    g.set_compatibility(Box::new(|src, tgt| {
+        src == tgt || src == "any" || tgt == "any"
+    }));
 
     g.add_edge(t_out, h_in).unwrap();
 

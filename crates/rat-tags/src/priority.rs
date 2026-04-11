@@ -5,9 +5,13 @@ pub struct PriorityCycler {
 }
 
 impl PriorityCycler {
-    pub fn new(cycle: Vec<char>) -> Self { Self { cycle } }
+    pub fn new(cycle: Vec<char>) -> Self {
+        Self { cycle }
+    }
 
-    pub fn default_cycle() -> Self { Self::new(vec!['A', 'B', 'C']) }
+    pub fn default_cycle() -> Self {
+        Self::new(vec!['A', 'B', 'C'])
+    }
 
     /// Cycle to next priority. None → first, last → None.
     pub fn cycle(&self, current: Option<char>) -> Option<char> {
@@ -25,7 +29,10 @@ impl PriorityCycler {
 }
 
 pub fn format_priority(p: Option<char>) -> String {
-    match p { Some(c) => format!("[#{}]", c), None => String::new() }
+    match p {
+        Some(c) => format!("[#{}]", c),
+        None => String::new(),
+    }
 }
 
 #[cfg(test)]

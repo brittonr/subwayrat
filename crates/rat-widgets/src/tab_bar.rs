@@ -3,11 +3,11 @@
 //! Renders a row of tab labels with active/inactive styling.
 //! Supports optional count badges like "Tracks (42)".
 
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph};
-use ratatui::Frame;
 
 /// A single tab entry.
 #[derive(Debug, Clone)]
@@ -31,10 +31,7 @@ impl TabBarModel {
                 count: None,
             })
             .collect();
-        Self {
-            tabs,
-            active: 0,
-        }
+        Self { tabs, active: 0 }
     }
 
     /// Advance to the next tab, wrapping around.
@@ -286,8 +283,7 @@ mod tests {
 
     #[test]
     fn with_counts_builder() {
-        let bar = TabBar::new(vec!["A", "B", "C"])
-            .with_counts(vec![Some(10), None, Some(30)]);
+        let bar = TabBar::new(vec!["A", "B", "C"]).with_counts(vec![Some(10), None, Some(30)]);
         assert_eq!(bar.model.tabs[0].count, Some(10));
         assert_eq!(bar.model.tabs[1].count, None);
         assert_eq!(bar.model.tabs[2].count, Some(30));
@@ -303,8 +299,7 @@ mod tests {
 
     #[test]
     fn build_line_with_counts() {
-        let bar = TabBar::new(vec!["Tracks", "Albums"])
-            .with_counts(vec![Some(42), None]);
+        let bar = TabBar::new(vec!["Tracks", "Albums"]).with_counts(vec![Some(42), None]);
         let line = bar.build_line();
         let text: String = line.spans.iter().map(|s| s.content.as_ref()).collect();
         assert_eq!(text, " Tracks (42)  |  Albums ");

@@ -145,15 +145,19 @@ impl BranchCompareView {
         if !self.model.visible {
             return;
         }
-        
+
         let cmp = match &self.model.comparison {
             Some(c) => c,
             None => return,
         };
 
         // Size: 80% width, 80% height, centered
-        let width = (area.width * 80 / 100).max(50).min(area.width.saturating_sub(4));
-        let height = (area.height * 80 / 100).max(15).min(area.height.saturating_sub(4));
+        let width = (area.width * 80 / 100)
+            .max(50)
+            .min(area.width.saturating_sub(4));
+        let height = (area.height * 80 / 100)
+            .max(15)
+            .min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         let popup_area = Rect::new(x, y, width, height);
@@ -163,7 +167,9 @@ impl BranchCompareView {
         let outer = Block::default()
             .title(Span::styled(
                 " Branch Comparison ",
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan));
@@ -240,7 +246,11 @@ fn render_comparison_pane(
     focused: bool,
     area: Rect,
 ) {
-    let border_color = if focused { Color::Cyan } else { Color::DarkGray };
+    let border_color = if focused {
+        Color::Cyan
+    } else {
+        Color::DarkGray
+    };
     let title = format!(" {} ({} unique, {}tok) ", name, blocks.len(), total_tokens);
 
     let block = Block::default()
@@ -289,25 +299,26 @@ fn render_comparison_pane(
 
         // Detail counts (compact stats line)
         if !b.detail_counts.is_empty() {
-            let stats: Vec<String> = b.detail_counts
+            let stats: Vec<String> = b
+                .detail_counts
                 .iter()
                 .map(|(label, count)| {
                     // Abbreviate common labels
                     let short_label = match label.as_str() {
                         "responses" => "r",
-                        "tools" => "t", 
+                        "tools" => "t",
                         "tool_calls" => "t",
                         _ => label,
                     };
                     format!("{}{}", count, short_label)
                 })
                 .collect();
-            
+
             let mut stats_text = format!("  {}", stats.join(" "));
             if b.tokens > 0 {
                 stats_text.push_str(&format!(" {}tok", b.tokens));
             }
-            
+
             lines.push(Line::from(Span::styled(
                 stats_text,
                 Style::default().fg(Color::DarkGray),
@@ -320,10 +331,7 @@ fn render_comparison_pane(
         }
     }
 
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -337,11 +345,14 @@ mod tests {
         BranchComparison {
             divergence_id: Some(0),
             divergence_summary: "root".to_string(),
-            branch_a: vec![CompareBlock::new(1, "branch-a".to_string(), 200)
-                .add_detail_count("responses", 2)
-                .add_detail_count("tools", 1)],
-            branch_b: vec![CompareBlock::new(2, "branch-b".to_string(), 150)
-                .add_detail_count("responses", 1)],
+            branch_a: vec![
+                CompareBlock::new(1, "branch-a".to_string(), 200)
+                    .add_detail_count("responses", 2)
+                    .add_detail_count("tools", 1),
+            ],
+            branch_b: vec![
+                CompareBlock::new(2, "branch-b".to_string(), 150).add_detail_count("responses", 1),
+            ],
             leaf_a: 1,
             leaf_b: 2,
             name_a: "Branch A".to_string(),
@@ -405,7 +416,7 @@ mod tests {
         let comparison = make_comparison();
         let mut view = BranchCompareView::new();
         view.open(comparison);
-        
+
         assert!(view.model.visible);
         assert!(view.model.comparison.is_some());
         assert!(!view.model.right_focused);

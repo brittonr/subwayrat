@@ -30,19 +30,19 @@
 
 pub mod cell;
 pub mod edit_state;
+pub mod event;
 pub mod formula;
 pub mod nav;
 pub mod render;
-pub mod event;
 
 // Re-export primary types at crate root for convenience
-pub use cell::{CellAddr, CellRange, CellValue, CellError, Grid};
+pub use cell::{CellAddr, CellError, CellRange, CellValue, Grid};
 pub use edit_state::EditState;
-pub use formula::{DependencyGraph, FunctionRegistry, Expr, Op};
-pub use formula::{parse as parse_formula, evaluate, evaluate_with_registry};
+pub use event::{Action, Clipboard, handle_action};
+pub use formula::{DependencyGraph, Expr, FunctionRegistry, Op};
+pub use formula::{evaluate, evaluate_with_registry, parse as parse_formula};
 pub use nav::{CursorState, ScrollState, Selection};
 pub use render::{Spreadsheet, SpreadsheetState, SpreadsheetStyle};
-pub use event::{Action, Clipboard, handle_action};
 
 #[cfg(feature = "org-compat")]
 pub mod org_table;

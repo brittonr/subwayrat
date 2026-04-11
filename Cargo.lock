@@ -1170,6 +1170,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-chrome"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "rat-datepicker"
 version = "0.1.0"
 dependencies = [
@@ -1600,6 +1607,7 @@ dependencies = [
  "rat-agenda",
  "rat-backlinks",
  "rat-capture",
+ "rat-chrome",
  "rat-datepicker",
  "rat-diff",
  "rat-editor",

@@ -38,11 +38,7 @@ impl InlineView {
 
     /// Push a keyed widget node. The key provides stable identity
     /// across rebuilds for reconciliation.
-    pub fn keyed<W: InlineWidget + 'static>(
-        mut self,
-        key: impl Into<String>,
-        widget: W,
-    ) -> Self {
+    pub fn keyed<W: InlineWidget + 'static>(mut self, key: impl Into<String>, widget: W) -> Self {
         self.nodes.push(BuilderNode {
             key: Some(NodeKey(key.into())),
             type_tag: TypeId::of::<W>(),
@@ -59,11 +55,7 @@ impl InlineView {
     /// Conditionally add nodes. The closure is only called when
     /// `condition` is true.
     pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self {
-        if condition {
-            f(self)
-        } else {
-            self
-        }
+        if condition { f(self) } else { self }
     }
 
     /// Add nodes from an iterator.

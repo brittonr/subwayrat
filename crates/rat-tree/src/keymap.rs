@@ -4,9 +4,9 @@
 //! vim-style keymap for tree widgets. The keymap uses `rat_keymap::Keymap<TreeAction, ()>`
 //! where the unit type `()` represents a single mode.
 
-use std::collections::HashMap;
-use rat_keymap::{Keymap, KeyCombo};
+use rat_keymap::{KeyCombo, Keymap};
 use ratatui::crossterm::event::KeyCode;
+use std::collections::HashMap;
 
 /// Actions for tree navigation and interaction.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -105,45 +105,105 @@ pub fn parse_tree_action(s: &str) -> Option<TreeAction> {
 /// ```
 pub fn default_keymap() -> Keymap<TreeAction, ()> {
     let mut bindings = HashMap::new();
-    
+
     // Up/Down navigation
-    bindings.insert(KeyCombo::new(KeyCode::Char('k'), false, false, false), TreeAction::Up);
-    bindings.insert(KeyCombo::new(KeyCode::Up, false, false, false), TreeAction::Up);
-    bindings.insert(KeyCombo::new(KeyCode::Char('j'), false, false, false), TreeAction::Down);
-    bindings.insert(KeyCombo::new(KeyCode::Down, false, false, false), TreeAction::Down);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('k'), false, false, false),
+        TreeAction::Up,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Up, false, false, false),
+        TreeAction::Up,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('j'), false, false, false),
+        TreeAction::Down,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Down, false, false, false),
+        TreeAction::Down,
+    );
+
     // First/Last
-    bindings.insert(KeyCombo::new(KeyCode::Char('g'), false, false, false), TreeAction::First);
-    bindings.insert(KeyCombo::new(KeyCode::Char('G'), false, false, true), TreeAction::Last);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('g'), false, false, false),
+        TreeAction::First,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('G'), false, false, true),
+        TreeAction::Last,
+    );
+
     // Expand/Collapse
-    bindings.insert(KeyCombo::new(KeyCode::Char('l'), false, false, false), TreeAction::Expand);
-    bindings.insert(KeyCombo::new(KeyCode::Right, false, false, false), TreeAction::Expand);
-    bindings.insert(KeyCombo::new(KeyCode::Char('h'), false, false, false), TreeAction::Collapse);
-    bindings.insert(KeyCombo::new(KeyCode::Left, false, false, false), TreeAction::Collapse);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('l'), false, false, false),
+        TreeAction::Expand,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Right, false, false, false),
+        TreeAction::Expand,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('h'), false, false, false),
+        TreeAction::Collapse,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Left, false, false, false),
+        TreeAction::Collapse,
+    );
+
     // Toggle
-    bindings.insert(KeyCombo::new(KeyCode::Char(' '), false, false, false), TreeAction::Toggle);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char(' '), false, false, false),
+        TreeAction::Toggle,
+    );
+
     // Parent
-    bindings.insert(KeyCombo::new(KeyCode::Char('p'), false, false, false), TreeAction::Parent);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('p'), false, false, false),
+        TreeAction::Parent,
+    );
+
     // Select
-    bindings.insert(KeyCombo::new(KeyCode::Enter, false, false, false), TreeAction::Select);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Enter, false, false, false),
+        TreeAction::Select,
+    );
+
     // Sibling navigation
-    bindings.insert(KeyCombo::new(KeyCode::Char('J'), false, false, true), TreeAction::NextSibling);
-    bindings.insert(KeyCombo::new(KeyCode::Char('K'), false, false, true), TreeAction::PrevSibling);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('J'), false, false, true),
+        TreeAction::NextSibling,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('K'), false, false, true),
+        TreeAction::PrevSibling,
+    );
+
     // Page navigation
-    bindings.insert(KeyCombo::new(KeyCode::Char('d'), true, false, false), TreeAction::PageDown);
-    bindings.insert(KeyCombo::new(KeyCode::PageDown, false, false, false), TreeAction::PageDown);
-    bindings.insert(KeyCombo::new(KeyCode::Char('u'), true, false, false), TreeAction::PageUp);
-    bindings.insert(KeyCombo::new(KeyCode::PageUp, false, false, false), TreeAction::PageUp);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('d'), true, false, false),
+        TreeAction::PageDown,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::PageDown, false, false, false),
+        TreeAction::PageDown,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('u'), true, false, false),
+        TreeAction::PageUp,
+    );
+    bindings.insert(
+        KeyCombo::new(KeyCode::PageUp, false, false, false),
+        TreeAction::PageUp,
+    );
+
     // First child
-    bindings.insert(KeyCombo::new(KeyCode::Char('o'), false, false, false), TreeAction::FirstChild);
-    
+    bindings.insert(
+        KeyCombo::new(KeyCode::Char('o'), false, false, false),
+        TreeAction::FirstChild,
+    );
+
     let mode_bindings = vec![((), bindings)];
     Keymap::build(mode_bindings, &[], parse_tree_action)
 }
@@ -161,9 +221,18 @@ mod tests {
         assert_eq!(parse_tree_action("collapse"), Some(TreeAction::Collapse));
         assert_eq!(parse_tree_action("toggle"), Some(TreeAction::Toggle));
         assert_eq!(parse_tree_action("parent"), Some(TreeAction::Parent));
-        assert_eq!(parse_tree_action("first_child"), Some(TreeAction::FirstChild));
-        assert_eq!(parse_tree_action("next_sibling"), Some(TreeAction::NextSibling));
-        assert_eq!(parse_tree_action("prev_sibling"), Some(TreeAction::PrevSibling));
+        assert_eq!(
+            parse_tree_action("first_child"),
+            Some(TreeAction::FirstChild)
+        );
+        assert_eq!(
+            parse_tree_action("next_sibling"),
+            Some(TreeAction::NextSibling)
+        );
+        assert_eq!(
+            parse_tree_action("prev_sibling"),
+            Some(TreeAction::PrevSibling)
+        );
         assert_eq!(parse_tree_action("first"), Some(TreeAction::First));
         assert_eq!(parse_tree_action("last"), Some(TreeAction::Last));
         assert_eq!(parse_tree_action("page_up"), Some(TreeAction::PageUp));
@@ -182,7 +251,7 @@ mod tests {
     #[test]
     fn default_keymap_resolves_expected_keys() {
         let keymap = default_keymap();
-        
+
         // Test basic navigation
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('k'), KeyModifiers::NONE)),
@@ -200,7 +269,7 @@ mod tests {
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
             Some(TreeAction::Down)
         );
-        
+
         // Test first/last
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE)),
@@ -210,7 +279,7 @@ mod tests {
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('G'), KeyModifiers::SHIFT)),
             Some(TreeAction::Last)
         );
-        
+
         // Test expand/collapse
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE)),
@@ -228,25 +297,25 @@ mod tests {
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Left, KeyModifiers::NONE)),
             Some(TreeAction::Collapse)
         );
-        
+
         // Test toggle
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE)),
             Some(TreeAction::Toggle)
         );
-        
+
         // Test parent
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('p'), KeyModifiers::NONE)),
             Some(TreeAction::Parent)
         );
-        
+
         // Test select
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
             Some(TreeAction::Select)
         );
-        
+
         // Test sibling navigation
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('J'), KeyModifiers::SHIFT)),
@@ -256,10 +325,13 @@ mod tests {
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('K'), KeyModifiers::SHIFT)),
             Some(TreeAction::PrevSibling)
         );
-        
+
         // Test page navigation
         assert_eq!(
-            keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL)),
+            keymap.resolve(
+                &(),
+                &KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL)
+            ),
             Some(TreeAction::PageDown)
         );
         assert_eq!(
@@ -267,14 +339,17 @@ mod tests {
             Some(TreeAction::PageDown)
         );
         assert_eq!(
-            keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL)),
+            keymap.resolve(
+                &(),
+                &KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL)
+            ),
             Some(TreeAction::PageUp)
         );
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE)),
             Some(TreeAction::PageUp)
         );
-        
+
         // Test first child
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)),
@@ -285,7 +360,7 @@ mod tests {
     #[test]
     fn default_keymap_unmapped_keys() {
         let keymap = default_keymap();
-        
+
         // Test that unmapped keys return None
         assert_eq!(
             keymap.resolve(&(), &KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE)),
@@ -306,14 +381,14 @@ mod tests {
         let action1 = TreeAction::Up;
         let action2 = TreeAction::Up.clone();
         let action3 = TreeAction::Down;
-        
+
         // Test Clone
         assert_eq!(action1, action2);
-        
+
         // Test PartialEq and Eq
         assert_eq!(action1, action2);
         assert_ne!(action1, action3);
-        
+
         // Test Debug (just ensure it doesn't panic)
         let debug_str = format!("{:?}", action1);
         assert!(debug_str.contains("Up"));
@@ -322,17 +397,18 @@ mod tests {
     #[test]
     fn keymap_has_all_expected_bindings() {
         let keymap = default_keymap();
-        
+
         // Get all bindings and verify we have the expected number
         let bindings = keymap.describe(&());
-        
+
         // We should have exactly 20 bindings based on the default_keymap function
         // (some keys like k/Up map to the same action, but we count unique KeyCombo -> Action pairs)
         assert_eq!(bindings.len(), 20);
-        
+
         // Verify that all TreeAction variants can be triggered
-        let actions: std::collections::HashSet<_> = bindings.iter().map(|(_, action)| action).collect();
-        
+        let actions: std::collections::HashSet<_> =
+            bindings.iter().map(|(_, action)| action).collect();
+
         // All 14 TreeAction variants should be reachable
         assert_eq!(actions.len(), 14);
         assert!(actions.contains(&TreeAction::Up));

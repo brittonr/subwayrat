@@ -36,8 +36,7 @@ impl FilterSpec {
             }
         }
         // Tag include
-        if !self.include_tags.is_empty()
-            && !self.include_tags.iter().any(|t| item.tags.contains(t))
+        if !self.include_tags.is_empty() && !self.include_tags.iter().any(|t| item.tags.contains(t))
         {
             return false;
         }
@@ -68,14 +67,24 @@ mod tests {
     use super::*;
     use crate::types::{AgendaItem, Date};
 
-    fn item(title: &str, status: Option<&str>, priority: Option<char>, tags: &[&str]) -> AgendaItem {
+    fn item(
+        title: &str,
+        status: Option<&str>,
+        priority: Option<char>,
+        tags: &[&str],
+    ) -> AgendaItem {
         AgendaItem {
-            id: title.into(), title: title.into(),
-            status: status.map(|s| s.into()), priority,
+            id: title.into(),
+            title: title.into(),
+            status: status.map(|s| s.into()),
+            priority,
             tags: tags.iter().map(|s| s.to_string()).collect(),
             scheduled: Some(Date::new(2026, 3, 15)),
-            deadline: None, time_start: None, time_end: None,
-            source_file: None, source_line: None,
+            deadline: None,
+            time_start: None,
+            time_end: None,
+            source_file: None,
+            source_line: None,
         }
     }
 
@@ -87,7 +96,10 @@ mod tests {
 
     #[test]
     fn status_filter() {
-        let f = FilterSpec { statuses: vec!["TODO".into()], ..Default::default() };
+        let f = FilterSpec {
+            statuses: vec!["TODO".into()],
+            ..Default::default()
+        };
         assert!(f.matches(&item("A", Some("TODO"), None, &[])));
         assert!(!f.matches(&item("B", Some("DONE"), None, &[])));
         assert!(!f.matches(&item("C", None, None, &[])));
@@ -95,21 +107,30 @@ mod tests {
 
     #[test]
     fn tag_include() {
-        let f = FilterSpec { include_tags: vec!["work".into()], ..Default::default() };
+        let f = FilterSpec {
+            include_tags: vec!["work".into()],
+            ..Default::default()
+        };
         assert!(f.matches(&item("A", None, None, &["work"])));
         assert!(!f.matches(&item("B", None, None, &["personal"])));
     }
 
     #[test]
     fn tag_exclude() {
-        let f = FilterSpec { exclude_tags: vec!["spam".into()], ..Default::default() };
+        let f = FilterSpec {
+            exclude_tags: vec!["spam".into()],
+            ..Default::default()
+        };
         assert!(f.matches(&item("A", None, None, &["work"])));
         assert!(!f.matches(&item("B", None, None, &["spam"])));
     }
 
     #[test]
     fn text_search() {
-        let f = FilterSpec { text_query: "ship".into(), ..Default::default() };
+        let f = FilterSpec {
+            text_query: "ship".into(),
+            ..Default::default()
+        };
         assert!(f.matches(&item("Ship docs", None, None, &[])));
         assert!(!f.matches(&item("Buy groceries", None, None, &[])));
     }

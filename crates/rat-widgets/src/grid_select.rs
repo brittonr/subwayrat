@@ -151,14 +151,14 @@ impl GridSelect {
         // Clamp to area size
         let width = popup_width.min(area.width.saturating_sub(4));
         let height = popup_height.min(area.height.saturating_sub(4));
-        
+
         // Center popup
         let x = area.x + (area.width.saturating_sub(width)) / 2;
         let y = area.y + (area.height.saturating_sub(height)) / 2;
         let popup = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, popup);
-        
+
         let block = Block::default()
             .title(format!(" {} ", self.title))
             .borders(Borders::ALL)
@@ -183,7 +183,7 @@ impl GridSelect {
         let popup = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, popup);
-        
+
         let block = Block::default()
             .title(format!(" {} ", self.title))
             .borders(Borders::ALL)
@@ -198,11 +198,9 @@ impl GridSelect {
 
     fn render_grid(&self, frame: &mut Frame, area: Rect, theme: &WidgetTheme) {
         let rows = self.model.items.len().div_ceil(self.model.columns);
-        
+
         // Create row constraints
-        let row_constraints: Vec<Constraint> = (0..rows)
-            .map(|_| Constraint::Length(1))
-            .collect();
+        let row_constraints: Vec<Constraint> = (0..rows).map(|_| Constraint::Length(1)).collect();
 
         let row_layout = Layout::default()
             .direction(Direction::Vertical)
@@ -215,9 +213,10 @@ impl GridSelect {
             }
 
             let row_area = row_layout[row];
-            
+
             // Create column constraints for this row
-            let items_in_row = ((row + 1) * self.model.columns).min(self.model.items.len()) - row * self.model.columns;
+            let items_in_row = ((row + 1) * self.model.columns).min(self.model.items.len())
+                - row * self.model.columns;
             let col_constraints: Vec<Constraint> = (0..items_in_row)
                 .map(|_| Constraint::Ratio(1, items_in_row as u32))
                 .collect();
@@ -235,14 +234,21 @@ impl GridSelect {
 
                 let item = &self.model.items[item_index];
                 let cell_area = col_layout[col];
-                
+
                 let is_selected = item_index == self.model.selected;
                 self.render_cell(frame, cell_area, item, is_selected, theme);
             }
         }
     }
 
-    fn render_cell(&self, frame: &mut Frame, area: Rect, item: &GridItem, selected: bool, theme: &WidgetTheme) {
+    fn render_cell(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        item: &GridItem,
+        selected: bool,
+        theme: &WidgetTheme,
+    ) {
         if area.width == 0 || area.height == 0 {
             return;
         }
@@ -292,7 +298,7 @@ mod tests {
             GridItem::new("Item 3"),
         ];
         let grid = GridSelect::new("Test", items, 2);
-        
+
         assert_eq!(grid.title, "Test");
         assert_eq!(grid.model.items.len(), 3);
         assert_eq!(grid.model.columns, 2);
@@ -317,13 +323,9 @@ mod tests {
 
     #[test]
     fn move_right_within_bounds() {
-        let items = vec![
-            GridItem::new("A"),
-            GridItem::new("B"),
-            GridItem::new("C"),
-        ];
+        let items = vec![GridItem::new("A"), GridItem::new("B"), GridItem::new("C")];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         assert_eq!(grid.model.selected, 0);
         grid.move_right();
         assert_eq!(grid.model.selected, 1);
@@ -335,7 +337,7 @@ mod tests {
     fn move_right_at_end_stays() {
         let items = vec![GridItem::new("A"), GridItem::new("B")];
         let mut grid = GridSelect::new("Test", items, 2);
-        
+
         grid.set_selected(1); // Last item
         grid.move_right();
         assert_eq!(grid.model.selected, 1); // Should stay at last item
@@ -343,13 +345,9 @@ mod tests {
 
     #[test]
     fn move_left_within_bounds() {
-        let items = vec![
-            GridItem::new("A"),
-            GridItem::new("B"),
-            GridItem::new("C"),
-        ];
+        let items = vec![GridItem::new("A"), GridItem::new("B"), GridItem::new("C")];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         grid.set_selected(2);
         assert_eq!(grid.model.selected, 2);
         grid.move_left();
@@ -362,7 +360,7 @@ mod tests {
     fn move_left_at_start_stays() {
         let items = vec![GridItem::new("A"), GridItem::new("B")];
         let mut grid = GridSelect::new("Test", items, 2);
-        
+
         assert_eq!(grid.model.selected, 0);
         grid.move_left();
         assert_eq!(grid.model.selected, 0); // Should stay at 0
@@ -371,11 +369,15 @@ mod tests {
     #[test]
     fn move_down_by_columns() {
         let items = vec![
-            GridItem::new("A"), GridItem::new("B"), GridItem::new("C"),
-            GridItem::new("D"), GridItem::new("E"), GridItem::new("F"),
+            GridItem::new("A"),
+            GridItem::new("B"),
+            GridItem::new("C"),
+            GridItem::new("D"),
+            GridItem::new("E"),
+            GridItem::new("F"),
         ];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         grid.set_selected(1); // Second item in first row
         grid.move_down();
         assert_eq!(grid.model.selected, 4); // Second item in second row (1 + 3)
@@ -384,11 +386,14 @@ mod tests {
     #[test]
     fn move_down_clamps_to_last() {
         let items = vec![
-            GridItem::new("A"), GridItem::new("B"), GridItem::new("C"),
-            GridItem::new("D"), GridItem::new("E"), // 5 items in 3-column grid
+            GridItem::new("A"),
+            GridItem::new("B"),
+            GridItem::new("C"),
+            GridItem::new("D"),
+            GridItem::new("E"), // 5 items in 3-column grid
         ];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         grid.set_selected(2); // Third item in first row
         grid.move_down();
         assert_eq!(grid.model.selected, 4); // Should clamp to last item (index 4)
@@ -397,11 +402,15 @@ mod tests {
     #[test]
     fn move_up_by_columns() {
         let items = vec![
-            GridItem::new("A"), GridItem::new("B"), GridItem::new("C"),
-            GridItem::new("D"), GridItem::new("E"), GridItem::new("F"),
+            GridItem::new("A"),
+            GridItem::new("B"),
+            GridItem::new("C"),
+            GridItem::new("D"),
+            GridItem::new("E"),
+            GridItem::new("F"),
         ];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         grid.set_selected(4); // Second item in second row
         grid.move_up();
         assert_eq!(grid.model.selected, 1); // Second item in first row (4 - 3)
@@ -410,11 +419,13 @@ mod tests {
     #[test]
     fn move_up_clamps_to_zero() {
         let items = vec![
-            GridItem::new("A"), GridItem::new("B"), GridItem::new("C"),
+            GridItem::new("A"),
+            GridItem::new("B"),
+            GridItem::new("C"),
             GridItem::new("D"),
         ];
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         grid.set_selected(1); // Second item in first row
         grid.move_up();
         assert_eq!(grid.model.selected, 0); // Should saturating_sub to 0
@@ -422,16 +433,13 @@ mod tests {
 
     #[test]
     fn selected_item_access() {
-        let items = vec![
-            GridItem::new("First"),
-            GridItem::new("Second"),
-        ];
+        let items = vec![GridItem::new("First"), GridItem::new("Second")];
         let mut grid = GridSelect::new("Test", items, 2);
-        
+
         assert_eq!(grid.model.selected_item().unwrap().label, "First");
         grid.set_selected(1);
         assert_eq!(grid.model.selected_item().unwrap().label, "Second");
-        
+
         // Out of bounds
         grid.set_selected(10);
         assert_eq!(grid.model.selected_index(), 1); // Should clamp to last valid index
@@ -455,7 +463,7 @@ mod tests {
     fn set_selected_clamps() {
         let items = vec![GridItem::new("A"), GridItem::new("B")];
         let mut grid = GridSelect::new("Test", items, 2);
-        
+
         grid.set_selected(5); // Way out of bounds
         assert_eq!(grid.model.selected, 1); // Should clamp to last valid index (1)
     }
@@ -463,7 +471,7 @@ mod tests {
     #[test]
     fn empty_grid_navigation() {
         let mut grid = GridSelect::new("Empty", vec![], 3);
-        
+
         // All operations should be safe on empty grid
         grid.move_left();
         grid.move_right();
@@ -477,34 +485,36 @@ mod tests {
     fn complex_navigation_scenario() {
         // 8 items in 3 columns:
         // 0 1 2
-        // 3 4 5  
+        // 3 4 5
         // 6 7
-        let items: Vec<GridItem> = (0..8).map(|i| GridItem::new(format!("Item {}", i))).collect();
+        let items: Vec<GridItem> = (0..8)
+            .map(|i| GridItem::new(format!("Item {}", i)))
+            .collect();
         let mut grid = GridSelect::new("Test", items, 3);
-        
+
         // Start at 0
         assert_eq!(grid.model.selected, 0);
-        
+
         // Right to 1
         grid.move_right();
         assert_eq!(grid.model.selected, 1);
-        
+
         // Down to 4
         grid.move_down();
         assert_eq!(grid.model.selected, 4);
-        
+
         // Right to 5
         grid.move_right();
         assert_eq!(grid.model.selected, 5);
-        
+
         // Down to 7 (clamped from 5+3=8 to last item 7)
         grid.move_down();
         assert_eq!(grid.model.selected, 7);
-        
+
         // Up to 4
         grid.move_up();
         assert_eq!(grid.model.selected, 4);
-        
+
         // Left to 3
         grid.move_left();
         assert_eq!(grid.model.selected, 3);

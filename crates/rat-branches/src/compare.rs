@@ -1,6 +1,6 @@
 //! Generic branch comparison algorithm and data structures
 
-use crate::tree::{walk_to_root, TreeNode};
+use crate::tree::{TreeNode, walk_to_root};
 
 /// Summary of a single node in the comparison view
 #[derive(Debug, Clone)]
@@ -39,37 +39,37 @@ pub struct BranchComparison {
     /// The divergence point node ID (last common ancestor).
     /// `None` if branches share no common ancestor.
     pub divergence_id: Option<usize>,
-    
+
     /// Summary text at the divergence point
     pub divergence_summary: String,
-    
+
     /// Nodes unique to branch A (from divergence → leaf A)
     pub branch_a: Vec<CompareBlock>,
-    
+
     /// Nodes unique to branch B (from divergence → leaf B)
     pub branch_b: Vec<CompareBlock>,
-    
+
     /// Leaf node ID of branch A
     pub leaf_a: usize,
-    
+
     /// Leaf node ID of branch B
     pub leaf_b: usize,
-    
+
     /// Display name for branch A
     pub name_a: String,
-    
+
     /// Display name for branch B
     pub name_b: String,
-    
+
     /// Total tokens for branch A (unique portion only)
     pub tokens_a: usize,
-    
+
     /// Total tokens for branch B (unique portion only)
     pub tokens_b: usize,
 }
 
 /// Compare two branches of a tree, returning their divergence and unique nodes.
-/// 
+///
 /// The `summarize` function converts a node to a `CompareBlock` for display.
 pub fn compare_branches<N: TreeNode>(
     leaf_a: usize,
@@ -225,8 +225,8 @@ mod tests {
     #[test]
     fn compare_same_branch_no_unique() {
         let nodes = vec![
-            TestNode::new(0, "root", None, 100), 
-            TestNode::new(1, "child", Some(0), 200)
+            TestNode::new(0, "root", None, 100),
+            TestNode::new(1, "child", Some(0), 200),
         ];
         // Comparing a branch with itself: leaf 1 vs leaf 1
         let cmp = compare_branches(1, 1, &nodes, node_to_compare_block).unwrap();
@@ -260,7 +260,10 @@ mod tests {
 
     #[test]
     fn truncate_first_line_long() {
-        assert_eq!(truncate_first_line("hello world this is a long text", 10), "hello worl…");
+        assert_eq!(
+            truncate_first_line("hello world this is a long text", 10),
+            "hello worl…"
+        );
     }
 
     #[test]
@@ -273,7 +276,7 @@ mod tests {
         let block = CompareBlock::new(1, "test".to_string(), 100)
             .add_detail_count("responses", 5)
             .add_detail_count("tools", 2);
-        
+
         assert_eq!(block.id, 1);
         assert_eq!(block.preview, "test");
         assert_eq!(block.tokens, 100);

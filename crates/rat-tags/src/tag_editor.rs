@@ -20,8 +20,12 @@ pub struct TagEditorState {
 impl TagEditorState {
     pub fn new(vocabulary: Vec<String>) -> Self {
         Self {
-            tags: Vec::new(), input: String::new(), vocabulary,
-            popup_items: Vec::new(), popup_selected: 0, popup_visible: false,
+            tags: Vec::new(),
+            input: String::new(),
+            vocabulary,
+            popup_items: Vec::new(),
+            popup_selected: 0,
+            popup_visible: false,
         }
     }
 
@@ -32,9 +36,12 @@ impl TagEditorState {
             return;
         }
         let q = self.input.to_lowercase();
-        self.popup_items = self.vocabulary.iter()
+        self.popup_items = self
+            .vocabulary
+            .iter()
             .filter(|v| v.to_lowercase().contains(&q) && !self.tags.contains(v))
-            .cloned().collect();
+            .cloned()
+            .collect();
         self.popup_visible = !self.popup_items.is_empty();
         self.popup_selected = 0;
     }
@@ -42,8 +49,14 @@ impl TagEditorState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TagAction {
-    TypeChar(char), Backspace, SelectNext, SelectPrev,
-    AcceptSuggestion, AcceptInput, RemoveLast, Close,
+    TypeChar(char),
+    Backspace,
+    SelectNext,
+    SelectPrev,
+    AcceptSuggestion,
+    AcceptInput,
+    RemoveLast,
+    Close,
 }
 
 pub fn handle_tag_action(state: &mut TagEditorState, action: TagAction) {
@@ -83,8 +96,12 @@ pub fn handle_tag_action(state: &mut TagEditorState, action: TagAction) {
                 state.update_popup();
             }
         }
-        TagAction::RemoveLast => { state.tags.pop(); }
-        TagAction::Close => { state.popup_visible = false; }
+        TagAction::RemoveLast => {
+            state.tags.pop();
+        }
+        TagAction::Close => {
+            state.popup_visible = false;
+        }
     }
 }
 
@@ -115,8 +132,13 @@ pub struct TagEditor<'a> {
 }
 
 impl<'a> TagEditor<'a> {
-    pub fn new(style: TagStyle) -> Self { Self { style, block: None } }
-    pub fn block(mut self, block: Block<'a>) -> Self { self.block = Some(block); self }
+    pub fn new(style: TagStyle) -> Self {
+        Self { style, block: None }
+    }
+    pub fn block(mut self, block: Block<'a>) -> Self {
+        self.block = Some(block);
+        self
+    }
 }
 
 impl StatefulWidget for TagEditor<'_> {
@@ -124,9 +146,15 @@ impl StatefulWidget for TagEditor<'_> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let inner = if let Some(block) = &self.block {
-            let inner = block.inner(area); block.clone().render(area, buf); inner
-        } else { area };
-        if inner.height == 0 { return; }
+            let inner = block.inner(area);
+            block.clone().render(area, buf);
+            inner
+        } else {
+            area
+        };
+        if inner.height == 0 {
+            return;
+        }
 
         // Tag chips + input on first line
         let mut spans: Vec<Span<'static>> = Vec::new();
@@ -142,13 +170,26 @@ impl StatefulWidget for TagEditor<'_> {
         if state.popup_visible {
             for (i, item) in state.popup_items.iter().enumerate() {
                 let y = inner.y + 1 + i as u16;
-                if y >= inner.y + inner.height { break; }
-                let is_sel = i == state.popup_selected;
-                let sty = if is_sel { self.style.popup_selected } else { self.style.popup_normal };
-                if is_sel {
-                    for x in inner.x..inner.x + inner.width { buf[(x, y)].set_style(sty); }
+                if y >= inner.y + inner.height {
+                    break;
                 }
-                buf.set_line(inner.x, y, &Line::from(Span::styled(format!("  {}", item), sty)), inner.width);
+                let is_sel = i == state.popup_selected;
+                let sty = if is_sel {
+                    self.style.popup_selected
+                } else {
+                    self.style.popup_normal
+                };
+                if is_sel {
+                    for x in inner.x..inner.x + inner.width {
+                        buf[(x, y)].set_style(sty);
+                    }
+                }
+                buf.set_line(
+                    inner.x,
+                    y,
+                    &Line::from(Span::styled(format!("  {}", item), sty)),
+                    inner.width,
+                );
             }
         }
     }
@@ -160,7 +201,8 @@ mod tests {
 
     #[test]
     fn type_to_filter() {
-        let mut state = TagEditorState::new(vec!["work".into(), "personal".into(), "workout".into()]);
+        let mut state =
+            TagEditorState::new(vec!["work".into(), "personal".into(), "workout".into()]);
         handle_tag_action(&mut state, TagAction::TypeChar('w'));
         handle_tag_action(&mut state, TagAction::TypeChar('o'));
         assert!(state.popup_visible);

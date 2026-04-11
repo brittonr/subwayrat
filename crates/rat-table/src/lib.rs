@@ -1,7 +1,8 @@
 use ratatui::{
+    Frame,
+    layout::{Constraint, Rect},
     style::{Color, Style},
     widgets::{Block, Cell, Row, Table, TableState},
-    Frame, layout::{Constraint, Rect},
 };
 
 /// A scrollable data table widget for ratatui with auto column sizing
@@ -52,8 +53,9 @@ impl DataTable {
     pub fn new(columns: Vec<String>, rows: Vec<Vec<String>>) -> Self {
         let max_cell_width = 40;
         let min_cell_width = 5;
-        let column_widths = calculate_column_widths(&columns, &rows, min_cell_width, max_cell_width);
-        
+        let column_widths =
+            calculate_column_widths(&columns, &rows, min_cell_width, max_cell_width);
+
         Self {
             columns,
             rows,
@@ -184,7 +186,13 @@ impl DataTable {
     }
 
     /// Render the data table
-    pub fn render(&self, frame: &mut Frame, area: Rect, block: Option<Block>, style: &DataTableStyle) {
+    pub fn render(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        block: Option<Block>,
+        style: &DataTableStyle,
+    ) {
         let render_area = if let Some(block) = block.clone() {
             let inner = block.inner(area);
             frame.render_widget(block, area);
@@ -202,7 +210,7 @@ impl DataTable {
 
         // Determine visible columns based on scroll offset and available width
         let visible_columns = self.get_visible_columns(render_area.width);
-        
+
         if visible_columns.is_empty() {
             // No visible columns
             let table = Table::new(vec![] as Vec<Row>, vec![] as Vec<Constraint>);
@@ -211,12 +219,14 @@ impl DataTable {
         }
 
         // Create constraints for visible columns
-        let constraints: Vec<Constraint> = visible_columns.iter()
+        let constraints: Vec<Constraint> = visible_columns
+            .iter()
             .map(|(_, width)| Constraint::Length(*width + style.column_spacing))
             .collect();
 
         // Create header row
-        let header_cells: Vec<Cell> = visible_columns.iter()
+        let header_cells: Vec<Cell> = visible_columns
+            .iter()
             .map(|(col_name, width)| {
                 let display_name = truncate_cell(col_name, *width, &style.truncation_suffix);
                 Cell::from(display_name).style(style.header_style)
@@ -225,22 +235,26 @@ impl DataTable {
         let header_row = Row::new(header_cells);
 
         // Create data rows
-        let data_rows: Vec<Row> = self.rows.iter().enumerate()
+        let data_rows: Vec<Row> = self
+            .rows
+            .iter()
+            .enumerate()
             .map(|(row_idx, row_data)| {
-                let cells: Vec<Cell> = visible_columns.iter().enumerate()
+                let cells: Vec<Cell> = visible_columns
+                    .iter()
+                    .enumerate()
                     .map(|(visible_idx, (_, width))| {
                         let col_idx = self.scroll_col + visible_idx;
-                        let cell_content = row_data.get(col_idx)
-                            .map(|s| s.as_str())
-                            .unwrap_or("");
-                        let display_content = truncate_cell(cell_content, *width, &style.truncation_suffix);
-                        
+                        let cell_content = row_data.get(col_idx).map(|s| s.as_str()).unwrap_or("");
+                        let display_content =
+                            truncate_cell(cell_content, *width, &style.truncation_suffix);
+
                         let cell_style = if row_idx == self.selected_row {
                             style.selected_style
                         } else {
                             style.normal_style
                         };
-                        
+
                         Cell::from(display_content).style(cell_style)
                     })
                     .collect();
@@ -249,9 +263,8 @@ impl DataTable {
             .collect();
 
         // Build table
-        let table = Table::new(data_rows, constraints)
-            .header(header_row);
-        
+        let table = Table::new(data_rows, constraints).header(header_row);
+
         // Create and configure table state for selection
         let mut table_state = TableState::default();
         if !self.rows.is_empty() {
@@ -264,10 +277,10 @@ impl DataTable {
     /// Recalculate column widths based on current min/max settings
     fn recalculate_widths(&mut self) {
         self.column_widths = calculate_column_widths(
-            &self.columns, 
-            &self.rows, 
-            self.min_cell_width, 
-            self.max_cell_width
+            &self.columns,
+            &self.rows,
+            self.min_cell_width,
+            self.max_cell_width,
         );
     }
 
@@ -277,9 +290,11 @@ impl DataTable {
         let mut used_width = 0;
 
         for i in self.scroll_col..self.columns.len() {
-            if let (Some(col_name), Some(&col_width)) = (self.columns.get(i), self.column_widths.get(i)) {
+            if let (Some(col_name), Some(&col_width)) =
+                (self.columns.get(i), self.column_widths.get(i))
+            {
                 let needed_width = col_width + if visible.is_empty() { 0 } else { 1 }; // column spacing
-                
+
                 if used_width + needed_width <= available_width {
                     visible.push((col_name.clone(), col_width));
                     used_width += needed_width;
@@ -294,8 +309,14 @@ impl DataTable {
 }
 
 /// Calculate optimal column widths based on content and constraints
-fn calculate_column_widths(columns: &[String], rows: &[Vec<String>], min_width: u16, max_width: u16) -> Vec<u16> {
-    let mut widths: Vec<u16> = columns.iter()
+fn calculate_column_widths(
+    columns: &[String],
+    rows: &[Vec<String>],
+    min_width: u16,
+    max_width: u16,
+) -> Vec<u16> {
+    let mut widths: Vec<u16> = columns
+        .iter()
         .map(|col| (col.len() as u16).clamp(min_width, max_width))
         .collect();
 
@@ -334,9 +355,9 @@ mod tests {
             vec!["Alice".to_string(), "25".to_string()],
             vec!["Bob".to_string(), "30".to_string()],
         ];
-        
+
         let table = DataTable::new(columns.clone(), rows.clone());
-        
+
         assert_eq!(table.columns, columns);
         assert_eq!(table.rows, rows);
         assert_eq!(table.selected_row, 0);
@@ -353,7 +374,7 @@ mod tests {
                 vec!["Row1".to_string()],
                 vec!["Row2".to_string()],
                 vec!["Row3".to_string()],
-            ]
+            ],
         );
 
         assert_eq!(table.selected_index(), 0);
@@ -375,7 +396,7 @@ mod tests {
     fn test_scrolling() {
         let mut table = DataTable::new(
             vec!["Col1".to_string(), "Col2".to_string(), "Col3".to_string()],
-            vec![vec!["A".to_string(), "B".to_string(), "C".to_string()]]
+            vec![vec!["A".to_string(), "B".to_string(), "C".to_string()]],
         );
 
         assert_eq!(table.scroll_col, 0);
@@ -403,7 +424,7 @@ mod tests {
         ];
 
         let widths = calculate_column_widths(&columns, &rows, 5, 40);
-        
+
         // First column: max("Short".len(), "Very Long Content".len()) = 17
         // Second column: max("Very Long Header".len(), "Small".len()) = 16
         assert_eq!(widths[0], 17);
@@ -413,7 +434,7 @@ mod tests {
     #[test]
     fn test_truncation() {
         let result = truncate_cell("This is a very long string", 10, "...");
-        assert_eq!(result, "This is...");  // 10 - 3 = 7 chars of content
+        assert_eq!(result, "This is..."); // 10 - 3 = 7 chars of content
 
         let result = truncate_cell("Short", 10, "...");
         assert_eq!(result, "Short");
@@ -425,10 +446,7 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        let mut table = DataTable::new(
-            vec!["Col1".to_string()],
-            vec![vec!["Row1".to_string()]]
-        );
+        let mut table = DataTable::new(vec!["Col1".to_string()], vec![vec!["Row1".to_string()]]);
 
         assert!(!table.is_empty());
         table.clear();
@@ -441,16 +459,19 @@ mod tests {
     fn test_selected_row() {
         let mut table = DataTable::new(
             vec!["Name".to_string()],
-            vec![
-                vec!["Alice".to_string()],
-                vec!["Bob".to_string()],
-            ]
+            vec![vec!["Alice".to_string()], vec!["Bob".to_string()]],
         );
 
-        assert_eq!(table.selected_row(), Some(vec!["Alice".to_string()].as_slice()));
-        
+        assert_eq!(
+            table.selected_row(),
+            Some(vec!["Alice".to_string()].as_slice())
+        );
+
         table.select_next();
-        assert_eq!(table.selected_row(), Some(vec!["Bob".to_string()].as_slice()));
+        assert_eq!(
+            table.selected_row(),
+            Some(vec!["Bob".to_string()].as_slice())
+        );
     }
 
     #[test]
@@ -513,7 +534,9 @@ mod tests {
     fn with_max_cell_width_clamps_columns() {
         let table = DataTable::new(
             vec!["Header".to_string()],
-            vec![vec!["A very long cell value that exceeds the cap".to_string()]],
+            vec![vec![
+                "A very long cell value that exceeds the cap".to_string(),
+            ]],
         )
         .with_max_cell_width(10);
 
@@ -522,11 +545,8 @@ mod tests {
 
     #[test]
     fn with_min_cell_width_enforces_floor() {
-        let table = DataTable::new(
-            vec!["H".to_string()],
-            vec![vec!["X".to_string()]],
-        )
-        .with_min_cell_width(12);
+        let table = DataTable::new(vec!["H".to_string()], vec![vec!["X".to_string()]])
+            .with_min_cell_width(12);
 
         assert!(table.column_widths.iter().all(|&w| w >= 12));
     }
@@ -559,7 +579,9 @@ mod tests {
     fn info_reports_truncation() {
         let table = DataTable::new(
             vec!["Name".to_string()],
-            vec![vec!["A string longer than the forty character maximum width".to_string()]],
+            vec![vec![
+                "A string longer than the forty character maximum width".to_string(),
+            ]],
         );
 
         let info = table.info();
@@ -570,10 +592,7 @@ mod tests {
 
     #[test]
     fn info_no_truncation_for_short_cells() {
-        let table = DataTable::new(
-            vec!["Name".to_string()],
-            vec![vec!["Short".to_string()]],
-        );
+        let table = DataTable::new(vec!["Name".to_string()], vec![vec!["Short".to_string()]]);
 
         let info = table.info();
         assert!(!info.is_truncated);
@@ -581,18 +600,15 @@ mod tests {
 
     #[test]
     fn column_widths_clamped_to_min_max() {
-        let widths = calculate_column_widths(
-            &["X".to_string()],
-            &[vec!["Y".to_string()]],
-            8,
-            20,
-        );
+        let widths = calculate_column_widths(&["X".to_string()], &[vec!["Y".to_string()]], 8, 20);
         // Both "X" and "Y" are 1 char, but min is 8.
         assert_eq!(widths[0], 8);
 
         let widths = calculate_column_widths(
             &["A".to_string()],
-            &[vec!["This string is way beyond the twenty char max".to_string()]],
+            &[vec![
+                "This string is way beyond the twenty char max".to_string(),
+            ]],
             5,
             20,
         );
@@ -615,8 +631,16 @@ mod tests {
     #[test]
     fn visible_columns_respects_scroll_and_width() {
         let table = DataTable::new(
-            vec!["AAAAAAAAAA".to_string(), "BBBBBBBBBB".to_string(), "CCCCCCCCCC".to_string()],
-            vec![vec!["1234567890".to_string(), "1234567890".to_string(), "1234567890".to_string()]],
+            vec![
+                "AAAAAAAAAA".to_string(),
+                "BBBBBBBBBB".to_string(),
+                "CCCCCCCCCC".to_string(),
+            ],
+            vec![vec![
+                "1234567890".to_string(),
+                "1234567890".to_string(),
+                "1234567890".to_string(),
+            ]],
         );
 
         // With enough width, all columns visible from scroll 0.
