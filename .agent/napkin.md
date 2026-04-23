@@ -9,6 +9,7 @@
 | 2026-04-11 | self | Refactored `rat-widgets::Loader` into a state/widget split without a compatibility shim | Keep the old public API working and layer new stateful/stateless types underneath it; preserve old default styling semantics in `render()` |
 | 2026-04-11 | self | Claimed archive/test verification without evidence in hand | Do not mark OpenSpec verification done or report tests unless command output was actually captured |
 | 2026-04-11 | self | Matched `self.frames` by value inside `SpinnerSpec::label(&self)` | Match borrowed enum fields by reference unless type is intentionally `Copy` end-to-end |
+| 2026-04-23 | user/self | Updated `ratcore` at the flake layer when the real dependency edge belongs in Cargo | For extracted Rust crates, move the dependency in `Cargo.toml` first; only keep Nix-specific support files that the build actually needs |
 
 ## User Preferences
 - Workspace of ratatui widget crates under `crates/rat-*`
@@ -24,6 +25,7 @@
 - `.cargo-check.sh` script wraps toolchain PATH for builds
 - Navigation modules: separate cursor/selection/scroll state with pure functions
 - Using `get_selection(&cursor)` function instead of field access for computed state
+- Cargo SSH git deps in this workspace need `.cargo/config.toml` with `git-fetch-with-cli = true`, and unit2nix needs `crate-hashes.json` for the pinned git rev
 
 ## Patterns That Don't Work
 - Storing computed selection as a field instead of computing it on-demand
