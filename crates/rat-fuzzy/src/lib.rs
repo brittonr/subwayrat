@@ -11,6 +11,6 @@ pub mod types;
 
 pub use action::{Action, handle_action};
 pub use render::{FuzzyFinder, FuzzyStyle};
-pub use score::{ScoredMatch, fuzzy_score};
+pub use score::{FuzzyScoreInput, ScoredMatch, fuzzy_score};
 pub use state::FuzzyState;
 pub use types::{FuzzyCandidate, FuzzySource};

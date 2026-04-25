@@ -38,7 +38,7 @@ pub mod state;
 pub mod style;
 
 pub use keymap::{TreeAction, default_keymap, parse_tree_action};
-pub use model::{SimpleTree, TreeData, VisibleRow, compute_visible_rows};
+pub use model::{NodeId, SimpleTree, TreeData, VisibleRow, compute_visible_rows};
 pub use render::{Tree, TreeInfo};
 pub use state::TreeState;
 pub use style::TreeStyle;

@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 
 use crate::keymap::TreeAction;
-use crate::model::{TreeData, VisibleRow, compute_visible_rows};
+use crate::model::{NodeId, TreeData, VisibleRow, compute_visible_rows};
 
 /// Mutable state for a tree widget.
 ///
@@ -16,7 +16,7 @@ pub struct TreeState {
     /// First visible row in the viewport.
     pub scroll_offset: usize,
     /// Set of expanded node ids.
-    pub expanded: BTreeSet<usize>,
+    pub expanded: BTreeSet<NodeId>,
     /// Cached flat list of visible rows, recomputed on expand/collapse.
     pub visible_rows: Vec<VisibleRow>,
 }
@@ -41,23 +41,25 @@ impl TreeState {
 
     /// Expand the node under the cursor. No-op if it's a leaf or already expanded.
     pub fn expand(&mut self, data: &dyn TreeData) {
-        if let Some(row) = self.visible_rows.get(self.cursor) {
-            if row.has_children && !row.is_expanded {
-                self.expanded.insert(row.node_id);
-                self.recompute(data);
-            }
+        if let Some(row) = self.visible_rows.get(self.cursor)
+            && row.has_children
+            && !row.is_expanded
+        {
+            self.expanded.insert(row.node_id);
+            self.recompute(data);
         }
     }
 
     /// Collapse the node under the cursor. No-op if it's a leaf or already collapsed.
     pub fn collapse(&mut self, data: &dyn TreeData) {
-        if let Some(row) = self.visible_rows.get(self.cursor) {
-            if row.has_children && row.is_expanded {
-                self.expanded.remove(&row.node_id);
-                self.recompute(data);
-                // Cursor might now point past the end
-                self.clamp_cursor();
-            }
+        if let Some(row) = self.visible_rows.get(self.cursor)
+            && row.has_children
+            && row.is_expanded
+        {
+            self.expanded.remove(&row.node_id);
+            self.recompute(data);
+            // Cursor might now point past the end
+            self.clamp_cursor();
         }
     }
 
@@ -75,17 +77,15 @@ impl TreeState {
                 self.recompute(data);
 
                 // If cursor was on a descendant of the collapsed node, move to collapsed node
-                if let Some(cid) = cursor_node_id {
-                    if cid != collapsed_id {
-                        // Cursor was on the node itself, find it
-                        if let Some(pos) = self
-                            .visible_rows
-                            .iter()
-                            .position(|r| r.node_id == collapsed_id)
-                        {
-                            self.cursor = pos;
-                        }
-                    }
+                if let Some(cid) = cursor_node_id
+                    && cid != collapsed_id
+                    // Cursor was on the node itself, find it
+                    && let Some(pos) = self
+                        .visible_rows
+                        .iter()
+                        .position(|r| r.node_id == collapsed_id)
+                {
+                    self.cursor = pos;
                 }
                 self.clamp_cursor();
             } else {
@@ -123,16 +123,14 @@ impl TreeState {
 
     /// Move cursor to the parent of the current node.
     pub fn navigate_parent(&mut self, data: &dyn TreeData) {
-        if let Some(row) = self.visible_rows.get(self.cursor) {
-            if let Some(parent_id) = data.parent(row.node_id) {
-                if let Some(pos) = self
-                    .visible_rows
-                    .iter()
-                    .position(|r| r.node_id == parent_id)
-                {
-                    self.cursor = pos;
-                }
-            }
+        if let Some(row) = self.visible_rows.get(self.cursor)
+            && let Some(parent_id) = data.parent(row.node_id)
+            && let Some(pos) = self
+                .visible_rows
+                .iter()
+                .position(|r| r.node_id == parent_id)
+        {
+            self.cursor = pos;
         }
     }
 
@@ -248,7 +246,7 @@ impl TreeState {
         action: TreeAction,
         data: &dyn TreeData,
         viewport_height: usize,
-    ) -> Option<usize> {
+    ) -> Option<NodeId> {
         let mut selected = None;
         match action {
             TreeAction::Up => self.move_up(),
@@ -275,7 +273,7 @@ impl TreeState {
     // ── Helpers ─────────────────────────────────────────────────────────
 
     /// Node id at the current cursor position, if any.
-    pub fn cursor_node_id(&self) -> Option<usize> {
+    pub fn cursor_node_id(&self) -> Option<NodeId> {
         self.visible_rows.get(self.cursor).map(|r| r.node_id)
     }
 

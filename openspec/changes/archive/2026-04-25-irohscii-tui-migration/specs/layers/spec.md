@@ -113,6 +113,8 @@ The layer stack SHALL provide an iterator over layers in render order
 
 ### Requirement: Rename layer
 
+The layer stack SHALL allow callers to rename an existing layer by id.
+
 #### Scenario: Rename updates name
 
 - **WHEN** `rename_layer(id, "New Name")` is called

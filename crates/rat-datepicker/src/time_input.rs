@@ -1,8 +1,10 @@
 //! TimeInput: HH:MM time entry widget.
 
+use std::fmt;
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, StatefulWidget, Widget};
 
@@ -29,9 +31,11 @@ impl TimeInputState {
             digit_buf: None,
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("{:02}:{:02}", self.hours, self.minutes)
+impl fmt::Display for TimeInputState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:02}:{:02}", self.hours, self.minutes)
     }
 }
 
@@ -111,6 +115,12 @@ impl<'a> TimeInput<'a> {
     pub fn block(mut self, block: Block<'a>) -> Self {
         self.block = Some(block);
         self
+    }
+}
+
+impl<'a> Default for TimeInput<'a> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

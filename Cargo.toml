@@ -28,6 +28,7 @@ members = [
     "crates/rat-backlinks",
     "crates/rat-tags",
     "crates/rat-chrome",
+    "crates/rat-typst",
     "crates/showcase",
 ]
 

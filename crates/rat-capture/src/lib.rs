@@ -260,13 +260,7 @@ impl StatefulWidget for CaptureOverlay {
 
         let title = match state.phase {
             Phase::TemplateSelect => " Select Template ",
-            Phase::Editing => {
-                if let Some(t) = state.selected_template() {
-                    " Capture "
-                } else {
-                    " Capture "
-                }
-            }
+            Phase::Editing => " Capture ",
             Phase::Closed => "",
         };
 

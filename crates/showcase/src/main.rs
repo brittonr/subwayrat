@@ -4,7 +4,11 @@
 //! Cycle focus within a tab with Tab/Shift+Tab.
 //! Press Ctrl+q to quit.
 
+use std::env;
+use std::ffi::OsString;
+use std::fs;
 use std::io;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use crossterm::event::{
@@ -45,6 +49,7 @@ use rat_tree::{
     SimpleTree, Tree as RatTree, TreeAction, TreeData, TreeState as RatTreeState,
     TreeStyle as RatTreeStyle, default_keymap,
 };
+use rat_typst::{TypstExportOptions, render_to_typst_with};
 
 use rat_agenda::{
     Action as AgendaAction, Agenda, AgendaItem, AgendaState, AgendaStyle, Date, Time, ViewMode,
@@ -89,6 +94,19 @@ const LOADER_PRESETS: &[SpinnerPreset] = &[
 ];
 
 const CUSTOM_LOADER_FRAMES: &[&str] = &["[   ]", "[=  ]", "[== ]", "[===]", "[ ==]", "[  =]"];
+
+const EXPORT_TYPST_ARG: &str = "--export-typst";
+const EXPORT_HELP_ARG: &str = "--help";
+const DEFAULT_TYPST_EXPORT_PATH: &str = "showcase.typ";
+const SHOWCASE_EXPORT_WIDTH: u16 = 120;
+const SHOWCASE_EXPORT_HEIGHT: u16 = 36;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum StartupMode {
+    Interactive,
+    Help,
+    ExportTypst(PathBuf),
+}
 
 // ── App state ────────────────────────────────────────────────────────────────
 
@@ -2274,7 +2292,19 @@ fn draw_misc_tab(frame: &mut Frame, area: Rect, app: &App) {
         ]),
         Line::from(vec![
             Span::styled(
-                "+ 12 more       ",
+                "rat-typst       ",
+                Style::default()
+                    .fg(Color::Rgb(160, 220, 220))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "Typst exporter backend for docs and visual snapshots",
+                Style::default().fg(Color::Rgb(160, 160, 160)),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "+ 11 more       ",
                 Style::default()
                     .fg(Color::Rgb(80, 80, 80))
                     .add_modifier(Modifier::BOLD),
@@ -2697,7 +2727,78 @@ fn draw_tiler_tab(frame: &mut Frame, area: Rect, app: &mut App) {
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
+fn invalid_argument(message: impl Into<String>) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidInput, message.into())
+}
+
+fn parse_startup_args(args: impl IntoIterator<Item = OsString>) -> io::Result<StartupMode> {
+    let mut args = args.into_iter();
+    let Some(first_arg) = args.next() else {
+        return Ok(StartupMode::Interactive);
+    };
+    let first_arg_text = first_arg.to_string_lossy();
+
+    if first_arg_text == EXPORT_HELP_ARG {
+        if args.next().is_some() {
+            return Err(invalid_argument("--help does not accept extra arguments"));
+        }
+        return Ok(StartupMode::Help);
+    }
+
+    if first_arg_text == EXPORT_TYPST_ARG {
+        let output_path = args
+            .next()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(DEFAULT_TYPST_EXPORT_PATH));
+        if args.next().is_some() {
+            return Err(invalid_argument(
+                "--export-typst accepts at most one output path",
+            ));
+        }
+        return Ok(StartupMode::ExportTypst(output_path));
+    }
+
+    Err(invalid_argument(format!(
+        "unknown showcase argument: {first_arg_text}",
+    )))
+}
+
+fn print_usage() {
+    println!("Usage: showcase [{EXPORT_TYPST_ARG} [output.typ]]");
+}
+
+fn export_showcase_typst(output_path: PathBuf) -> io::Result<()> {
+    let mut app = App::new();
+    init_tiler(&mut app);
+    let typst = render_to_typst_with(
+        SHOWCASE_EXPORT_WIDTH,
+        SHOWCASE_EXPORT_HEIGHT,
+        &TypstExportOptions::default(),
+        |frame| draw(frame, &mut app),
+    )
+    .map_err(io::Error::other)?;
+    fs::write(output_path, typst)
+}
+
+fn maybe_export_typst_from_args() -> io::Result<bool> {
+    match parse_startup_args(env::args_os().skip(1))? {
+        StartupMode::Interactive => Ok(false),
+        StartupMode::Help => {
+            print_usage();
+            Ok(true)
+        }
+        StartupMode::ExportTypst(output_path) => {
+            export_showcase_typst(output_path)?;
+            Ok(true)
+        }
+    }
+}
+
 fn main() -> io::Result<()> {
+    if maybe_export_typst_from_args()? {
+        return Ok(());
+    }
+
     enable_raw_mode()?;
     execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
 

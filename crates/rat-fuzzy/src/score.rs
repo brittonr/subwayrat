@@ -1,3 +1,3 @@
 //! Fuzzy scoring — re-exported from ratcore.
 
-pub use ratcore::fuzzy::{ScoredMatch, fuzzy_score};
+pub use ratcore::fuzzy::{FuzzyScoreInput, ScoredMatch, fuzzy_score};

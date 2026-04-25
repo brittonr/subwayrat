@@ -1349,6 +1349,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rat-typst"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+ "unicode-width",
+]
+
+[[package]]
 name = "rat-widgets"
 version = "0.1.0"
 dependencies = [
@@ -1633,6 +1641,7 @@ dependencies = [
  "rat-table",
  "rat-tags",
  "rat-tree",
+ "rat-typst",
  "rat-widgets",
  "ratatui",
 ]

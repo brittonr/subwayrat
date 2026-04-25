@@ -1,6 +1,8 @@
 //! Fuzzy finder state.
 
-use crate::score::{ScoredMatch, fuzzy_score};
+use std::cmp::Reverse;
+
+use crate::score::{FuzzyScoreInput, ScoredMatch, fuzzy_score};
 use crate::types::{FuzzyCandidate, FuzzySource};
 
 pub struct FuzzyState {
@@ -42,13 +44,17 @@ impl FuzzyState {
                 .iter()
                 .enumerate()
                 .filter_map(|(i, c)| {
-                    fuzzy_score(&c.text, &self.query).map(|mut m| {
+                    fuzzy_score(FuzzyScoreInput {
+                        text: &c.text,
+                        query: &self.query,
+                    })
+                    .map(|mut m| {
                         m.index = i;
                         m
                     })
                 })
                 .collect();
-            scored.sort_by(|a, b| b.score.cmp(&a.score));
+            scored.sort_by_key(|scored_match| Reverse(scored_match.score));
             self.results = scored;
         }
         self.selected = 0;

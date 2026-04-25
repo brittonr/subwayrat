@@ -1,0 +1,9 @@
+[package]
+name = "ratatypst-core"
+version = "0.1.0-vendored"
+edition = "2024"
+publish = false
+
+[dependencies]
+ratatui = { version = "0.30", default-features = false }
+unicode-width = "0.2"

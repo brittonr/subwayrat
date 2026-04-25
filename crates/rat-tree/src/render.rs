@@ -7,7 +7,7 @@ use ratatui::{
     widgets::{Block, StatefulWidget, Widget},
 };
 
-use crate::model::TreeData;
+use crate::model::{NodeId, TreeData};
 use crate::state::TreeState;
 use crate::style::TreeStyle;
 
@@ -164,7 +164,7 @@ pub struct TreeInfo {
     /// Total number of visible rows.
     pub visible_count: usize,
     /// Node id at the cursor position.
-    pub cursor_node_id: Option<usize>,
+    pub cursor_node_id: Option<NodeId>,
     /// Depth of the cursor node.
     pub cursor_depth: Option<usize>,
     /// Whether the cursor is on a leaf node.

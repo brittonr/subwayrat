@@ -30,3 +30,4 @@ rat-fuzzy = { version = "0.1.0", path = "../rat-fuzzy" }
 rat-capture = { version = "0.1.0", path = "../rat-capture" }
 rat-backlinks = { version = "0.1.0", path = "../rat-backlinks" }
 rat-tags = { version = "0.1.0", path = "../rat-tags" }
+rat-typst = { version = "0.1.0", path = "../rat-typst" }

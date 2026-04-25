@@ -1,5 +1,7 @@
 //! RepeaterInput: org-style repeater interval (+1w, ++2m, .+3d).
 
+use std::fmt;
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -64,9 +66,10 @@ pub struct Repeater {
     pub unit: RepeaterUnit,
 }
 
-impl Repeater {
-    pub fn to_string(&self) -> String {
-        format!(
+impl fmt::Display for Repeater {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
             "{}{}{}",
             self.mode.as_str(),
             self.count,
@@ -166,6 +169,12 @@ impl<'a> RepeaterInput<'a> {
     pub fn block(mut self, block: Block<'a>) -> Self {
         self.block = Some(block);
         self
+    }
+}
+
+impl<'a> Default for RepeaterInput<'a> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
