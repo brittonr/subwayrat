@@ -1,8 +1,8 @@
 # rat-keymap
 
-Generic modal keymap system for Ratatui applications.
+`rat-keymap` provides a generic modal keymap for Ratatui applications.
 
-This crate provides a flexible keymap system that can be parameterized over any action type (`A`) and mode type (`M`). It handles key event resolution, override support, and help text generation.
+It accepts any action type `A` and mode type `M`. It resolves key events, applies configuration overrides, and generates help text.
 
 ## Features
 
@@ -92,7 +92,7 @@ Represents a key combination:
 - `alt: bool`: Whether Alt is held  
 - `shift: bool`: Whether Shift is held
 
-### Key String Format
+### Key string format
 
 Supported formats for key strings:
 - Simple keys: `"k"`, `"enter"`, `"esc"`

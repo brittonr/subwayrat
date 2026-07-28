@@ -1,8 +1,10 @@
 # rat-typst
 
-`rat-typst` exports `ratatui` render output to standalone Typst documents. The default font is `DejaVu Sans Mono`; override `TypstExportOptions::font_family` when your docs use another monospace font.
+`rat-typst` exports Ratatui render output to standalone Typst documents.
 
-Use it when you want visual documentation, golden snapshots, or printable exports for subwayrat widgets without launching a terminal emulator.
+The default font is `DejaVu Sans Mono`. Set `TypstExportOptions::font_family` to use another monospace font.
+
+Use this crate for visual documentation, golden snapshots, and printable widget exports. It does not require a terminal emulator.
 
 ```rust,no_run
 use rat_typst::render_to_typst;
